@@ -1,0 +1,10 @@
+The validation loss always seems to be much worse than the training loss. If for the validation data, the same data
+is used as for the training (edit cluster_NN.py), then the loss is still different:
+
+Mon Aug 28 16:15:34 UTC 2017 / Mon Aug 28 16:20:27 UTC 2017 loss:     2.75234 cluster_count_output_categorical_accuracy:     0.171875 similarities_output_acc:     0.745801 cluster_count_output_loss:     2.19416 similarities_output_loss:     0.558176
+Mon Aug 28 16:15:34 UTC 2017 / Mon Aug 28 16:20:27 UTC 2017 val_loss: 4.00644 val_cluster_count_output_categorical_accuracy: 0.255208 val_similarities_output_acc: 0.649775 val_cluster_count_output_loss: 3.35897 val_similarities_output_loss: 0.647461
+
+Thats really weired.
+
+See:
+https://github.com/fchollet/keras/issues/605

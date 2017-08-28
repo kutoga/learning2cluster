@@ -1,0 +1,49 @@
+TODO:
+- Maybe print the network summary to somewhere?
+- The validation loss seems to be always worse than the training loss, but the used data is always generated?
+  - Test what happens if the training data is used for the validation run. See: BUG_LOSS.txt
+- Git-Repo erstellen
+- Use weithed loss-values for the similarities output
+    - Calculate the expected 1s and 0s and weight them
+
+IDEAS:
+- Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units
+- Try00 mit wsich wiederholenden LSTM-Layern
+
+NICE2HAVE:
+- Email-Notify einbauen
+
+DONE:
+- Save optimizer config (to_config(), from_config())
+  - save/load optimizer state
+- Implement save/load network model
+  - Abstract in BaseNN, impl in subclasses
+- Implement save/load training history
+  - This could be included in the general save load method (add a flag "include_history" or something like this)
+- Implement something to always store the best model etc.
+  - Maybe implement events or something like this
+- Implement validation
+  - Use test data for this
+- Implement some nice plots (at least validation / training loss)
+- Validate only every nth iteration
+- Create a nice output while training (something like lasagne / nolearn) -> the current output sucks
+  - Use the own history object to generate a nice output
+- Always print best iteration
+- Cluster Count Distribution wird nicht richtig geplottet
+- Print and store the required time for each iteration
+- Always print loss plots
+- Iteration print: Only print non-NaN values
+- Saving files:
+  - First create a temporary file
+  - After writing it, move it to the target location
+  - Why? Because if someone stops the program it is very uncool to have broken weights etc.
+- Print total training time
+- The prediction pictures are wrong
+- Create colorized output during the training
+  - Also: Order the output by training, then validation
+  - There is an empty line between the time and the training line
+  - Highlight the iteration number (and the best loss)
+  - If a loss is the best loss, print is green
+  - For the iteration output: Also print the best training loss
+- Print the amount of network parameters
+- Prediction graphics for all cluster counts: Add the probability to the title
