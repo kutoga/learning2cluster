@@ -2,7 +2,9 @@ import _pickle as pickle
 from os import path
 from shutil import move
 
-from keras.layers import Lambda, Activation, Concatenate
+import numpy as np
+
+from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape
 
 from core.nn.history import History
 
@@ -139,6 +141,32 @@ def concat_layer(axis=-1, name=None, input_count=None):
     if input_count is None or input_count > 1:
         return Concatenate(axis=axis, name=name)
     return Activation('linear', name=name)
+
+
+def gaussian_random_layer(shape=(10,), name=None, stddev=1.):
+    """
+    Just generate a layer with random numbers. Unfortunately this layer has to be called with an input tensor, but the
+    values of this input tensor are not used at all. That's ugly, but currently this cannot be avoided.
+    """
+
+    # TODO: Fix the return value of this function in a way that it is possible to use save_weights etc. Do this as soon as this layer is used
+
+    def get_name(suffix):
+        if name is None:
+            return None
+        return "{}_{}".format(name, suffix)
+
+    layers = []
+    layers.append(Dense(name=get_name("_DENSE0"), units=np.prod(shape), kernel_initializer='zeros', bias_initializer='zeros', trainable=False))
+    layers.append(Reshape(name=get_name("_RESHAPE0"), shape=shape))
+    layers.append(GaussianNoise(name=get_name("_GAUSSIAN0"), stddev=stddev))
+
+    def res(val):
+        for layer in layers:
+            val = layer(val)
+        return val
+
+    return res
 
 
 __MODEL_FILE_WEIGHTS_SUFFIX = '.weights.pkl'

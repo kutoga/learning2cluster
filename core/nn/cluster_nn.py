@@ -257,6 +257,7 @@ class ClusterNN(BaseNN):
         else:
             validation_data = None
         t_end_data_gen_time = time()
+        t_data_gen = t_end_data_gen_time - t_start_data_gen_time
 
         # Get some information to print
         history = self._get_history(self._model_training)
@@ -274,13 +275,13 @@ class ClusterNN(BaseNN):
         # Print an info message
         print(
             '\nIteration ' + colored(str(self.__get_last_epoch() + 1), 'blue', attrs=['bold']) +
-            ' (incl. valid data: {}; best valid loss (iter. {}): {:0.6}; best train loss (iter. {}): {:0.6}; ' \
-            'training time: {:0.9} s; data gen. time: {:0.9} s)'.format(
+            '\n(incl. valid data: {}; best valid loss (iter. {}): {:0.6}; best train loss (iter. {}): {:0.6}; ' \
+            'training time: {:0.9}s; data gen. time: {:0.9}s)'.format(
                 do_validation,
                 best_valid_loss_itr, best_valid_loss or float('nan'),
                 best_train_loss_itr, best_train_loss or float('nan'),
                 float(sum(filter(lambda t: t is not None, history['time_s']))),
-                t_end_data_gen_time - t_start_data_gen_time
+                t_data_gen
         ))
 
         # Do the training
