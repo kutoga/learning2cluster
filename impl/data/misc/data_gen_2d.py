@@ -140,39 +140,71 @@ class DataGen2dv02:
         self.add_noise_to_data_dimensions = False
         self.__rand = Random()
 
-    def generate(self, cluster_count=None, records=50, sigma=0.025, append_mirrored_versions=False, cluster_count_min=1, cluster_count_max=10):
+    def generate(self, cluster_count=None, records=50, sigma=0.025, cluster_count_min=1, cluster_count_max=10, allow_less_clusters=False):
         rand = self.__rand
 
         if cluster_count is None:
             cluster_count = rand.randint(cluster_count_min, cluster_count_max)
+
+        if records < cluster_count:
+            raise Exception("cluster_count must be <= records. cluster_count={}, records={}".format(cluster_count, records))
+
         limits = np.asarray([self.limit_x, self.limit_y])
         limits_scale = np.transpose(np.asarray([[self.limit_x[1] - self.limit_x[0], 0], [0,  self.limit_y[1] - self.limit_y[0]]]))
         limits_offset = np.asarray([self.limit_x[0], self.limit_y[0]])
 
         # Generate some candidates
-        possible_cluster_centers = np.dot(np.random.rand(cluster_count * 10, 2), limits_scale) + limits_offset
+        def generate_centers(count):
+            return np.dot(np.random.rand(count, 2), limits_scale) + limits_offset
+        additional_cluster_center_count = cluster_count * 10
+        possible_cluster_centers = generate_centers(cluster_count + additional_cluster_center_count)
 
         # Search now some, but they must have a good distance of at least min_center_dist
-        min_center_dist = 0.25
+        min_center_dist = 0.2
         min_center_dist_squared = min_center_dist * min_center_dist
         cluster_centers = []
-        for c_i in range(possible_cluster_centers.shape[0]):
-            center = possible_cluster_centers[c_i]
-            if len(cluster_centers) > 0:
-                min_dist = min(map(lambda c: np.sum(np.square(center - c)), cluster_centers))
-                if min_dist >= min_center_dist_squared:
+
+        while True:
+
+            # Add cluster centers
+            for c_i in range(possible_cluster_centers.shape[0]):
+                center = possible_cluster_centers[c_i]
+                if len(cluster_centers) > 0:
+
+                    # Test for the minimum distance
+                    too_short_distance = any(map(
+                        lambda c: np.sum(np.square(center - c)) < min_center_dist_squared,
+                        cluster_centers
+                    ))
+                    if not too_short_distance:
+                        cluster_centers.append(center)
+                else:
                     cluster_centers.append(center)
-            else:
-                cluster_centers.append(center)
+
+                if len(cluster_centers) >= cluster_count:
+                    break
+
+            # Is the job done?
             if len(cluster_centers) >= cluster_count:
                 break
+
+            # Is it required to search more cluster centers
+            if allow_less_clusters:
+                break
+
+            # Ok, generate new cluster candidates
+            possible_cluster_centers = generate_centers(possible_cluster_centers.shape[0])
+
+
+
         cluster_count = len(cluster_centers)
         cluster_centers = np.asarray(cluster_centers)
         # cluster_centers = np.dot(np.random.rand(cluster_count, 2), limits_scale) + limits_offset
 
-
-        # TODO: Find better centers
-        data_points_per_cluster = np.random.multinomial(records, [1./cluster_count]*cluster_count)
+        # Each cluster contains at least one elements, therefore we create a distribution for records - cluster_count
+        # entries and then we add to every cluster one element
+        data_points_per_cluster = np.random.multinomial(records - cluster_count, [1./cluster_count]*cluster_count)
+        data_points_per_cluster += 1
 
         data = np.zeros((records, 3), dtype=np.float32)
         data[:, 1:] = np.random.normal(size=(records, 2), scale=sigma)
@@ -195,6 +227,12 @@ class DataGen2dv02:
 
             c += 1
             i += dpc
+
+        # # DEBUG:
+        # if len(clusters) != 10:
+        #     print("DEBUG")
+        #     print("len: {}".format(len(clusters)))
+        #     print(clusters)
 
         return clusters
 

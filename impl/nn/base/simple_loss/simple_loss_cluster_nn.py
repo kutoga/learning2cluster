@@ -3,7 +3,7 @@ import numpy as np
 from keras.layers import Concatenate, Dot, Reshape
 
 from core.nn.cluster_nn import ClusterNN
-from core.nn.helper import filter_None
+from core.nn.helper import filter_None, concat_layer
 
 
 class SimpleLossClusterNN(ClusterNN):
@@ -49,9 +49,12 @@ class SimpleLossClusterNN(ClusterNN):
         # Add the grouping accuracy plot
         def grouping_accuracy_plot(history, plt):
             x = list(history.get_epoch_indices())
+            key_name = 'similarities_output_acc'
+            if key_name not in history.keys():
+                key_name = 'acc' # If only one fixed cluster count is used, the keyword changes (sorry, thats a bit ugly, keras!)
             plt.plot(
-                *filter_None(x, history['similarities_output_acc']),
-                *filter_None(x, history['val_similarities_output_acc']),
+                *filter_None(x, history[key_name]),
+                *filter_None(x, history['val_{}'.format(key_name)]),
                 alpha=0.7,
                 lw=0.5
             )
@@ -86,12 +89,20 @@ class SimpleLossClusterNN(ClusterNN):
                     similarities_output[c][i] = ci_source == ci_target
                     i += 1
 
+            # # DEBUG:
+            # if inputs[c]['cluster_count'] != 10:
+            #     print(inputs[c])
+
             cluster_count[c][inputs[c]['cluster_count'] - cluster_counts[0]] = 1.
 
         y = {
-            'cluster_count_output': cluster_count,
             'similarities_output': similarities_output
         }
+
+        # If there is more than one possible cluster count: Add the output for the cluster count
+        if len(cluster_counts) > 1:
+            y['cluster_count_output'] = cluster_count
+
         return y
 
     def _build_loss_network(self, network_output, loss_output, additional_network_outputs):
@@ -116,7 +127,8 @@ class SimpleLossClusterNN(ClusterNN):
         }
 
         # Compare all outputs with all outputs
-        softmax_dot_concat = self._s_layer('softmax_dot_concat', lambda name: Concatenate(name=name))
+        # softmax_dot_concat = self._s_layer('softmax_dot_concat', lambda name: Concatenate(name=name))
+        softmax_dot_concat = self._s_layer('softmax_dot_concat', lambda name: concat_layer(name=name, input_count=len(cluster_counts)))
         softmax_dot_concat_reshaper = self._s_layer('softmax_dot_concat_reshaper', lambda name: Reshape((len(cluster_counts),), name=name))
         cluster_attention = self._s_layer('cluster_attention', lambda name: Dot(axes=1, name=name))
         n_cluster_output = additional_network_outputs['cluster_count_output']
@@ -147,22 +159,28 @@ class SimpleLossClusterNN(ClusterNN):
                 similarities.append(cluster_attention([comparisons_concat, n_cluster_output]))
 
         # Now all comparisons are stored in "similarities": Concate them and return the array
-        similarities_output = self._s_layer('similarities_output', lambda name: Concatenate(name=name), format_name=False)(similarities)
+        # similarities_output = self._s_layer('similarities_output', lambda name: Concatenate(name=name), format_name=False)(similarities)
+        similarities_output = self._s_layer('similarities_output', lambda name: concat_layer(name=name, input_count=len(similarities)), format_name=False)(similarities)
         loss_output.append(similarities_output)
 
-        # Also add the cluster count output
-        loss_output.append(n_cluster_output)
+        # Also add the cluster count output, but only if there is more than one possible cluster count
+        if len(cluster_counts) > 1:
+            loss_output.append(n_cluster_output)
 
         return True
 
     def _get_keras_loss(self):
-        return {
-            'similarities_output': 'binary_crossentropy',
-            'cluster_count_output': 'categorical_crossentropy'
+        loss = {
+            'similarities_output': 'binary_crossentropy'
         }
+        if len(self.data_provider.get_cluster_counts()) > 1:
+            loss['cluster_count_output'] = 'categorical_crossentropy'
+        return loss
 
     def _get_keras_metrics(self):
-        return {
-            'similarities_output': 'accuracy',
-            'cluster_count_output': 'categorical_accuracy'
+        metrics = {
+            'similarities_output': 'accuracy'
         }
+        if len(self.data_provider.get_cluster_counts()) > 1:
+            metrics['cluster_count_output'] = 'categorical_accuracy'
+        return metrics

@@ -5,10 +5,24 @@ TODO:
 - Git-Repo erstellen
 - Use weithed loss-values for the similarities output
     - Calculate the expected 1s and 0s and weight them
+    - See: https://github.com/fchollet/keras/issues/2115
+           https://github.com/fchollet/keras/issues/3068
+           https://datascience.stackexchange.com/questions/13490/how-to-set-class-weights-for-imbalanced-classes-in-keras
+           https://github.com/fchollet/keras/issues/4735
+- Bei Graphen eine Art Average-Kurve durchziehen
+- DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
+- Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
+- Cluster counts things are bugg (see fixedc, and see scr 4)
+- fixedc contains a Bug (see BUG_FIXEC): A bug while generating data. This has to be fixed
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units
 - Try00 mit wsich wiederholenden LSTM-Layern
+- Try00 mit nur einer möglichen Cluster-Anzahl testen
+  - Der DataProvider darf nun auf keinen Fall mehr zu wenige Cluster liefern
+- Try00 in der Ausgabe mit nur einer Cluster-Anzahl testen, effektiv können aber beliebig viel Cluster in der Eingabe sein, aber
+  weniger oder gleich viele wie im neuronalen Netz möglich sind. Die effektive Anzahl Cluster wird festgelegt durch die
+  nicht leeren Cluster in der Ausgabe
 
 NICE2HAVE:
 - Email-Notify einbauen

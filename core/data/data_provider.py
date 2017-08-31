@@ -86,35 +86,31 @@ class DataProvider:
         return current_cluster_combinations
 
     def get_data(self, elements_per_cluster_collection, cluster_colletion_count,
-                       max_cluster_count_f=None, max_cluster_count=None, max_cluster_count_range=None,
+                       cluster_count_f=None, cluster_count=None, cluster_count_range=None,
                        dummy_data=False, data_type='train'):
         """
 
         :param elements_per_cluster_collection:
         :param cluster_colletion_count:
-        :param max_cluster_count_f:
-        :param max_cluster_count:
-        :param max_cluster_count_range:
+        :param cluster_count_f:
+        :param cluster_count:
+        :param cluster_count_range:
         :param dummy_data:
         :param data_type: 'train', 'valid' or 'test'
         :return:
         """
 
         # Define the max cluster count function: If it is already given we are done
-        if max_cluster_count_f is None:
-            if max_cluster_count_range is not None:
-                # Use a range of max cluster counts
-                # Important note: This only defined the maximum cluster count. In theory it still could be possible
-                # that every time a cluster count of 1 is returned, even if the range is (10, 100). This is because
-                # this parameter only defined the max cluster count. In general the cluster count should be equal
-                # to the max cluster count. This heavily depends on the underlying data provider.
-                max_cluster_count_f = lambda: self.__rand.randint(*max_cluster_count_range)
-            elif max_cluster_count is not None:
+        if cluster_count_f is None:
+            if cluster_count_range is not None:
+                # Use a range of cluster counts
+                cluster_count_f = lambda: self.__rand.randint(*cluster_count_range)
+            elif cluster_count is not None:
                 # Use a fixed max cluster count
-                max_cluster_count_f = lambda: max_cluster_count
+                cluster_count_f = lambda: cluster_count
             else:
                 # Use a default value for the cluster count (=None)
-                max_cluster_count_f = lambda: None
+                cluster_count_f = lambda: None
 
         if dummy_data:
 
@@ -123,8 +119,8 @@ class DataProvider:
             train_data = []
             for i in range(cluster_colletion_count):
 
-                # Generate max_cluster_count_f() clusters, or if no value is defined: Use the maximum cluster count
-                cluster_count = max_cluster_count_f()
+                # Generate cluster_count_f() clusters, or if no value is defined: Use the maximum cluster count
+                cluster_count = cluster_count_f()
                 if cluster_count is None:
                     cluster_count = self.get_max_cluster_count()
                 clusters = [[] for c in range(cluster_count)]
@@ -142,17 +138,17 @@ class DataProvider:
 
             # Generate the training data
             train_data = [
-                self.get_clusters(elements_per_cluster_collection, max_cluster_count_f(), data_type=data_type)
+                self.get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
                 for i in range(cluster_colletion_count)
             ]
 
         return train_data
 
-    def get_clusters(self, element_count, max_cluster_count=None, data_type='train'):
+    def get_clusters(self, element_count, cluster_count=None, data_type='train'):
         """
         Generate some clusters and return them. Format [[obj1cluster1, obj2cluster1, ...], [obj1cluster2, ...]]
         :param element_count:
-        :param max_cluster_count:
+        :param cluster_count:
         :param test_data
         :return:
         """

@@ -1,0 +1,59 @@
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:35 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:35 UTC 2017 Iteration 715 (incl. validation data: False; best valid loss (iter. 680): 0.256994; best training loss (iter. 683): 0.146024; training time: 1643.49528 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:37 UTC 2017 loss:   0.231774 cluster_count_output_categorical_accuracy: 0.975 similarities_output_acc: 0.948035 cluster_count_output_loss: 0.118255 similarities_output_loss: 0.11352
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:37 UTC 2017 time_s: 2.12717
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:38 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:38 UTC 2017 Iteration 716 (incl. validation data: False; best valid loss (iter. 680): 0.256994; best training loss (iter. 683): 0.146024; training time: 1645.62245 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:40 UTC 2017 loss:   0.275598 cluster_count_output_categorical_accuracy: 0.965 similarities_output_acc: 0.946541 cluster_count_output_loss: 0.161068 similarities_output_loss: 0.11453
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:40 UTC 2017 time_s: 2.08544
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:42 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:42 UTC 2017 Iteration 717 (incl. validation data: False; best valid loss (iter. 680): 0.256994; best training loss (iter. 683): 0.146024; training time: 1647.70789 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:44 UTC 2017 loss:   0.247173 cluster_count_output_categorical_accuracy: 0.97 similarities_output_acc: 0.944847 cluster_count_output_loss: 0.128605 similarities_output_loss: 0.118568
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:44 UTC 2017 time_s: 2.11025
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:45 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:45 UTC 2017 Iteration 718 (incl. validation data: False; best valid loss (iter. 680): 0.256994; best training loss (iter. 683): 0.146024; training time: 1649.81814 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:47 UTC 2017 loss:   0.289041 cluster_count_output_categorical_accuracy: 0.965 similarities_output_acc: 0.946184 cluster_count_output_loss: 0.172162 similarities_output_loss: 0.116879
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:47 UTC 2017 time_s: 2.08477
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:49 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:49 UTC 2017 Iteration 719 (incl. validation data: False; best valid loss (iter. 680): 0.256994; best training loss (iter. 683): 0.146024; training time: 1651.90292 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:51 UTC 2017 loss:   0.218249 cluster_count_output_categorical_accuracy: 0.98 similarities_output_acc: 0.947031 cluster_count_output_loss: 0.102215 similarities_output_loss: 0.116033
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:51 UTC 2017 time_s: 2.10705
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:53 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:53 UTC 2017 Iteration 720 (incl. validation data: True; best valid loss (iter. 680): 0.256994; best training loss (iter. 683): 0.146024; training time: 1654.00997 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:56 UTC 2017 loss:     0.287951 cluster_count_output_categorical_accuracy:     0.96  similarities_output_acc:     0.948494 cluster_count_output_loss:     0.175876  similarities_output_loss:     0.112075
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:56 UTC 2017 val_loss: 0.225244 val_cluster_count_output_categorical_accuracy: 0.985 val_similarities_output_acc: 0.930208 val_cluster_count_output_loss: 0.0745766 val_similarities_output_loss: 0.150667
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:56 UTC 2017 time_s:   2.84304
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:56 UTC 2017 Save weights to /tmp/test/autosave_ClusterNNTry00_fixedc/NN_ClusterNNTry00_I50_autosave_best_NN_ClusterNNTry00_I50_NN_ClusterNNTry00_I50_cluster_nn.weights.pkl...
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:56 UTC 2017 Save optimizer state to /tmp/test/autosave_ClusterNNTry00_fixedc/NN_ClusterNNTry00_I50_autosave_best_NN_ClusterNNTry00_I50_NN_ClusterNNTry00_I50_cluster_nn.optimizer.pkl...
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:56 UTC 2017 Save history to /tmp/test/autosave_ClusterNNTry00_fixedc/NN_ClusterNNTry00_I50_autosave_best_NN_ClusterNNTry00_I50_NN_ClusterNNTry00_I50_cluster_nn.history.pkl...
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:57 UTC 2017 Do a test prediction (output directory: /tmp/test/autosave_ClusterNNTry00_fixedc/examples_best)...
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:08:57 UTC 2017 Summarize test results...
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:02 UTC 2017 Tests done...
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:04 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:04 UTC 2017 Iteration 721 (incl. validation data: False; best valid loss (iter. 720): 0.225244; best training loss (iter. 683): 0.146024; training time: 1656.853 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:06 UTC 2017 loss:   0.202179 cluster_count_output_categorical_accuracy: 0.985 similarities_output_acc: 0.947039 cluster_count_output_loss: 0.0871408 similarities_output_loss: 0.115038
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:06 UTC 2017 time_s: 2.14278
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:07 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:07 UTC 2017 Iteration 722 (incl. validation data: False; best valid loss (iter. 720): 0.225244; best training loss (iter. 683): 0.146024; training time: 1658.99579 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:09 UTC 2017 loss:   0.284442 cluster_count_output_categorical_accuracy: 0.955 similarities_output_acc: 0.947259 cluster_count_output_loss: 0.171693 similarities_output_loss: 0.112749
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:09 UTC 2017 time_s: 2.10987
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:11 UTC 2017
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:11 UTC 2017 Iteration 723 (incl. validation data: False; best valid loss (iter. 720): 0.225244; best training loss (iter. 683): 0.146024; training time: 1661.10566 seconds)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:13 UTC 2017 loss:   0.203362 cluster_count_output_categorical_accuracy: 0.985 similarities_output_acc: 0.946757 cluster_count_output_loss: 0.088719 similarities_output_loss: 0.114643
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:13 UTC 2017 time_s: 2.10689
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 Traceback (most recent call last):
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 File "./app/test_cluster_nn_try00_fixedc.py", line 38, in <module>
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 c_nn.train(1000000)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 File "/src/tmp/ClusterNN/core/nn/cluster_nn.py", line 360, in train
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 self.__train_iteration()
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 File "/src/tmp/ClusterNN/core/nn/cluster_nn.py", line 239, in __train_iteration
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 X_train, y_train = self.__build_Xy_data(train_data)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 File "/src/tmp/ClusterNN/core/nn/cluster_nn.py", line 222, in __build_Xy_data
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 return self.__build_X_data(inputs), self._build_y_data(inputs)
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 File "/src/tmp/ClusterNN/impl/nn/base/simple_loss/simple_loss_cluster_nn.py", line 89, in _build_y_data
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 cluster_count[c][inputs[c]['cluster_count'] - cluster_counts[0]] = 1.
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:14 UTC 2017 IndexError: index -3 is out of bounds for axis 0 with size 2
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:16 UTC 2017 Exception ignored in: <bound method BaseSession.__del__ of <tensorflow.python.client.session.Session object at 0x7f47f08a1f28>>
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:16 UTC 2017 Traceback (most recent call last):
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:16 UTC 2017 File "/opt/conda/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 587, in __del__
+Wed Aug 30 00:17:41 UTC 2017 / Wed Aug 30 01:09:16 UTC 2017 TypeError: 'NoneType' object is not callable

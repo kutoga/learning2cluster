@@ -1,9 +1,12 @@
 import matplotlib
 matplotlib.use('Agg')
 
-from impl.nn.try01.cluster_nn_try01 import ClusterNNTry01
+from impl.nn.try00.cluster_nn_try00 import ClusterNNTry00
 
 if __name__ == '__main__':
+
+    # Difference to test_cluster_nn_try00.py: No embedding is used
+
     from sys import platform
 
     from impl.data.simple_2d_point_data_provider import Simple2DPointDataProvider
@@ -13,16 +16,16 @@ if __name__ == '__main__':
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
 
     dp = Simple2DPointDataProvider()
-    en = SimpleFCEmbedding()
-    #en = None # DO NOT USE ANY embedding (just use the twodimensional-points)
+    #en = SimpleFCEmbedding()
+    en = None
 
-    c_nn = ClusterNNTry01(dp, 50, en, iterations=2)
-    c_nn.minibatch_size = 96
+    c_nn = ClusterNNTry00(dp, 50, en)
+    c_nn.minibatch_size = 200
 
     c_nn.build_networks()
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry01'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_noembd'
     c_nn.register_autosave(autosave_dir)
     c_nn.try_load_from_autosave(autosave_dir)
 

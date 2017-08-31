@@ -30,8 +30,10 @@ class ClusterNNTry00(SimpleLossClusterNN):
         embeddings = self._get_embedding(network_input)
 
         # Reshape all embeddings to 1d vectors
-        embedding_shape = self._embedding_nn.model.layers[-1].output_shape
-        embedding_size = np.prod(embedding_shape[1:])
+        # embedding_shape = self._embedding_nn.model.layers[-1].output_shape
+        # embedding_size = np.prod(embedding_shape[1:])
+        embedding_shape = embeddings[0].shape
+        embedding_size = int(str(np.prod(embedding_shape[1:])))
         embedding_reshaper = self._s_layer('embedding_reshape', lambda name: Reshape((1, embedding_size), name=name))
         embeddings_reshaped = [embedding_reshaper(embedding) for embedding in embeddings]
 

@@ -2,7 +2,7 @@ import _pickle as pickle
 from os import path
 from shutil import move
 
-from keras.layers import Lambda
+from keras.layers import Lambda, Activation, Concatenate
 
 from core.nn.history import History
 
@@ -133,6 +133,12 @@ def slice_layer(layer, index, name=None):
     )(layer)
     # print("Output shape: {} -> {}".format(res._keras_shape, K.ndim(res)))
     return res
+
+
+def concat_layer(axis=-1, name=None, input_count=None):
+    if input_count is None or input_count > 1:
+        return Concatenate(axis=axis, name=name)
+    return Activation('linear', name=name)
 
 
 __MODEL_FILE_WEIGHTS_SUFFIX = '.weights.pkl'

@@ -44,6 +44,9 @@ class ClusterNN(BaseNN):
         self.event_new_best_validation_loss = Event()
         self.event_new_best_training_loss = Event()
 
+        # The cluster count function. It may be overwritten (default=random)
+        self._f_cluster_count = None
+
     @property
     def validate_every_nth_epoch(self):
         return self._validate_every_nth_epoch
@@ -71,6 +74,14 @@ class ClusterNN(BaseNN):
     @minibatch_size.setter
     def minibatch_size(self, minibatch_size):
         self._minibatch_size = minibatch_size
+
+    @property
+    def f_cluster_count(self):
+        return self._f_cluster_count
+
+    @f_cluster_count.setter
+    def f_cluster_count(self, f_cluster_count):
+        self._f_cluster_count = f_cluster_count
 
     def _get_embedding(self, layer):
 
@@ -219,20 +230,33 @@ class ClusterNN(BaseNN):
     def __get_last_epoch(self):
         return self._get_history(self._model_training).length()
 
+    def __get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, *args):
+        if cluster_collection_count is None:
+            cluster_collection_count = self._minibatch_size
+        return self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
+
+    def dbg_get_data(self, *args, **kwargs):
+        return self.__get_data(*args, **kwargs)
+
+    def dbg_build_Xy_data(self, *args, **kwargs):
+        return self.__build_Xy_data(*args, **kwargs)
+
     def __train_iteration(self, dummy_train=False):
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
         do_validation = (self.__get_last_epoch() + 1) % self._validate_every_nth_epoch == 0
 
         # Generate training data
-        train_data = self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='train', dummy_data=dummy_train)
+        t_start_data_gen_time = time()
+        train_data = self.__get_data('train', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='train', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
         X_train, y_train = self.__build_Xy_data(train_data)
 
         # If required: Generate validation data
         if do_validation:
-            valid_data = self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='valid', dummy_data=dummy_train)
+            valid_data = self.__get_data('valid', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='valid', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
             validation_data = self.__build_Xy_data(valid_data)
         else:
             validation_data = None
+        t_end_data_gen_time = time()
 
         # Get some information to print
         history = self._get_history(self._model_training)
@@ -250,12 +274,13 @@ class ClusterNN(BaseNN):
         # Print an info message
         print(
             '\nIteration ' + colored(str(self.__get_last_epoch() + 1), 'blue', attrs=['bold']) +
-            ' (incl. validation data: {}; best valid loss (iter. {}): {:0.6}; best training loss (iter. {}): {:0.6}; ' \
-            'training time: {:0.6} seconds)'.format(
+            ' (incl. valid data: {}; best valid loss (iter. {}): {:0.6}; best train loss (iter. {}): {:0.6}; ' \
+            'training time: {:0.9} s; data gen. time: {:0.9} s)'.format(
                 do_validation,
                 best_valid_loss_itr, best_valid_loss or float('nan'),
                 best_train_loss_itr, best_train_loss or float('nan'),
-                float(sum(filter(lambda t: t is not None, history['time_s'])))
+                float(sum(filter(lambda t: t is not None, history['time_s']))),
+                t_end_data_gen_time - t_start_data_gen_time
         ))
 
         # Do the training
@@ -473,7 +498,7 @@ class ClusterNN(BaseNN):
     def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True):
 
         # Generate test data
-        test_data = self._data_provider.get_data(self._input_count, count, data_type=data_type)
+        test_data = self.__get_data(data_type=data_type, cluster_collection_count=count) # self._data_provider.get_data(self._input_count, count, data_type=data_type)
         test_data_X = self._data_provider.convert_data_to_X(test_data)
 
         # Do a prediction

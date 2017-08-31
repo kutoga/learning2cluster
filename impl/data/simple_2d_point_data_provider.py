@@ -10,23 +10,30 @@ from impl.data.misc.data_gen_2d import DataGen2dv02
 # This class generates simple 2d clusters: random generated centers with gaussian distributed data
 
 class Simple2DPointDataProvider(DataProvider):
-    def __init__(self):
+    def __init__(self, min_cluster_count=2, max_cluster_count=10, allow_less_clusters=False):
         DataProvider.__init__(self)
         self._dg = DataGen2dv02()
+        self._min_cluster_count = min_cluster_count
+        self._max_cluster_count = max_cluster_count
+        self._allow_less_clusters = allow_less_clusters
 
     def get_min_cluster_count(self):
-        return 2
+        return self._min_cluster_count
 
     def get_max_cluster_count(self):
-        return 10
+        return self._max_cluster_count
 
     def get_data_shape(self):
         return (2,)
 
-    def get_clusters(self, element_count, max_cluster_count=None, data_type='train'):
-        if max_cluster_count is not None and max_cluster_count > self.get_max_cluster_count():
-            max_cluster_count = self.get_max_cluster_count()
-        clusters = self._dg.generate(cluster_count=max_cluster_count, records=element_count)
+    def get_clusters(self, element_count, cluster_count=None, data_type='train'):
+        if cluster_count is not None and cluster_count > self.get_max_cluster_count():
+            cluster_count = self.get_max_cluster_count()
+        clusters = self._dg.generate(cluster_count=cluster_count, records=element_count,
+                                     cluster_count_min=self._min_cluster_count,
+                                     cluster_count_max=self._max_cluster_count,
+                                     allow_less_clusters=self._allow_less_clusters
+                                     )
         return clusters
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None):
