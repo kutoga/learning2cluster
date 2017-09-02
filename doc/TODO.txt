@@ -17,6 +17,7 @@ TODO:
           if the loss is exactly equal to the manually computed value. Another test is to directly check the output
           of the weighted and unweighted binary crossentropys
     - For the weighted cross entropy: The total weight sum should be the number of all summands and not 1 like now. (obviously)
+    - For debugging: Print the actual percentage of zeros and ones in the y values
 - Bei Graphen eine Art Average-Kurve durchziehen
 - DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
 - Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
