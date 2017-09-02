@@ -19,16 +19,16 @@ if __name__ == '__main__':
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
 
-    dp = Simple2DPointDataProvider(min_cluster_count=10, max_cluster_count=10, allow_less_clusters=False)
+    dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
     #en = SimpleFCEmbedding()
     en = None
 
-    clusters = dp.get_data(50, 200)
+    # clusters = dp.get_data(50, 200)
 
-    c_nn = ClusterNNTry00(dp, 50, en, weighted_classes=True)
+    c_nn = ClusterNNTry00(dp, 3, en, weighted_classes=True)
 
     # c_nn.f_cluster_count = lambda: 10
-    c_nn.minibatch_size = 200
+    c_nn.minibatch_size = 2
 
     # i = 0
     # start = time()
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     c_nn.build_networks()
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_fixedc'
+    autosave_dir = top_dir + 'test/autosave_ClusterNN_playground'
     c_nn.register_autosave(autosave_dir)#, nth_iteration=1)
     c_nn.try_load_from_autosave(autosave_dir)
 

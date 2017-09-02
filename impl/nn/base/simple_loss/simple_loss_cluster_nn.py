@@ -3,11 +3,11 @@ import numpy as np
 from keras.layers import Concatenate, Dot, Reshape
 
 from core.nn.cluster_nn import ClusterNN
-from core.nn.helper import filter_None, concat_layer
+from core.nn.helper import filter_None, concat_layer, create_weighted_binary_crossentropy
 
 
 class SimpleLossClusterNN(ClusterNN):
-    def __init__(self, data_provider, input_count, embedding_nn=None):
+    def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False):
         ClusterNN.__init__(self, data_provider, input_count, embedding_nn)
 
         # For the loss all n outputs are compared with each other. More exactly:
@@ -16,9 +16,19 @@ class SimpleLossClusterNN(ClusterNN):
         # to produce distributions with one large value.
         self._include_self_comparison = True
 
+        self._weighted_classes = weighted_classes
+
     @property
     def include_self_comparison(self):
         return self._include_self_comparison
+
+    @property
+    def weighted_classes(self):
+        return self._weighted_classes
+
+    @weighted_classes.setter
+    def weighted_classes(self, weighted_classes):
+        self._weighted_classes = weighted_classes
 
     @include_self_comparison.setter
     def include_self_comparison(self, include_self_comparison):
@@ -169,9 +179,62 @@ class SimpleLossClusterNN(ClusterNN):
 
         return True
 
+    def get_class_weights(self):
+        if not self._weighted_classes:
+            return None
+
+        # A function that calculates the expected ones in the similarities_output for a given cluster count
+        # (from a mathematical point of view this function is not completely correct, but it is a good approximation)
+        def expected_ones(cluster_count):
+            expected_cluster_size = self.input_count / cluster_count
+            if self.include_self_comparison:
+                expected_connections_per_cluster = expected_cluster_size * (expected_cluster_size + 1) / 2
+            else:
+                expected_connections_per_cluster = expected_cluster_size * (expected_cluster_size - 1) / 2
+            return cluster_count * expected_connections_per_cluster
+
+        # Calculate the expected ones over all possible cluster counts
+        cluster_counts_distribution = self.data_provider.get_cluster_counts_distribution()
+        total_expected_ones = sum([
+            expected_ones(cluster_count) * p for cluster_count, p in cluster_counts_distribution.items()
+        ])
+
+        # And also the expected zeros
+        if self._include_self_comparison:
+            total_outputs = self.input_count * (self.input_count + 1) / 2
+        else:
+            total_outputs = self.input_count * (self.input_count - 1) / 2
+        total_expected_zeros = total_outputs - total_expected_ones
+
+        # Create now the class weights, based on these equations:
+        # w_0 = weight for zeros
+        # w_1 = weights for ones
+        # c_0 = total_expected_zeros
+        # c_1 = total_expected_ones
+        #
+        # w_0 * c_0 = w_0 * c_0
+        # w_0 + w_1 = 1
+        #
+        # If we solve these two equations, we get:
+        # w_0 = (c_1 / c_0) / (1 + (c_1 / c_0))
+        # w_1 = (c_0 / c_1) / (1 + (c_0 / c_1)) = 1 - w_0
+        w_0 = (total_expected_ones / total_expected_zeros) / (1 + (total_expected_ones / total_expected_zeros))
+        w_1 = 1 - w_0
+
+        # Create now the weights dict
+        weights = {
+            'similarities_output': {
+                0: w_0,
+                1: w_1
+            }
+        }
+
+        return w_0, w_1
+        return weights
+
     def _get_keras_loss(self):
         loss = {
-            'similarities_output': 'binary_crossentropy'
+            'similarities_output': 'binary_crossentropy' if not self.weighted_classes else create_weighted_binary_crossentropy(*self.get_class_weights())
         }
         if len(self.data_provider.get_cluster_counts()) > 1:
             loss['cluster_count_output'] = 'categorical_crossentropy'

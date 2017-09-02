@@ -12,13 +12,13 @@ if __name__ == '__main__':
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
 
-    dp = Simple2DPointDataProvider()
+    dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=3)
     en = SimpleFCEmbedding()
 
     minimal_test = True
 
     if minimal_test:
-        c_nn = MinimalClusterNN(dp, 2, en)
+        c_nn = MinimalClusterNN(dp, 3, en, weighted_classes=True)
         c_nn.minibatch_size = 1
         c_nn.validate_every_nth_epoch = 2
     else:

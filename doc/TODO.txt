@@ -9,11 +9,20 @@ TODO:
            https://github.com/fchollet/keras/issues/3068
            https://datascience.stackexchange.com/questions/13490/how-to-set-class-weights-for-imbalanced-classes-in-keras
            https://github.com/fchollet/keras/issues/4735
+    - See: https://stackoverflow.com/questions/46009619/keras-weighted-binary-crossentropy
+    - Test the current implementation somehow
+        - Create a minimal network and do some tests: A network without weights and a defined and fixed input, check
+          if the loss is exactly equal to the manually computed value. Another test is to directly check the output
+          of the weighted and unweighted binary crossentropys
 - Bei Graphen eine Art Average-Kurve durchziehen
 - DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
 - Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
 - Cluster counts things are bugg (see fixedc, and see scr 4)
 - fixedc contains a Bug (see BUG_FIXEC): A bug while generating data. This has to be fixed
+- Im Konstruktor bei "super" jeweils als ersten Parameter die aktuelle Klasse mitgeben und nicht die Superklasse
+- Optimizer state wird nicht richtig gespeichert / geladen, siehe: https://groups.google.com/forum/#!topic/keras-users/cNvLLrarfN4
+- Implement debug-Outputs: Just print them in some nice format (e.g. use a Prefix DEBUG_ or something like this, or add
+  a bool "debug" to the _s_layer method)
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units

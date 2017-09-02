@@ -235,12 +235,6 @@ class ClusterNN(BaseNN):
             cluster_collection_count = self._minibatch_size
         return self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
 
-    def dbg_get_data(self, *args, **kwargs):
-        return self.__get_data(*args, **kwargs)
-
-    def dbg_build_Xy_data(self, *args, **kwargs):
-        return self.__build_Xy_data(*args, **kwargs)
-
     def __train_iteration(self, dummy_train=False):
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
         do_validation = (self.__get_last_epoch() + 1) % self._validate_every_nth_epoch == 0

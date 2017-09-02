@@ -5,6 +5,8 @@ from shutil import move
 import numpy as np
 
 from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape
+from keras.models import Sequential
+import keras.backend as K
 
 from core.nn.history import History
 
@@ -169,6 +171,67 @@ def gaussian_random_layer(shape=(10,), name=None, stddev=1.):
     return res
 
 
+def create_weighted_binary_crossentropy(zero_weight, one_weight):
+
+    # # Original function (see tensorflow_backend.py)
+    # import tensorflow as tf
+    # def _to_tensor(x, dtype):
+    #     """Convert the input `x` to a tensor of type `dtype`.
+    #
+    #     # Arguments
+    #         x: An object to be converted (numpy array, list, tensors).
+    #         dtype: The destination type.
+    #
+    #     # Returns
+    #         A tensor.
+    #     """
+    #     x = tf.convert_to_tensor(x)
+    #     if x.dtype != dtype:
+    #         x = tf.cast(x, dtype)
+    #     return x
+    # def weighted_binary_crossentropy(target, output, from_logits=False):
+    #     """Binary crossentropy between an output tensor and a target tensor.
+    #
+    #     # Arguments
+    #         target: A tensor with the same shape as `output`.
+    #         output: A tensor.
+    #         from_logits: Whether `output` is expected to be a logits tensor.
+    #             By default, we consider that `output`
+    #             encodes a probability distribution.
+    #
+    #     # Returns
+    #         A tensor.
+    #     """
+    #     # Note: tf.nn.sigmoid_cross_entropy_with_logits
+    #     # expects logits, Keras expects probabilities.
+    #     if not from_logits:
+    #         # transform back to logits
+    #         _epsilon = _to_tensor(K.epsilon(), output.dtype.base_dtype)
+    #         output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
+    #         output = tf.log(output / (1 - output))
+    #
+    #     return tf.nn.weighted_cross_entropy_with_logits(targets=target,
+    #                                                     logits=output,
+    #                                                     pos_weight=[zero_weight, one_weight])
+
+    def weighted_binary_crossentropy(y_pred, y_true):
+
+        # Original binary crossentropy (see losses.py):
+        # K.mean(K.binary_crossentropy(y_true, y_pred), axis=-1)
+
+        # Calculate the binary crossentropy
+        b_ce = K.binary_crossentropy(y_true, y_pred)
+
+        # Apply the weights
+        weight_vector = y_true * one_weight + (1. - y_true) * zero_weight
+        weighted_b_ce = weight_vector * b_ce
+
+        # Return the mean error
+        return K.mean(weighted_b_ce)
+
+    return weighted_binary_crossentropy
+
+
 __MODEL_FILE_WEIGHTS_SUFFIX = '.weights.pkl'
 __MODEL_FILE_HISTORY_SUFFIX = '.history.pkl'
 __MODEL_FILE_OPTIMIZER_SUFFIX = '.optimizer.pkl'
@@ -180,23 +243,52 @@ def __extract_layers_wight_weights(layers):
 
 def save_optimizer_state(model, base_filename):
     optimizer = model.optimizer
+
     config = optimizer.get_config()
+    weights = optimizer.get_weights()
+    optimizer_type = type(optimizer)
+    state = {
+        'config': config,
+        'weights': weights,
+        'type': {
+            'module': optimizer_type.__module__,
+            'name': optimizer_type.__name__
+        }
+    }
+
     filename = base_filename + __MODEL_FILE_OPTIMIZER_SUFFIX
     print('Save optimizer state to {}...'.format(filename))
     fw_helper = FileWriterHelper(filename)
-    with fw_helper.open('wb') as config_file:
-        pickle.dump(config, config_file)
+    with fw_helper.open('wb') as state_file:
+        pickle.dump(state, state_file)
         fw_helper.close()
 
 
 def load_optimizer_state(model, base_filename):
-    optimizer = model.optimizer
     filename = base_filename + __MODEL_FILE_OPTIMIZER_SUFFIX
+    if isinstance(model, Sequential):
+        model = model.model
+
     print('Load optimizer state from {}...'.format(filename))
-    with open(filename, 'rb') as config_file:
-        config = pickle.load(config_file)
-        config_file.close()
-    optimizer.from_config(config)
+    with open(filename, 'rb') as state_file:
+        state = pickle.load(state_file)
+        state_file.close()
+
+    # Load the optimizer
+    # TODO: Do not use exec / eval
+    optimizer_type = state['type']
+    exec("from {} import {}".format(optimizer_type['module'], optimizer_type['name']))
+    optimizer = eval(optimizer_type['name']).from_config(state['config']) # TODO: Users could do evil things here, currently this is ok, because i am the only user
+    model.optimizer = optimizer
+
+    # TODO: This is ugly and i dont know why it has to be done (but it has to). See: https://github.com/fchollet/keras/blob/master/keras/models.py
+    if model.train_function is not None:
+        print("WARNING: Removeingh the train function (required for loading the optimizer state)")
+        model.train_function = None
+    model._make_train_function()
+
+    # Load the weights
+    model.optimizer.set_weights(state['weights'])
 
 
 def save_weights(model, base_filename):

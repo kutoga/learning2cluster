@@ -12,8 +12,8 @@ class MinimalClusterNN(SimpleLossClusterNN):
     example for a clustering network.
     """
 
-    def __init__(self, data_provider, input_count, embedding_nn=None):
-        SimpleLossClusterNN.__init__(self, data_provider, input_count, embedding_nn)
+    def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False):
+        SimpleLossClusterNN.__init__(self, data_provider, input_count, embedding_nn, weighted_classes)
 
     def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())

@@ -28,6 +28,18 @@ class DataProvider:
         """
         return range(self.get_min_cluster_count(), self.get_max_cluster_count() + 1)
 
+    def get_cluster_counts_distribution(self):
+        """
+        Get the probabilities for each cluster count. The default implementation uses equally distributed cluster
+        counts
+        :return:
+        """
+        cluster_counts = self.get_cluster_counts()
+        p = 1. / len(cluster_counts)
+        return {
+            c: p for c in cluster_counts
+        }
+
     def get_data_shape(self):
         pass
 
