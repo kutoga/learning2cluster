@@ -15,7 +15,7 @@ class MinimalClusterNN(SimpleLossClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False):
         SimpleLossClusterNN.__init__(self, data_provider, input_count, embedding_nn, weighted_classes)
 
-    def _build_network(self, network_input, network_output, additional_network_outputs):
+    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output):
         cluster_counts = list(self.data_provider.get_cluster_counts())
 
         # The simple loss cluster NN requires a specific output: a list of softmax distributions
@@ -78,6 +78,10 @@ class MinimalClusterNN(SimpleLossClusterNN):
         cluster_count = self._s_layer('cluster_count_LSTM_merge', lambda name: Bidirectional(LSTM(lstm_units), name=name)(embeddings_merged))
         cluster_count = self._s_layer('cluster_count_dense0', lambda name: Dense(cluster_count_dense_units, name=name))(cluster_count)
         cluster_count = self._s_layer('cluster_count_batch0', lambda name: BatchNormalization(name=name))(cluster_count)
+
+        # Add a debug output
+        debug_output.append(cluster_count)
+
         cluster_count = self._s_layer('cluster_count_relu0', lambda name: Activation('relu', name=name))(cluster_count)
 
         # The next layer is an output-layer, therefore the name must not be formatted

@@ -19,11 +19,10 @@ if __name__ == '__main__':
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
 
-    dp = Simple2DPointDataProvider(min_cluster_count=10, max_cluster_count=10, allow_less_clusters=False)
+    fixedc = 5
+    dp = Simple2DPointDataProvider(min_cluster_count=fixedc, max_cluster_count=fixedc, allow_less_clusters=False)
     #en = SimpleFCEmbedding()
     en = None
-
-    clusters = dp.get_data(50, 200)
 
     c_nn = ClusterNNTry00(dp, 50, en, weighted_classes=True)
 

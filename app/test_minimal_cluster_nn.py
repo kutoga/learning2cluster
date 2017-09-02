@@ -19,6 +19,7 @@ if __name__ == '__main__':
 
     if minimal_test:
         c_nn = MinimalClusterNN(dp, 3, en, weighted_classes=True)
+        c_nn.debug_mode = True
         c_nn.minibatch_size = 1
         c_nn.validate_every_nth_epoch = 2
     else:

@@ -173,47 +173,6 @@ def gaussian_random_layer(shape=(10,), name=None, stddev=1.):
 
 def create_weighted_binary_crossentropy(zero_weight, one_weight):
 
-    # # Original function (see tensorflow_backend.py)
-    # import tensorflow as tf
-    # def _to_tensor(x, dtype):
-    #     """Convert the input `x` to a tensor of type `dtype`.
-    #
-    #     # Arguments
-    #         x: An object to be converted (numpy array, list, tensors).
-    #         dtype: The destination type.
-    #
-    #     # Returns
-    #         A tensor.
-    #     """
-    #     x = tf.convert_to_tensor(x)
-    #     if x.dtype != dtype:
-    #         x = tf.cast(x, dtype)
-    #     return x
-    # def weighted_binary_crossentropy(target, output, from_logits=False):
-    #     """Binary crossentropy between an output tensor and a target tensor.
-    #
-    #     # Arguments
-    #         target: A tensor with the same shape as `output`.
-    #         output: A tensor.
-    #         from_logits: Whether `output` is expected to be a logits tensor.
-    #             By default, we consider that `output`
-    #             encodes a probability distribution.
-    #
-    #     # Returns
-    #         A tensor.
-    #     """
-    #     # Note: tf.nn.sigmoid_cross_entropy_with_logits
-    #     # expects logits, Keras expects probabilities.
-    #     if not from_logits:
-    #         # transform back to logits
-    #         _epsilon = _to_tensor(K.epsilon(), output.dtype.base_dtype)
-    #         output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
-    #         output = tf.log(output / (1 - output))
-    #
-    #     return tf.nn.weighted_cross_entropy_with_logits(targets=target,
-    #                                                     logits=output,
-    #                                                     pos_weight=[zero_weight, one_weight])
-
     def weighted_binary_crossentropy(y_pred, y_true):
 
         # Original binary crossentropy (see losses.py):

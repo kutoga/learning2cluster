@@ -6,9 +6,10 @@ from core.nn.history import History
 from core.event import Event
 
 class BaseNN:
-    def __init__(self, name="NN_[CLASS]"):
+    def __init__(self, name="NN_[CLASS]", debug_mode=False):
         self._name = name
         self._formatted_name = self._generate_formatted_name()
+        self._debug_mode = None
         self._shared_layers = {}
 
         # Registered models? The weights of these models are automatically saved and loaded if the save and load methods
@@ -27,6 +28,29 @@ class BaseNN:
         self.event_load_weights_before = Event()
         self.event_load_weights_after = Event()
         self.event_plot_created = Event()
+        self.event_debug_mode_changed = Event()
+        self.event_debug_mode_on = Event()
+        self.event_debug_mode_off = Event()
+
+        self.debug_mode = debug_mode
+
+    @property
+    def debug_mode(self):
+        return self._debug_mode
+
+    @debug_mode.setter
+    def debug_mode(self, debug_mode):
+        if type(debug_mode) != bool:
+            raise ValueError()
+        if self._debug_mode == debug_mode:
+            return
+
+        self._debug_mode = debug_mode
+        if self._debug_mode:
+            self.event_debug_mode_on.fire()
+        else:
+            self.event_debug_mode_off.fire()
+        self.event_debug_mode_changed.fire(self._debug_mode)
 
     def _get_history(self, model):
         if model not in self._histories:

@@ -47,6 +47,9 @@ class ClusterNN(BaseNN):
         # The cluster count function. It may be overwritten (default=random)
         self._f_cluster_count = None
 
+        # Debug outputs
+        self._prediction_debug_outputs = None
+
     @property
     def validate_every_nth_epoch(self):
         return self._validate_every_nth_epoch
@@ -143,7 +146,7 @@ class ClusterNN(BaseNN):
             plt.grid(True)
         self._register_plot(model_name, best_loss_plot)
 
-    def _build_network(self, network_input, network_output, additional_network_outputs):
+    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output):
         return None
 
     def _build_loss_network(self, network_output, loss_output, additional_network_outputs):
@@ -396,6 +399,20 @@ class ClusterNN(BaseNN):
         # TODO: Prepare X (use it directory from the data provider)
         prediction = self._model_prediction.predict(X_preprocessed, batch_size=self._minibatch_size)
 
+        # Check debug outputs.
+        prediction_debug_output_count = len(self._prediction_debug_outputs)
+        if prediction_debug_output_count > 0:
+
+            # Extract and remove the debug outputs
+            debug_outputs = prediction[-prediction_debug_output_count:]
+            prediction = prediction[:-prediction_debug_output_count]
+
+            # If the debug mode is enabled: Print the debug values
+            if self.debug_mode:
+                print("PRINT DEBUG VALUES, count: {}".format(prediction_debug_output_count))
+                pass
+
+
         # Create a structure like this:
         # [
         #    {
@@ -453,8 +470,10 @@ class ClusterNN(BaseNN):
         nw_input = self.__build_inputs()
         nw_output = []
         additional_network_outputs = {}
-        self._build_network(nw_input, nw_output, additional_network_outputs)
-        self._model_prediction = Model(nw_input, nw_output)
+        prediction_debug_output = []
+        self._build_network(nw_input, nw_output, additional_network_outputs, prediction_debug_output)
+        self._model_prediction = Model(nw_input, nw_output + prediction_debug_output)
+        self._prediction_debug_outputs = prediction_debug_output
         # self._model_prediction.summary()
 
         # Build the training model (it is based on the prediction model)

@@ -10,10 +10,13 @@ TODO:
            https://datascience.stackexchange.com/questions/13490/how-to-set-class-weights-for-imbalanced-classes-in-keras
            https://github.com/fchollet/keras/issues/4735
     - See: https://stackoverflow.com/questions/46009619/keras-weighted-binary-crossentropy
+        - Maybe use the log / sqrt of the weights?
+        - Implement log / sqrt / f(x) normalize => use the current weights and appliy w_0n = f(w_0), and sum(f(w_i)) = count of weights
     - Test the current implementation somehow
         - Create a minimal network and do some tests: A network without weights and a defined and fixed input, check
           if the loss is exactly equal to the manually computed value. Another test is to directly check the output
           of the weighted and unweighted binary crossentropys
+    - For the weighted cross entropy: The total weight sum should be the number of all summands and not 1 like now. (obviously)
 - Bei Graphen eine Art Average-Kurve durchziehen
 - DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
 - Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
@@ -23,6 +26,7 @@ TODO:
 - Optimizer state wird nicht richtig gespeichert / geladen, siehe: https://groups.google.com/forum/#!topic/keras-users/cNvLLrarfN4
 - Implement debug-Outputs: Just print them in some nice format (e.g. use a Prefix DEBUG_ or something like this, or add
   a bool "debug" to the _s_layer method)
+  - Edit: While building the network one may add layers to an additional array "debug_output"
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units

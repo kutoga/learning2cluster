@@ -213,24 +213,16 @@ class SimpleLossClusterNN(ClusterNN):
         # c_1 = total_expected_ones
         #
         # w_0 * c_0 = w_0 * c_0
-        # w_0 + w_1 = 1
+        # w_0 + w_1 = weights_count = 2
         #
         # If we solve these two equations, we get:
-        # w_0 = (c_1 / c_0) / (1 + (c_1 / c_0))
-        # w_1 = (c_0 / c_1) / (1 + (c_0 / c_1)) = 1 - w_0
-        w_0 = (total_expected_ones / total_expected_zeros) / (1 + (total_expected_ones / total_expected_zeros))
-        w_1 = 1 - w_0
+        # w_0 = 2 * c_1 / (c_0 + c_1)
+        # w_1 = 2 * c_0 / (c_0 + c_1) = 2 -  w_0
+        w_0 = 2 * total_expected_ones / (total_expected_zeros + total_expected_ones)
+        w_1 = 2 - w_0
 
-        # Create now the weights dict
-        weights = {
-            'similarities_output': {
-                0: w_0,
-                1: w_1
-            }
-        }
-
+        print("Calculated class weights: w_0={}, w_1={}".format(w_0, w_1))
         return w_0, w_1
-        return weights
 
     def _get_keras_loss(self):
         loss = {
