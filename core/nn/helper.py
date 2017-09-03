@@ -173,7 +173,7 @@ def gaussian_random_layer(shape=(10,), name=None, stddev=1.):
 
 def create_weighted_binary_crossentropy(zero_weight, one_weight):
 
-    def weighted_binary_crossentropy(y_pred, y_true):
+    def weighted_binary_crossentropy(y_true, y_pred):
 
         # Original binary crossentropy (see losses.py):
         # K.mean(K.binary_crossentropy(y_true, y_pred), axis=-1)

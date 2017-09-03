@@ -218,15 +218,20 @@ class SimpleLossClusterNN(ClusterNN):
         # If we solve these two equations, we get:
         # w_0 = 2 * c_1 / (c_0 + c_1)
         # w_1 = 2 * c_0 / (c_0 + c_1) = 2 -  w_0
-        w_0 = 2 * total_expected_ones / (total_expected_zeros + total_expected_ones)
-        w_1 = 2 - w_0
+        w0 = 2 * total_expected_ones / (total_expected_zeros + total_expected_ones)
+        w1 = 2 - w0
 
-        print("Calculated class weights: w_0={}, w_1={}".format(w_0, w_1))
-        return w_0, w_1
+        print("Calculated class weights: w_0={}, w_1={}".format(w0, w1))
+        return w0, w1
 
     def _get_keras_loss(self):
+        if self.weighted_classes:
+            w0, w1 = self.get_class_weights()
+            similarities_loss = create_weighted_binary_crossentropy(w0, w1)
+        else:
+            similarities_loss = 'binary_crossentropy'
         loss = {
-            'similarities_output': 'binary_crossentropy' if not self.weighted_classes else create_weighted_binary_crossentropy(*self.get_class_weights())
+            'similarities_output': similarities_loss
         }
         if len(self.data_provider.get_cluster_counts()) > 1:
             loss['cluster_count_output'] = 'categorical_crossentropy'
