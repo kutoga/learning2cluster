@@ -14,7 +14,7 @@ class ClusterNNTry02(SimpleLossClusterNN):
                  f_cluster_count_dense_layer_count=2, f_cluster_assignment_units=512,
                  f_cluster_assignment_dense_layer_count=2,
                  state_size=64, global_state_size=512, iterations=4):
-        SimpleLossClusterNN.__init__(self, data_provider, input_count, embedding_nn)
+        super().__init__(data_provider, input_count, embedding_nn)
 
         # Network parameters
         self.__local_state_size = state_size

@@ -21,7 +21,7 @@ TODO:
 - Bei Graphen eine Art Average-Kurve durchziehen
 - DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
 - Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
-- Cluster counts things are bugg (see fixedc, and see scr 4)
+- Cluster counts things are buggy (see fixedc, and see scr 4)
 - fixedc contains a Bug (see BUG_FIXEC): A bug while generating data. This has to be fixed
 - Im Konstruktor bei "super" jeweils als ersten Parameter die aktuelle Klasse mitgeben und nicht die Superklasse
 - Optimizer state wird nicht richtig gespeichert / geladen, siehe: https://groups.google.com/forum/#!topic/keras-users/cNvLLrarfN4

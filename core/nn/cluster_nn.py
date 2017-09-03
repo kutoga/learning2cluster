@@ -19,7 +19,7 @@ from core.helper import try_makedirs
 
 class ClusterNN(BaseNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, seed=None):
-        BaseNN.__init__(self, name='NN_[CLASS]_I{}'.format(input_count))
+        super().__init__(name='NN_[CLASS]_I{}'.format(input_count))
         self._rand = Random(seed)
         self._data_provider = data_provider
         self._input_count = input_count
@@ -105,13 +105,24 @@ class ClusterNN(BaseNN):
         # Add the loss plot
         def loss_plot(history, plt):
             x = list(history.get_epoch_indices())
+            y = history['loss']
+            y_val = history['val_loss']
             plt.plot(
-                *filter_None(x, history['loss']),
-                *filter_None(x, history['val_loss']),
+                *filter_None(x, y),
+                *filter_None(x, y_val),
+
+                *filter_None(x, self.plot_sliding_window_average(y)),
+                *filter_None(x, self.plot_sliding_window_average(y_val)),
+
                 alpha=0.7,
                 lw=0.5
             )
-            plt.legend(['loss: training', 'loss: validation'])
+            plt.legend([
+                'loss: training',
+                'loss: validation',
+                'loss: training AVG',
+                'loss: validation AVG'
+            ])
             plt.xlabel('iteration')
             plt.ylabel('loss')
             plt.grid(True)

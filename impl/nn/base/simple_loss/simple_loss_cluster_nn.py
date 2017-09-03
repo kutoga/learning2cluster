@@ -1,6 +1,6 @@
 import numpy as np
 
-from keras.layers import Concatenate, Dot, Reshape
+from keras.layers import Dot, Reshape
 
 from core.nn.cluster_nn import ClusterNN
 from core.nn.helper import filter_None, concat_layer, create_weighted_binary_crossentropy
@@ -8,7 +8,7 @@ from core.nn.helper import filter_None, concat_layer, create_weighted_binary_cro
 
 class SimpleLossClusterNN(ClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False):
-        ClusterNN.__init__(self, data_provider, input_count, embedding_nn)
+        super().__init__(data_provider, input_count, embedding_nn)
 
         # For the loss all n outputs are compared with each other. More exactly:
         # n(n-1)/2 comparisons are required. If the following setting is True, then
@@ -57,10 +57,19 @@ class SimpleLossClusterNN(ClusterNN):
             plt.plot(
                 *filter_None(x, y),
                 *filter_None(x, y_val),
+
+                *filter_None(x, self.plot_sliding_window_average(y)),
+                *filter_None(x, self.plot_sliding_window_average(y_val)),
+
                 alpha=0.7,
                 lw=0.5
             )
-            plt.legend(['cluster count accuracy: training', 'cluster count accuracy: validation'])
+            plt.legend([
+                'cluster count accuracy: training',
+                'cluster count accuracy: validation',
+                'cluster count accuracy: training AVG',
+                'cluster count accuracy: validation AVG',
+            ])
             plt.xlabel('iteration')
             plt.ylabel('cluster count accuracy')
             plt.grid(True)
@@ -72,13 +81,24 @@ class SimpleLossClusterNN(ClusterNN):
             key_name = 'similarities_output_acc'
             if key_name not in history.keys():
                 key_name = 'acc' # If only one fixed cluster count is used, the keyword changes (sorry, thats a bit ugly, keras!)
+            y = history[key_name]
+            y_val = history['val_{}'.format(key_name)]
             plt.plot(
-                *filter_None(x, history[key_name]),
-                *filter_None(x, history['val_{}'.format(key_name)]),
+                *filter_None(x, y),
+                *filter_None(x, y_val),
+
+                *filter_None(x, self.plot_sliding_window_average(y)),
+                *filter_None(x, self.plot_sliding_window_average(y_val)),
+
                 alpha=0.7,
                 lw=0.5
             )
-            plt.legend(['grouping accuracy: training', 'grouping accuracy: validation'])
+            plt.legend([
+                'grouping accuracy: training',
+                'grouping accuracy: validation',
+                'grouping accuracy: training AVG',
+                'grouping accuracy: validation AVG'
+            ])
             plt.xlabel('iteration')
             plt.ylabel('grouping accuracy')
             plt.grid(True)

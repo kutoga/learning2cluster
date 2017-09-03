@@ -8,7 +8,7 @@ from core.nn.embedding_nn import EmbeddingNN
 
 class SimpleFCEmbedding(EmbeddingNN):
     def __init__(self, output_size=4, hidden_layers=1):
-        EmbeddingNN.__init__(self)
+        super().__init__()
 
         self._output_size = output_size
         self._hidden_layers = hidden_layers

@@ -11,7 +11,7 @@ from impl.data.misc.data_gen_2d import DataGen2dv02
 
 class Simple2DPointDataProvider(DataProvider):
     def __init__(self, min_cluster_count=2, max_cluster_count=10, allow_less_clusters=False):
-        DataProvider.__init__(self)
+        super().__init__()
         self._dg = DataGen2dv02()
         self._min_cluster_count = min_cluster_count
         self._max_cluster_count = max_cluster_count

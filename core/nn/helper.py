@@ -191,6 +191,85 @@ def create_weighted_binary_crossentropy(zero_weight, one_weight):
     return weighted_binary_crossentropy
 
 
+def linear_inerpolation_for_None_values(values):
+    """
+    :param values:
+    :return: False if nothing could be done (values only contains None values), otherwise true
+    """
+
+    # Replace all Nones at the beginning
+    for i in range(len(values)):
+        if values[i] is not None:
+            if i > 0:
+                values[0:i] = [values[i]] * i
+            break
+        if i == len(values) - 1:
+
+            # There are only None-values in the given list: Nothing can be done, return None
+            return False
+
+    # Replace all Nones at the end
+    for i in reversed(range(len(values))):
+        if values[i] is not None:
+            if i < len(values) - 1:
+                values[(i + 1):len(values)] = [values[i]] * (len(values) - 1 - i)
+            break
+
+    # Find for each array position the previous and the next non-None value
+    previous_value_i = [None] * len(values)
+    next_value_i = [None] * len(values)
+    tmp = 0
+    for config in [(previous_value_i, range(len(values))), (next_value_i, reversed(range(len(values))))]:
+        target_list, indices = config
+        for i in indices:
+            if values[i] is None:
+                target_list[i] = tmp
+            else:
+                target_list[i] = i
+                tmp = i
+
+    # Now the averaging process is no longer that hard: Do a linear interpolation
+    for i in range(len(values)):
+        if values[i] is None:
+            i_prev = previous_value_i[i]
+            i_next = next_value_i[i]
+            d_v = values[i_next] - values[i_prev]
+
+            values[i] = values[i_prev] + (i - i_prev) / (i_next - i_prev) * d_v
+
+    # Everything is done:)
+    return True
+
+
+def sliding_window_average(values, window_range=2, interpolation_for_None='linear'):
+    """
+    window_length = 2*window_range+1
+    :param values:
+    :param window_range:
+    :return:
+    """
+    values = list(values)  # Copy the array (this prevents that it is modified)
+
+    # Replace the None values if there are any. First test the array for None values, because the interpolation may be
+    # very expensive
+    if any(map(lambda v: v is None, values)):
+        if interpolation_for_None == 'linear':
+            interpolation_ok = linear_inerpolation_for_None_values(values)
+        else:
+            raise ValueError()
+        if not interpolation_ok:
+
+            # The interpolation doesn't work: Just return the input array (probably it only contains None values)
+            return values
+
+    # Do the averaging
+    def get_value(i):
+        i_start = max(0, i - window_range)
+        i_end = min(len(values), i + 1 + window_range)
+        return sum(values[i_start:i_end]) / (i_end - i_start)
+    return list(map(get_value, range(len(values))))
+
+
 __MODEL_FILE_WEIGHTS_SUFFIX = '.weights.pkl'
 __MODEL_FILE_HISTORY_SUFFIX = '.history.pkl'
 __MODEL_FILE_OPTIMIZER_SUFFIX = '.optimizer.pkl'

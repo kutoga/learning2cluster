@@ -10,7 +10,7 @@ class ClusterNNTry00(SimpleLossClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, lstm_units=64, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False):
-        SimpleLossClusterNN.__init__(self, data_provider, input_count, embedding_nn, weighted_classes)
+        super().__init__(data_provider, input_count, embedding_nn, weighted_classes)
 
         # Network parameters
         self.__lstm_layers = lstm_layers

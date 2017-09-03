@@ -3,7 +3,7 @@ from core.nn.base_nn import BaseNN
 
 class EmbeddingNN(BaseNN):
     def __init__(self):
-        BaseNN.__init__(self)
+        super().__init__()
         self._model = None
 
     @property

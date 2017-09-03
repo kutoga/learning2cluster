@@ -1,7 +1,10 @@
+from math import ceil
+
 import matplotlib.pyplot as plt
 import pylab
 
-from core.nn.helper import save_weights, load_weights, save_history, load_history, save_optimizer_state, load_optimizer_state
+from core.nn.helper import save_weights, load_weights, save_history, load_history, save_optimizer_state, \
+    load_optimizer_state, sliding_window_average
 from core.nn.history import History
 from core.event import Event
 
@@ -18,6 +21,10 @@ class BaseNN:
 
         # All registered plots
         self._registered_plots = []
+
+        # Plot settings: If the given plot_sliding_window_average method is used, how large in percent/100 of all given
+        # values should the averaging range be?
+        self._plot_sliding_window_range_percentage = 0.05  # 0.05 => 5 percent
 
         # Training histories: The key is a keras model and the value a history object
         self._histories = {}
@@ -51,6 +58,10 @@ class BaseNN:
         else:
             self.event_debug_mode_off.fire()
         self.event_debug_mode_changed.fire(self._debug_mode)
+
+    @property
+    def plot_sliding_window_range_percentage(self):
+        return self._plot_sliding_window_range_percentage
 
     def _get_history(self, model):
         if model not in self._histories:
@@ -86,6 +97,11 @@ class BaseNN:
             'model_name': model_name,
             'f_plot': f_plot
         })
+
+    def plot_sliding_window_average(self, values):
+
+        # Add 0.1 to the length of all values to avoid some "0" problems
+        return sliding_window_average(values, int(ceil((len(values) + 0.1) * self._plot_sliding_window_range_percentage)))
 
     def _clear_registered_plots(self):
         self._registered_plots.clear()
