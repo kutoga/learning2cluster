@@ -12,3 +12,4 @@ https://github.com/fchollet/keras/issues/605
 Maybe test this:
 - Use the same training as validation data and compare the loss (it should be similar)
   - Do this for a minimal network without any trainable weights: The loss should be exactly the same
+  - Create a new network (something very small) in a test file to do this

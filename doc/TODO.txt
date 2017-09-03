@@ -28,7 +28,8 @@ TODO:
 - Implement debug-Outputs: Just print them in some nice format (e.g. use a Prefix DEBUG_ or something like this, or add
   a bool "debug" to the _s_layer method)
   - Edit: While building the network one may add layers to an additional array "debug_output"
-- Falls kein Cluster COunt beim Output ist, sind ide Graphen verkehrt (siehe try00_fixedc Graph)
+- Falls kein Cluster COunt beim Output ist, ist der cluster count graph leer, aber trotzdem vorhanden
+  - Entweder Grpah entfernen oder einen knmstanten Wert von 1.0 einfügen
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units

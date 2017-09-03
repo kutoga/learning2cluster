@@ -44,9 +44,19 @@ class SimpleLossClusterNN(ClusterNN):
         # Add the cluster count accuracy plot
         def cluster_count_accuracy_plot(history, plt):
             x = list(history.get_epoch_indices())
+            y_key = 'cluster_count_output_categorical_accuracy'
+            if y_key in history.keys():
+
+                # The cluster cound is fixed: Therefore it is always correct (trivial)
+                y = [1] * len(x)
+                y_val = y
+            else:
+                y = history[y_key]
+                y_val = history['val_{}'.format(y_key)]
+
             plt.plot(
-                *filter_None(x, history['cluster_count_output_categorical_accuracy']),
-                *filter_None(x, history['val_cluster_count_output_categorical_accuracy']),
+                *filter_None(x, y),
+                *filter_None(x, y_val),
                 alpha=0.7,
                 lw=0.5
             )
@@ -112,6 +122,11 @@ class SimpleLossClusterNN(ClusterNN):
         # If there is more than one possible cluster count: Add the output for the cluster count
         if len(cluster_counts) > 1:
             y['cluster_count_output'] = cluster_count
+
+        # # DEBUG output
+        # c0 = np.    sum(similarities_output == 0)
+        # c1 = np.sum(similarities_output == 1)
+        # print("Prepared y data. Percentage of 0: {}; Percentage of 1: {}; Total values: {}".format(c0 / (c0 + c1), c1 / (c0 + c1), c0 + c1))
 
         return y
 
@@ -221,7 +236,7 @@ class SimpleLossClusterNN(ClusterNN):
         w0 = 2 * total_expected_ones / (total_expected_zeros + total_expected_ones)
         w1 = 2 - w0
 
-        print("Calculated class weights: w_0={}, w_1={}".format(w0, w1))
+        print("Calculated class weights: w0={}, w1={}".format(w0, w1))
         return w0, w1
 
     def _get_keras_loss(self):
