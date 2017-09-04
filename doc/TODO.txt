@@ -30,6 +30,7 @@ TODO:
   - Edit: While building the network one may add layers to an additional array "debug_output"
 - Falls kein Cluster COunt beim Output ist, ist der cluster count graph leer, aber trotzdem vorhanden
   - Entweder Grpah entfernen oder einen knmstanten Wert von 1.0 einfügen
+- Scores implementieren
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units
