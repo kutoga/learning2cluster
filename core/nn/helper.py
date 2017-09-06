@@ -4,6 +4,8 @@ from shutil import move
 
 import numpy as np
 
+from contextlib import contextmanager
+
 from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape
 from keras.models import Sequential
 import keras.backend as K
@@ -189,6 +191,15 @@ def create_weighted_binary_crossentropy(zero_weight, one_weight):
         return K.mean(weighted_b_ce)
 
     return weighted_binary_crossentropy
+
+
+@contextmanager
+def np_show_complete_array():
+    # See: https://stackoverflow.com/a/45831462/916672
+    oldoptions = np.get_printoptions()
+    np.set_printoptions(threshold=np.inf)
+    yield
+    np.set_printoptions(**oldoptions)
 
 
 def linear_inerpolation_for_None_values(values):

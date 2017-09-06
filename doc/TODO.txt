@@ -1,4 +1,15 @@
+NEXT STEPS:
+- Implement evaluation metrics
+  - For testing and also for the history (only while validating)
+  - Evaluation metrics plots
+- Implement an empirical weight measurement
+  - Sample data until the relative expected count of 0s and 1s has a confidence interval of less then 1%
+  - Implement a nice print (see TODO)
+- Use the weights for the try00
+- Testing;)
+
 TODO:
+- Cluster plots for 2D data: Make the points a bit transparent (becaue of overlapping points)
 - Maybe print the network summary to somewhere?
 - The validation loss seems to be always worse than the training loss, but the used data is always generated?
   - Test what happens if the training data is used for the validation run. See: BUG_LOSS.txt
@@ -18,6 +29,8 @@ TODO:
           of the weighted and unweighted binary crossentropys
     - For the weighted cross entropy: The total weight sum should be the number of all summands and not 1 like now. (obviously)
     - For debugging: Print the actual percentage of zeros and ones in the y values
+    - Use a samples mean: Just sample data until the 95% interval of the mean is smaller than XYZ
+        - See: https://stackoverflow.com/a/15034143/916672
 - Bei Graphen eine Art Average-Kurve durchziehen
 - DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
 - Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
@@ -30,7 +43,11 @@ TODO:
   - Edit: While building the network one may add layers to an additional array "debug_output"
 - Falls kein Cluster COunt beim Output ist, ist der cluster count graph leer, aber trotzdem vorhanden
   - Entweder Grpah entfernen oder einen knmstanten Wert von 1.0 einfügen
-- Scores implementieren
+- Scores implementieren: http://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation
+  - Program evaluate_metrics in cluster_nn.py
+- Prefix: "_" oder "__": entscheiden!
+- Reihenfolge (private / protected / public) Zeugs mal aufräumen
+- If weighted classes are used: Always print used weights compared with effetice ratio
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units
@@ -43,6 +60,7 @@ IDEAS:
 
 NICE2HAVE:
 - Email-Notify einbauen
+- Geiler: Ein Telegram Bot: Mit Kommandos wie "example" können Beispiele erstellt und angefragt werden
 
 DONE:
 - Save optimizer config (to_config(), from_config())

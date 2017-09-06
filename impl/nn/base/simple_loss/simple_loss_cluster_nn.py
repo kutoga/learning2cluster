@@ -45,14 +45,8 @@ class SimpleLossClusterNN(ClusterNN):
         def cluster_count_accuracy_plot(history, plt):
             x = list(history.get_epoch_indices())
             y_key = 'cluster_count_output_categorical_accuracy'
-            if y_key in history.keys():
-
-                # The cluster cound is fixed: Therefore it is always correct (trivial)
-                y = [1] * len(x)
-                y_val = y
-            else:
-                y = history[y_key]
-                y_val = history['val_{}'.format(y_key)]
+            y = history[y_key]
+            y_val = history['val_{}'.format(y_key)]
 
             plt.plot(
                 *filter_None(x, y),
@@ -73,7 +67,7 @@ class SimpleLossClusterNN(ClusterNN):
             plt.xlabel('iteration')
             plt.ylabel('cluster count accuracy')
             plt.grid(True)
-        self._register_plot(model_name, cluster_count_accuracy_plot)
+        self._register_plot(model_name, cluster_count_accuracy_plot, lambda history: 'cluster_count_output_categorical_accuracy' in history.keys())
 
         # Add the grouping accuracy plot
         def grouping_accuracy_plot(history, plt):
@@ -146,7 +140,7 @@ class SimpleLossClusterNN(ClusterNN):
         # # DEBUG output
         # c0 = np.    sum(similarities_output == 0)
         # c1 = np.sum(similarities_output == 1)
-        # print("Prepared y data. Percentage of 0: {}; Percentage of 1: {}; Total values: {}".format(c0 / (c0 + c1), c1 / (c0 + c1), c0 + c1))
+        # print("\nPrepared y data. Percentage of 0: {}; Percentage of 1: {}; Total values: {}".format(c0 / (c0 + c1), c1 / (c0 + c1), c0 + c1))
 
         return y
 

@@ -86,16 +86,18 @@ class BaseNN:
     def _clear_registered_models(self):
         self._registered_models.clear()
 
-    def _register_plot(self, model_name, f_plot):
+    def _register_plot(self, model_name, f_plot, f_plot_if=None):
         """
 
         :param model_name:
         :param f_plot: A function with two parameters: the model-history and the matplotlib plot object
+        :param f_plot_if: Only create this specific plot if a given condition is ok. If f_plot_if is None, no condition has to be satisfied.
         :return:
         """
         self._registered_plots.append({
             'model_name': model_name,
-            'f_plot': f_plot
+            'f_plot': f_plot,
+            'f_plot_if': f_plot_if
         })
 
     def plot_sliding_window_average(self, values):
@@ -202,16 +204,27 @@ class BaseNN:
 
     def save_plot(self, output_filename=None):
 
-        plt.figure(1, (12, 8))
+        # Get all plots that have to be printed. We have to do this before the plotting itself, because the "subplot"
+        # function already requires the complete count of plots. We also make the figure size dependend on the count
+        # of subplots.
+        plot_funcs = list(filter(
+            lambda plot: plot['f_plot_if'] is None or
+                         plot['f_plot_if'](self._histories[
+                            self._registered_models[plot['model_name']]
+                        ]),
+            self._registered_plots
+        ))
+        plot_count = len(plot_funcs)
+
+        plt.figure(1, (12, 2 * plot_count))
         fig = pylab.gcf()
         if output_filename is not None:
             fig.canvas.set_window_title(output_filename)
             plt.title(output_filename)
 
-        plot_count = len(self._registered_plots)
-        for i in range(len(self._registered_plots)):
+        for i in range(len(plot_funcs)):
             plt.subplot(plot_count, 1, i + 1)
-            plot = self._registered_plots[i]
+            plot = plot_funcs[i]
             model = self._registered_models[plot['model_name']]
             history = self._histories[model]
             plot['f_plot'](history, plt)

@@ -36,7 +36,7 @@ class Simple2DPointDataProvider(DataProvider):
                                      )
         return clusters
 
-    def _summarize_single_result(self, X, clusters, output_directory, prediction=None):
+    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
         cluster_counts = self.get_cluster_counts()
 
         def get_filename(name):
@@ -105,8 +105,8 @@ class Simple2DPointDataProvider(DataProvider):
 
                 # Extract x and y
                 p = X[input_index]
-                x = point[0]
-                y = point[1]
+                x = p[0]
+                y = p[1]
 
                 # Get the probabilities for the clusters
                 c_probabilities = prediction['elements'][input_index][cluster_count]
@@ -139,14 +139,20 @@ class Simple2DPointDataProvider(DataProvider):
                 ))
                 f.close()
 
-            # Generate another cluster distribution file with less information, but a nicer form (for further processing)
+            # Generate another cluster distribution file that is nicer to process and that includes all metrics (if there are any)
             with open(path.join(output_directory, get_filename('cluster_probabilities2.csv')), 'wt') as f:
-                f.write('cluster_count;probability\n')
+                f.write('cluster_count;probability{}\n'.format(
+                    '' if metrics is None else (';' + ';'.join(map(lambda m: 'metric_' + m, sorted(metrics.keys()))))
+                ))
                 for cluster_count in cluster_counts:
-                    f.write('{};{}\n'.format(
+                    f.write('{};{}'.format(
                         cluster_count,
                         cluster_probabilities[cluster_count - cluster_counts[0]]
                     ))
+                    if metrics is not None:
+                        for metric in sorted(metrics.keys()):
+                            f.write(';{}'.format(metrics[metric][cluster_count]))
+                    f.write('\n')
                 f.close()
 
             # Generate an image and a csv file for each cluster possibility
@@ -183,7 +189,7 @@ class Simple2DPointDataProvider(DataProvider):
         for cluster in clusters:
             px = np.asarray(list(map(lambda c: c[0], cluster)))
             py = np.asarray(list(map(lambda c: c[1], cluster)))
-            ax.scatter(px, py)
+            ax.scatter(px, py, alpha=0.8)
         plt.xlim(-0.2, 1.2)
         plt.ylim(-0.2, 1.2)
         empty_clusters = len(list(filter(lambda c: len(c) == 0, clusters)))

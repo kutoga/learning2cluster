@@ -43,9 +43,9 @@ class DataProvider:
     def get_data_shape(self):
         pass
 
-    def convert_data_to_X(self, data, shuffle=True):
+    def convert_data_to_prediction_X(self, data, shuffle=True, return_shuffle_indices=False):
         """
-        Convert data that has the format of "get_data" to "X" input data for the neural network. The "data" value
+        Convert data that has the format of "get_data" to "X" input data for the prediction. The "data" value
         contains already the perfect result about the clusters and the "X" data only contains the input points and
         no information about any cluster.
 
@@ -63,19 +63,27 @@ class DataProvider:
         # Do this in a public function (so anyone may use it)
 
         X = []
+        shuffle_indices = []
         for cluster_collection in data:
             inputs = list(chain.from_iterable(cluster_collection))
-            if shuffle:
-                self.__rand.shuffle(inputs)
-            X.append(inputs)
 
-        return X
+            shuffle_idx = list(range(len(inputs)))
+            if shuffle:
+                self.__rand.shuffle(shuffle_idx)
+                inputs = [inputs[i] for i in shuffle_idx]
+            X.append(inputs)
+            shuffle_indices.append(shuffle_idx)
+
+        if return_shuffle_indices:
+            return X, shuffle_indices
+        else:
+            return X
 
     def convert_prediction_to_clusters(self, X, prediction):
 
         # Handle list inputs
         if isinstance(prediction, list):
-            return list(map(lambda i: self.convert_data_to_X(X[i], prediction[i]), range(len(prediction))))
+            return list(map(lambda i: self.convert_data_to_prediction_X(X[i], prediction[i]), range(len(prediction))))
 
         cluster_counts = list(self.get_cluster_counts())
         # clusters = []
@@ -166,7 +174,7 @@ class DataProvider:
         """
         pass
 
-    def summarize_results(self, X, clusters, output_directory, prediction=None, create_date_dir=True):
+    def summarize_results(self, X, clusters, output_directory, prediction=None, create_date_dir=True, metrics=None):
         """
         Summarize results and store the results to a defined output directory.
         :param X:
@@ -198,23 +206,26 @@ class DataProvider:
             current_prediction = None
             if prediction is not None:
                 current_prediction = prediction[i]
+            current_metrics = None
+            if metrics is not None:
+                current_metrics = metrics[i]
 
             self.summarize_single_result(
-                current_X, current_clusters, current_output_directory, current_prediction
+                current_X, current_clusters, current_output_directory, current_prediction, current_metrics
             )
 
         # Create a summary over everything
         # TBD
 
-    def summarize_single_result(self, X, clusters, output_directory, prediction=None):
+    def summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
 
         # Create the output directory
         try_makedirs(output_directory)
 
         # Call the implementation
-        self._summarize_single_result(X, clusters, output_directory, prediction)
+        self._summarize_single_result(X, clusters, output_directory, prediction, metrics)
 
-    def _summarize_single_result(self, X, clusters, output_directory, prediction=None):
+    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
         pass
 
 

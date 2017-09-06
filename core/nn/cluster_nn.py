@@ -5,6 +5,8 @@ from time import time
 
 import numpy as np
 
+from sklearn import metrics
+
 from termcolor import colored
 
 from keras.models import Model
@@ -12,7 +14,7 @@ from keras.layers import Input
 
 from core.nn.base_nn import BaseNN
 from core.nn.history import History
-from core.nn.helper import filter_None, AlignedTextTable
+from core.nn.helper import filter_None, AlignedTextTable, np_show_complete_array
 from core.event import Event
 from core.helper import try_makedirs
 
@@ -50,6 +52,10 @@ class ClusterNN(BaseNN):
         # Debug outputs
         self._prediction_debug_outputs = None
 
+        # Evaluation metrics: Initialize variables and register the default metrics
+        self._evaluation_metrics = {}
+        self.__register_default_evaluation_metrics()
+
     @property
     def validate_every_nth_epoch(self):
         return self._validate_every_nth_epoch
@@ -85,6 +91,22 @@ class ClusterNN(BaseNN):
     @f_cluster_count.setter
     def f_cluster_count(self, f_cluster_count):
         self._f_cluster_count = f_cluster_count
+
+    def register_evaluation_metric(self, name, f_metric):
+        self._evaluation_metrics[name] = f_metric
+
+    def __register_default_evaluation_metrics(self):
+
+        # These metrics are described here: http://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation
+        for name, f_metric in [
+            ('adjusted_rand_score', metrics.adjusted_rand_score),
+            ('adjusted_mutual_info_score', metrics.adjusted_mutual_info_score),
+            ('homogeneity_score', metrics.homogeneity_score),
+            ('completeness_score', metrics.completeness_score),
+            ('v_measure_score', metrics.v_measure_score),
+            ('fowlkes_mallows_score', metrics.fowlkes_mallows_score)
+        ]:
+            self.register_evaluation_metric(name, f_metric)
 
     def _get_embedding(self, layer):
 
@@ -252,6 +274,7 @@ class ClusterNN(BaseNN):
     def __train_iteration(self, dummy_train=False):
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
         do_validation = (self.__get_last_epoch() + 1) % self._validate_every_nth_epoch == 0
+        cluster_counts = list(self._data_provider.get_cluster_counts())
 
         # Generate training data
         t_start_data_gen_time = time()
@@ -263,6 +286,7 @@ class ClusterNN(BaseNN):
             valid_data = self.__get_data('valid', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='valid', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
             validation_data = self.__build_Xy_data(valid_data)
         else:
+            valid_data = None
             validation_data = None
         t_end_data_gen_time = time()
         t_data_gen = t_end_data_gen_time - t_start_data_gen_time
@@ -306,6 +330,23 @@ class ClusterNN(BaseNN):
 
         # Also store the required training time
         history.get_or_create_item('time_s')[-1] = t_train
+
+        # Is validation data used? If yes: Then we have to calculate the metrics
+        if do_validation:
+            valid_metrics, valid_prediction = self.evaluate_metrics(valid_data, return_prediction=True)
+            current_metrics = {metric: [] for metric in valid_metrics[0].keys()}
+            for c_i in range(len(valid_data)):
+
+                # Get the most probable cluster count
+                most_probable_cluster_count = np.argmax(valid_prediction[c_i]['cluster_count']) + cluster_counts[0]
+
+                # Add all metrics to current_metrics
+                for metric in valid_metrics[c_i].keys():
+                    current_metrics[metric].append(valid_metrics[c_i][metric][most_probable_cluster_count])
+
+            # Average all metrics and add them to the history
+            for metric in current_metrics.keys():
+                history.get_or_create_item('metric_{}'.format(metric))[-1] = np.mean(current_metrics[metric])
 
         # A helper function that may be used to check if the current value is the "best" available value
         def latest_is_minimum_value(key):
@@ -382,6 +423,95 @@ class ClusterNN(BaseNN):
         for i in range(iterations):
             self.__train_iteration()
 
+    def data_to_cluster_indices(self, data, shuffle_indices=None):
+        if isinstance(data[0][0], list):
+            return list(map(
+                lambda i: self.data_to_cluster_indices(data[i], None if shuffle_indices is None else shuffle_indices[i]),
+                range(len(data))
+            ))
+
+        cluster_indices = list(chain.from_iterable(map(
+            lambda i: [i] * len(data[i]),
+            range(len(data))
+        )))
+
+        # Shuffle if required
+        if shuffle_indices:
+            cluster_indices = [cluster_indices[i] for i in shuffle_indices]
+
+        return cluster_indices
+
+    def evaluate_metrics(self, data, return_prediction=False, shuffle_data=True):
+        # TBD: Convert data and call "evaluate_metrics_from_prediction(self, X, cluster_indices, prediction):"
+
+        data_X, data_idx = self._data_provider.convert_data_to_prediction_X(data, shuffle=shuffle_data, return_shuffle_indices=True)
+        prediction = self.predict(data_X)
+
+        cluster_indices = self.data_to_cluster_indices(data, data_idx)
+        metrics = self.evaluate_metrics_from_prediction(prediction, cluster_indices)
+
+        if return_prediction:
+            return metrics, prediction
+        else:
+            return metrics
+
+
+    def evaluate_metrics_from_prediction(self, prediction, cluster_indices):
+        # Prediction:
+        # [
+        #    {
+        #        'cluster_count': [0.2, 0.3, 0.5],
+        #        'elements': [
+        #            {
+        #                k_min: [0.3, 0.7],
+        #                ...
+        #                k_max: [0.3, 0.3, 0.3, 0.1]
+        #            },
+        #            ...
+        #        ]
+        #    },
+        #    ...
+        # ]
+        # Cluster indices:
+        # [[0, 1, 0, ... 2], [1, 2, 0, ...]...]
+        # = For the nth element the cluster index
+
+        # Handle list inputs
+        if isinstance(prediction, list):
+            return list(map(
+                lambda i: self.evaluate_metrics_from_prediction(prediction[i], cluster_indices[i]),
+                range(len(prediction))
+            ))
+
+        # Create an output structure like:
+        # {
+        #   'metric_A': {
+        #     k_min: 0.2,
+        #     ...
+        #     k_max: 0.4
+        #   },
+        #   'metric_B': {
+        #     k_min: 0.3,
+        #     ...
+        #     k_max: 0.5
+        #   }
+        # }
+        metrics = {metric: {} for metric in self._evaluation_metrics.keys()}
+        cluster_counts = list(self._data_provider.get_cluster_counts())
+        for cluster_count in cluster_counts:
+
+            # Build the cluster indices structure for the prediction for "cluster_count" clusters
+            p_cluster_indices = list(map(
+                lambda p: np.argmax(p[cluster_count]),
+                prediction['elements']
+            ))
+
+            # Calculate all metrics
+            for metric, f_metric in self._evaluation_metrics.items():
+                metrics[metric][cluster_count] = f_metric(cluster_indices, p_cluster_indices)
+
+        return metrics
+
     def predict(self, X):
         # Cases:
         # X is a list of lists or np-arrays -> multiple runs
@@ -420,8 +550,18 @@ class ClusterNN(BaseNN):
 
             # If the debug mode is enabled: Print the debug values
             if self.debug_mode:
-                print("PRINT DEBUG VALUES, count: {}".format(prediction_debug_output_count))
-                pass
+                print("~~~~~~~~~~~~~~~~~~~~~")
+                print("~Debug output: Start~")
+                print("~~~~~~~~~~~~~~~~~~~~~")
+                with np_show_complete_array():
+                    for i in range(prediction_debug_output_count):
+                        print("Layer Name: {}".format(self._prediction_debug_outputs[i].name))
+                        print("Value(s):")
+                        print(debug_outputs[i])
+                print("~~~~~~~~~~~~~~~~~~~~~")
+                print("~Debug output: End  ~")
+                print("~~~~~~~~~~~~~~~~~~~~~")
+                print()
 
 
         # Create a structure like this:
@@ -520,19 +660,26 @@ class ClusterNN(BaseNN):
 
         pass
 
-    def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True):
+    def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True):
 
         # Generate test data
         test_data = self.__get_data(data_type=data_type, cluster_collection_count=count) # self._data_provider.get_data(self._input_count, count, data_type=data_type)
-        test_data_X = self._data_provider.convert_data_to_X(test_data)
+        test_data_X, test_data_idx = self._data_provider.convert_data_to_prediction_X(test_data, shuffle=shuffle_data, return_shuffle_indices=True)
 
         # Do a prediction
         print("Do a test prediction (output directory: {})...".format(output_directory))
         prediction = self.predict(test_data_X)
 
+        # Evaluate the metrics if required
+        if include_metrics:
+            cluster_indices = self.data_to_cluster_indices(test_data, test_data_idx)
+            metrics = self.evaluate_metrics_from_prediction(prediction, cluster_indices)
+        else:
+            metrics = None
+
         # Summarize
         print("Summarize test results...")
-        self._data_provider.summarize_results(test_data_X, test_data, output_directory, prediction, create_date_dir)
+        self._data_provider.summarize_results(test_data_X, test_data, output_directory, prediction, create_date_dir, metrics)
         print("Tests done...")
 
     def dummy_train(self):
@@ -550,7 +697,7 @@ class ClusterNN(BaseNN):
         :return:
         """
         data = self.data_provider.get_data(self._input_count, self._minibatch_size, data_type='train', dummy_data=True)
-        X = self.data_provider.convert_data_to_X(data)
+        X = self.data_provider.convert_data_to_prediction_X(data)
         print("Start dummy prediction...")
         self.predict(X)
         print("Finished dummy prediction...")
