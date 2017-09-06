@@ -67,7 +67,7 @@ class SimpleLossClusterNN(ClusterNN):
             plt.xlabel('iteration')
             plt.ylabel('cluster count accuracy')
             plt.grid(True)
-        self._register_plot(model_name, cluster_count_accuracy_plot, lambda history: 'cluster_count_output_categorical_accuracy' in history.keys())
+        self._register_plot(model_name, cluster_count_accuracy_plot, 'loss', lambda history: 'cluster_count_output_categorical_accuracy' in history.keys())
 
         # Add the grouping accuracy plot
         def grouping_accuracy_plot(history, plt):
@@ -96,7 +96,7 @@ class SimpleLossClusterNN(ClusterNN):
             plt.xlabel('iteration')
             plt.ylabel('grouping accuracy')
             plt.grid(True)
-        self._register_plot(model_name, grouping_accuracy_plot)
+        self._register_plot(model_name, grouping_accuracy_plot, 'loss')
 
     def _build_y_data(self, inputs):
         cluster_counts = self.data_provider.get_cluster_counts()

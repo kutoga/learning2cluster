@@ -20,12 +20,13 @@ from core.helper import try_makedirs
 
 
 class ClusterNN(BaseNN):
-    def __init__(self, data_provider, input_count, embedding_nn=None, seed=None):
+    def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True):
         super().__init__(name='NN_[CLASS]_I{}'.format(input_count))
         self._rand = Random(seed)
         self._data_provider = data_provider
         self._input_count = input_count
         self._embedding_nn = embedding_nn
+        self._create_metrics_plot = create_metrics_plot
 
         self._optimizer = 'adadelta'
         self._minibatch_size = 100
@@ -55,6 +56,8 @@ class ClusterNN(BaseNN):
         # Evaluation metrics: Initialize variables and register the default metrics
         self._evaluation_metrics = {}
         self.__register_default_evaluation_metrics()
+        if self._create_metrics_plot:
+            self.__register_evalution_metrics_plots()
 
     @property
     def validate_every_nth_epoch(self):
@@ -108,6 +111,36 @@ class ClusterNN(BaseNN):
         ]:
             self.register_evaluation_metric(name, f_metric)
 
+    def __register_evalution_metrics_plots(self):
+        metrics_plot_name = 'metrics'
+        model_name = self._get_name('cluster_nn')
+
+        # Clean up
+        self._clear_registered_plots(metrics_plot_name)
+
+        # Register all plots
+        for metric in sorted(self._evaluation_metrics.keys()):
+
+            # Add the loss plot
+            def metric_plot(history, plt, metric=metric):
+                x = list(history.get_epoch_indices())
+                y = history['metric_{}'.format(metric)]
+                plt.plot(
+                    *filter_None(x, y),
+                    *filter_None(x, self.plot_sliding_window_average(y)),
+
+                    alpha=0.7,
+                    lw=0.5
+                )
+                plt.legend([
+                    '{}: validation'.format(metric),
+                    '{}: validation AVG'.format(metric)
+                ])
+                plt.xlabel('iteration')
+                plt.ylabel('loss')
+                plt.grid(True)
+            self._register_plot(model_name, metric_plot, metrics_plot_name)
+
     def _get_embedding(self, layer):
 
         # If a list of layers is given: Return the embedding for each layer
@@ -148,7 +181,7 @@ class ClusterNN(BaseNN):
             plt.xlabel('iteration')
             plt.ylabel('loss')
             plt.grid(True)
-        self._register_plot(model_name, loss_plot)
+        self._register_plot(model_name, loss_plot, 'loss')
 
         # Add the new best loss plot
         def best_loss_plot(history, plt):
@@ -177,7 +210,7 @@ class ClusterNN(BaseNN):
             plt.xlabel('iteration')
             plt.ylabel('new best loss')
             plt.grid(True)
-        self._register_plot(model_name, best_loss_plot)
+        self._register_plot(model_name, best_loss_plot, 'loss')
 
     def _build_network(self, network_input, network_output, additional_network_outputs, debug_output):
         return None
@@ -713,7 +746,7 @@ class ClusterNN(BaseNN):
             try_makedirs(output_directory)
             base_path = path.join(output_directory, base_filename + '_' + suffix)
             self.save_weights(base_path, include_history)
-            self.save_plot(base_path + '_history.png')
+            self.save_plots(base_path + '_plot')
             if create_examples:
                 example_path = path.join(output_directory, 'examples_' + suffix)
                 self.test_network(example_count, example_path, create_date_dir=not overwrite_examples)
@@ -729,8 +762,8 @@ class ClusterNN(BaseNN):
         # If defined: How often should the loss plot be created?
         if print_loss_plot_every_nth_itr is not None:
             try_makedirs(output_directory)
-            self.event_training_iteration_after.add(lambda history: self.save_plot(
-                path.join(output_directory, 'loss_plot.png')
+            self.event_training_iteration_after.add(lambda history: self.save_plots(
+                path.join(output_directory, 'plot')
             ), nth=print_loss_plot_every_nth_itr)
 
     def try_load_from_autosave(self, output_directory, base_filename=None, config='itr', include_history=True):

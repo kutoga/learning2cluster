@@ -20,7 +20,7 @@ class BaseNN:
         self._registered_models = {}
 
         # All registered plots
-        self._registered_plots = []
+        self._registered_plots = {}
 
         # Plot settings: If the given plot_sliding_window_average method is used, how large in percent/100 of all given
         # values should the averaging range be?
@@ -86,7 +86,7 @@ class BaseNN:
     def _clear_registered_models(self):
         self._registered_models.clear()
 
-    def _register_plot(self, model_name, f_plot, f_plot_if=None):
+    def _register_plot(self, model_name, f_plot, figure=None, f_plot_if=None):
         """
 
         :param model_name:
@@ -94,7 +94,9 @@ class BaseNN:
         :param f_plot_if: Only create this specific plot if a given condition is ok. If f_plot_if is None, no condition has to be satisfied.
         :return:
         """
-        self._registered_plots.append({
+        if figure not in self._registered_plots.keys():
+            self._registered_plots[figure] = []
+        self._registered_plots[figure].append({
             'model_name': model_name,
             'f_plot': f_plot,
             'f_plot_if': f_plot_if
@@ -105,8 +107,11 @@ class BaseNN:
         # Add 0.1 to the length of all values to avoid some "0" problems
         return sliding_window_average(values, int(ceil((len(values) + 0.1) * self._plot_sliding_window_range_percentage)))
 
-    def _clear_registered_plots(self):
-        self._registered_plots.clear()
+    def _clear_registered_plots(self, figure=None, all_figures=True):
+        if all_figures and (figure is not None):
+            self._registered_plots.clear()
+        elif figure in self._registered_plots.keys():
+            del self._registered_plots[figure]
 
     def _register_plots(self):
         """
@@ -202,38 +207,44 @@ class BaseNN:
 
         self.event_load_weights_after.fire(base_filename, include_history)
 
-    def save_plot(self, output_filename=None):
+    def save_plots(self, output_base_filename=None):
+        for figure_name in self._registered_plots.keys():
+            registered_plots = self._registered_plots[figure_name]
 
-        # Get all plots that have to be printed. We have to do this before the plotting itself, because the "subplot"
-        # function already requires the complete count of plots. We also make the figure size dependend on the count
-        # of subplots.
-        plot_funcs = list(filter(
-            lambda plot: plot['f_plot_if'] is None or
-                         plot['f_plot_if'](self._histories[
-                            self._registered_models[plot['model_name']]
-                        ]),
-            self._registered_plots
-        ))
-        plot_count = len(plot_funcs)
+            # Get all plots that have to be printed. We have to do this before the plotting itself, because the "subplot"
+            # function already requires the complete count of plots. We also make the figure size dependend on the count
+            # of subplots.
+            plot_funcs = list(filter(
+                lambda plot: plot['f_plot_if'] is None or
+                             plot['f_plot_if'](self._histories[
+                                self._registered_models[plot['model_name']]
+                            ]),
+                registered_plots
+            ))
+            plot_count = len(plot_funcs)
 
-        plt.figure(1, (12, 2 * plot_count))
-        fig = pylab.gcf()
-        if output_filename is not None:
-            fig.canvas.set_window_title(output_filename)
-            plt.title(output_filename)
+            plt.figure(1, (12, 2 * plot_count))
+            fig = pylab.gcf()
+            if output_base_filename is not None:
+                if figure_name is not None:
+                    output_filename = '{}_{}.png'.format(output_base_filename, figure_name)
+                else:
+                    output_filename = '{}.png'.format(output_base_filename)
+                fig.canvas.set_window_title(output_filename)
+                plt.title(output_filename)
 
-        for i in range(len(plot_funcs)):
-            plt.subplot(plot_count, 1, i + 1)
-            plot = plot_funcs[i]
-            model = self._registered_models[plot['model_name']]
-            history = self._histories[model]
-            plot['f_plot'](history, plt)
+            for i in range(len(plot_funcs)):
+                plt.subplot(plot_count, 1, i + 1)
+                plot = plot_funcs[i]
+                model = self._registered_models[plot['model_name']]
+                history = self._histories[model]
+                plot['f_plot'](history, plt)
 
-        self.event_plot_created.fire(plt)
+            self.event_plot_created.fire(plt)
 
-        if output_filename is not None:
-            plt.savefig(output_filename)
-            plt.clf()
-            plt.close()
-        else:
-            plt.show(block=True)
+            if output_filename is not None:
+                plt.savefig(output_filename)
+                plt.clf()
+                plt.close()
+            else:
+                plt.show(block=True)
