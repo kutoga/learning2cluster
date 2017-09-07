@@ -21,6 +21,7 @@ if __name__ == '__main__':
 
     fixedc = 5
     dp = Simple2DPointDataProvider(min_cluster_count=fixedc, max_cluster_count=fixedc, allow_less_clusters=False)
+    # dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=10, allow_less_clusters=False)
     #en = SimpleFCEmbedding()
     en = None
 

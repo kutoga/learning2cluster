@@ -1,9 +1,11 @@
+from time import time
+
 import numpy as np
 
 from keras.layers import Dot, Reshape
 
 from core.nn.cluster_nn import ClusterNN
-from core.nn.helper import filter_None, concat_layer, create_weighted_binary_crossentropy
+from core.nn.helper import filter_None, concat_layer, create_weighted_binary_crossentropy, mean_confidence_interval
 
 
 class SimpleLossClusterNN(ClusterNN):
@@ -17,10 +19,15 @@ class SimpleLossClusterNN(ClusterNN):
         self._include_self_comparison = True
 
         self._weighted_classes = weighted_classes
+        self._class_weights_approximator = 'simple_approximation' # Possible values: ['stochastic', 'simple_approximation]
 
     @property
     def include_self_comparison(self):
         return self._include_self_comparison
+
+    @include_self_comparison.setter
+    def include_self_comparison(self, include_self_comparison):
+        self._include_self_comparison = include_self_comparison
 
     @property
     def weighted_classes(self):
@@ -30,9 +37,13 @@ class SimpleLossClusterNN(ClusterNN):
     def weighted_classes(self, weighted_classes):
         self._weighted_classes = weighted_classes
 
-    @include_self_comparison.setter
-    def include_self_comparison(self, include_self_comparison):
-        self._include_self_comparison = include_self_comparison
+    @property
+    def class_weights_approximator(self):
+        return self._class_weights_approximator
+
+    @class_weights_approximator.setter
+    def class_weights_approximator(self, class_weights_approximator):
+        self._class_weights_approximator = class_weights_approximator
 
     def _get_cluster_count_possibilities(self):
         return self.data_provider.get_max_cluster_count() - self.data_provider.get_min_cluster_count() + 1
@@ -211,6 +222,14 @@ class SimpleLossClusterNN(ClusterNN):
     def get_class_weights(self):
         if not self._weighted_classes:
             return None
+        if self._class_weights_approximator == 'simple_approximation':
+            return self.__get_simple_approximation_class_weights()
+        elif self._class_weights_approximator == 'stochastic':
+            return self.__get_stochastic_class_weights()
+        else:
+            raise ValueError()
+
+    def __get_simple_approximation_class_weights(self):
 
         # A function that calculates the expected ones in the similarities_output for a given cluster count
         # (from a mathematical point of view this function is not completely correct, but it is a good approximation)
@@ -252,6 +271,59 @@ class SimpleLossClusterNN(ClusterNN):
 
         print("Calculated class weights: w0={}, w1={}".format(w0, w1))
         return w0, w1
+
+    def __get_stochastic_class_weights(self):
+
+        # The required settings: The difference between the upper and lower limit of the 95% confidence interval must
+        # be smaller than 0.005
+        confidence = 0.95
+        max_diff = 0.005
+
+        def sample_data():
+
+            # Generate data
+            data = self._get_data('train')
+            _, y = self._build_Xy_data(data)
+
+            # Get the y-data and calculate the expected percentage of '0s' in the similarities output
+            similarities_output = y['similarities_output']
+            return [
+                np.mean(similarities_output[i]) for i in range(len(data))
+            ]
+
+        t_start = time()
+        data = []
+        print("Start to calculate the expected stochastic class weights...")
+        while True:
+            print("Sample some data...")
+            data += sample_data()
+            print("Sample data count: {}".format(len(data)))
+            lower_bound, upper_bound = mean_confidence_interval(data, confidence=confidence)
+            interval_size = upper_bound - lower_bound
+            print("{}% confidence interval size: {}".format(confidence * 100, interval_size))
+
+            if interval_size <= max_diff:
+                mean = (upper_bound + lower_bound) / 2
+                print("Interval is ok. Mean: {}".format(mean))
+                break
+            else:
+                print("Interval is larger than {}. Sample more data...".format(max_diff))
+        t_end = time()
+        print("Required {} seconds...".format(t_end - t_start))
+
+
+        expected_ones_percentage = mean
+        expected_zeros_percentage = 1 - mean
+
+        # Calculate the weights
+        w0 = 2 * expected_ones_percentage
+        w1 = 2 * expected_zeros_percentage
+
+        print("Calculated class weights: w0={}, w1={}".format(w0, w1))
+
+        return w0, w1
+
+
 
     def _get_keras_loss(self):
         if self.weighted_classes:

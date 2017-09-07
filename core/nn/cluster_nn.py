@@ -247,7 +247,7 @@ class ClusterNN(BaseNN):
                 X[i][c] = current_inputs[i][0]
         return X
 
-    def __build_Xy_data(self, data):
+    def _build_Xy_data(self, data):
 
         # Prepare the data:
         # [
@@ -299,7 +299,7 @@ class ClusterNN(BaseNN):
     def __get_last_epoch(self):
         return self._get_history(self._model_training).length()
 
-    def __get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, *args):
+    def _get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, *args):
         if cluster_collection_count is None:
             cluster_collection_count = self._minibatch_size
         return self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
@@ -311,13 +311,13 @@ class ClusterNN(BaseNN):
 
         # Generate training data
         t_start_data_gen_time = time()
-        train_data = self.__get_data('train', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='train', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
-        X_train, y_train = self.__build_Xy_data(train_data)
+        train_data = self._get_data('train', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='train', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
+        X_train, y_train = self._build_Xy_data(train_data)
 
         # If required: Generate validation data
         if do_validation:
-            valid_data = self.__get_data('valid', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='valid', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
-            validation_data = self.__build_Xy_data(valid_data)
+            valid_data = self._get_data('valid', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='valid', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
+            validation_data = self._build_Xy_data(valid_data)
         else:
             valid_data = None
             validation_data = None
@@ -696,7 +696,7 @@ class ClusterNN(BaseNN):
     def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True):
 
         # Generate test data
-        test_data = self.__get_data(data_type=data_type, cluster_collection_count=count) # self._data_provider.get_data(self._input_count, count, data_type=data_type)
+        test_data = self._get_data(data_type=data_type, cluster_collection_count=count) # self._data_provider.get_data(self._input_count, count, data_type=data_type)
         test_data_X, test_data_idx = self._data_provider.convert_data_to_prediction_X(test_data, shuffle=shuffle_data, return_shuffle_indices=True)
 
         # Do a prediction

@@ -1,53 +1,17 @@
 NEXT STEPS:
-- Implement evaluation metrics
-  - For testing and also for the history (only while validating)
-  - Evaluation metrics plots
-- Implement an empirical weight measurement
-  - Sample data until the relative expected count of 0s and 1s has a confidence interval of less then 1%
-  - Implement a nice print (see TODO)
 - Use the weights for the try00
 - Testing;)
 
 TODO:
-- Cluster plots for 2D data: Make the points a bit transparent (becaue of overlapping points)
 - Maybe print the network summary to somewhere?
 - The validation loss seems to be always worse than the training loss, but the used data is always generated?
   - Test what happens if the training data is used for the validation run. See: BUG_LOSS.txt
-- Git-Repo erstellen
-- Use weithed loss-values for the similarities output
-    - Calculate the expected 1s and 0s and weight them
-    - See: https://github.com/fchollet/keras/issues/2115
-           https://github.com/fchollet/keras/issues/3068
-           https://datascience.stackexchange.com/questions/13490/how-to-set-class-weights-for-imbalanced-classes-in-keras
-           https://github.com/fchollet/keras/issues/4735
-    - See: https://stackoverflow.com/questions/46009619/keras-weighted-binary-crossentropy
-        - Maybe use the log / sqrt of the weights?
-        - Implement log / sqrt / f(x) normalize => use the current weights and appliy w_0n = f(w_0), and sum(f(w_i)) = count of weights
-    - Test the current implementation somehow
-        - Create a minimal network and do some tests: A network without weights and a defined and fixed input, check
-          if the loss is exactly equal to the manually computed value. Another test is to directly check the output
-          of the weighted and unweighted binary crossentropys
-    - For the weighted cross entropy: The total weight sum should be the number of all summands and not 1 like now. (obviously)
-    - For debugging: Print the actual percentage of zeros and ones in the y values
-    - Use a samples mean: Just sample data until the 95% interval of the mean is smaller than XYZ
-        - See: https://stackoverflow.com/a/15034143/916672
-- Bei Graphen eine Art Average-Kurve durchziehen
-- DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
-- Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
-- Cluster counts things are buggy (see fixedc, and see scr 4)
-- fixedc contains a Bug (see BUG_FIXEC): A bug while generating data. This has to be fixed
 - Im Konstruktor bei "super" jeweils als ersten Parameter die aktuelle Klasse mitgeben und nicht die Superklasse
 - Optimizer state wird nicht richtig gespeichert / geladen, siehe: https://groups.google.com/forum/#!topic/keras-users/cNvLLrarfN4
-- Implement debug-Outputs: Just print them in some nice format (e.g. use a Prefix DEBUG_ or something like this, or add
-  a bool "debug" to the _s_layer method)
-  - Edit: While building the network one may add layers to an additional array "debug_output"
-- Falls kein Cluster COunt beim Output ist, ist der cluster count graph leer, aber trotzdem vorhanden
-  - Entweder Grpah entfernen oder einen knmstanten Wert von 1.0 einfügen
-- Scores implementieren: http://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation
-  - Program evaluate_metrics in cluster_nn.py
 - Prefix: "_" oder "__": entscheiden!
 - Reihenfolge (private / protected / public) Zeugs mal aufräumen
-- If weighted classes are used: Always print used weights compared with effetice ratio
+- If weighted classes are used: Always print used weights compared with effective ratio
+- Does the weighted loss work correct?
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units
@@ -96,3 +60,40 @@ DONE:
   - For the iteration output: Also print the best training loss
 - Print the amount of network parameters
 - Prediction graphics for all cluster counts: Add the probability to the title
+- Implement evaluation metrics
+  - For testing and also for the history (only while validating)
+  - Evaluation metrics plots
+- Cluster plots for 2D data: Make the points a bit transparent (becaue of overlapping points)
+- Implement an empirical weight measurement
+  - Sample data until the relative expected count of 0s and 1s has a confidence interval of less then 1%
+  - Implement a nice print (see TODO)
+- Git-Repo erstellen
+- Use weithed loss-values for the similarities output
+    - Calculate the expected 1s and 0s and weight them
+    - See: https://github.com/fchollet/keras/issues/2115
+           https://github.com/fchollet/keras/issues/3068
+           https://datascience.stackexchange.com/questions/13490/how-to-set-class-weights-for-imbalanced-classes-in-keras
+           https://github.com/fchollet/keras/issues/4735
+    - See: https://stackoverflow.com/questions/46009619/keras-weighted-binary-crossentropy
+        - Maybe use the log / sqrt of the weights?
+        - Implement log / sqrt / f(x) normalize => use the current weights and appliy w_0n = f(w_0), and sum(f(w_i)) = count of weights
+    - Test the current implementation somehow
+        - Create a minimal network and do some tests: A network without weights and a defined and fixed input, check
+          if the loss is exactly equal to the manually computed value. Another test is to directly check the output
+          of the weighted and unweighted binary crossentropys
+    - For the weighted cross entropy: The total weight sum should be the number of all summands and not 1 like now. (obviously)
+    - For debugging: Print the actual percentage of zeros and ones in the y values
+    - Use a samples mean: Just sample data until the 95% interval of the mean is smaller than XYZ
+        - See: https://stackoverflow.com/a/15034143/916672, or better: https://stackoverflow.com/a/34474255/916672
+- Use the wrapper "concat_layer" for concatenations. Why? The "Concatenate" layer cannot handle single inputs
+- Cluster counts things are buggy (see fixedc, and see scr 4)
+- fixedc contains a Bug (see BUG_FIXEC): A bug while generating data. This has to be fixed
+- Bei Graphen eine Art Average-Kurve durchziehen
+- DataProvider aufräumen: Man soll einen Range doer eine fixe ANzahl CLuster mitgeben. Aktuell ist das ein wenig Bastel
+- Implement debug-Outputs: Just print them in some nice format (e.g. use a Prefix DEBUG_ or something like this, or add
+  a bool "debug" to the _s_layer method)
+  - Edit: While building the network one may add layers to an additional array "debug_output"
+- Falls kein Cluster COunt beim Output ist, ist der cluster count graph leer, aber trotzdem vorhanden
+  - Entweder Grpah entfernen oder einen knmstanten Wert von 1.0 einfügen
+- Scores implementieren: http://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation
+  - Program evaluate_metrics in cluster_nn.py

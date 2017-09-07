@@ -3,6 +3,7 @@ from os import path
 from shutil import move
 
 import numpy as np
+import scipy.stats as st
 
 from contextlib import contextmanager
 
@@ -200,6 +201,11 @@ def np_show_complete_array():
     np.set_printoptions(threshold=np.inf)
     yield
     np.set_printoptions(**oldoptions)
+
+
+def mean_confidence_interval(data, confidence=0.95):
+    # See: https://stackoverflow.com/a/34474255/916672
+    return st.t.interval(confidence, len(data)-1, loc=np.mean(data), scale=st.sem(data))
 
 
 def linear_inerpolation_for_None_values(values):
