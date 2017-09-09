@@ -208,6 +208,7 @@ class BaseNN:
         self.event_load_weights_after.fire(base_filename, include_history)
 
     def save_plots(self, output_base_filename=None):
+        print("Create all registered plots. Output base filename: {}".format(output_base_filename))
         for figure_name in self._registered_plots.keys():
             registered_plots = self._registered_plots[figure_name]
 
@@ -248,3 +249,4 @@ class BaseNN:
                 plt.close()
             else:
                 plt.show(block=True)
+        print("All plots are done")

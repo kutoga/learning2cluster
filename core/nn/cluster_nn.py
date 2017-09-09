@@ -400,6 +400,7 @@ class ClusterNN(BaseNN):
         # Align the training and the validation loss values
         # TODO: Put this code in a function
         tbl = AlignedTextTable(add_initial_row=False)
+        tbl_metrics = AlignedTextTable(add_initial_row=True)
         train = {}
         valid = {}
         others = {}
@@ -409,8 +410,11 @@ class ClusterNN(BaseNN):
                 continue
             if key == "time_s":
                 others[key] = value
-            elif "val_" in key:
+            elif key.startswith("val_"):
                 valid[key] = value
+            elif key.startswith("metric_"):
+                tbl_metrics.add_cell(key)
+                tbl_metrics.add_cell(colored("{:0.6}".format(value), attrs=['bold']))
             else:
                 train[key] = value
         for row in filter(lambda d: len(d) > 0, [train, valid, others]):
@@ -437,6 +441,7 @@ class ClusterNN(BaseNN):
             for k in list(sorted(row.keys())):
                 try_add(k, bold=True)
         tbl.print_str()
+        tbl_metrics.print_str()
 
         # Old print code:
         # for hist_key in sorted(history.keys()):
@@ -737,7 +742,7 @@ class ClusterNN(BaseNN):
 
     def register_autosave(self, output_directory, base_filename=None, nth_iteration=100, always_save_best_config=True,
                           create_examples=True, example_count=4, overwrite_examples=True, include_history=True,
-                          print_loss_plot_every_nth_itr=1):
+                          print_loss_plot_every_nth_itr=10):
         if base_filename is None:
             base_filename = self._get_name('autosave')
 

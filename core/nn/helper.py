@@ -226,7 +226,8 @@ def linear_inerpolation_for_None_values(values):
             return False
 
     # Replace all Nones at the end
-    for i in reversed(range(len(values))):
+    # for i in reversed(range(len(values))):
+    for i in range(len(values) - 1, -1, -1):
         if values[i] is not None:
             if i < len(values) - 1:
                 values[(i + 1):len(values)] = [values[i]] * (len(values) - 1 - i)
@@ -236,7 +237,7 @@ def linear_inerpolation_for_None_values(values):
     previous_value_i = [None] * len(values)
     next_value_i = [None] * len(values)
     tmp = 0
-    for config in [(previous_value_i, range(len(values))), (next_value_i, reversed(range(len(values))))]:
+    for config in [(previous_value_i, range(len(values))), (next_value_i, range(len(values) - 1, -1, -1))]:
         target_list, indices = config
         for i in indices:
             if values[i] is None:
@@ -256,6 +257,45 @@ def linear_inerpolation_for_None_values(values):
 
     # Everything is done:)
     return True
+
+
+def sliding_window_average_for_notNone(values, window_range=2):
+    """
+    window_length = 2*window_range+1
+    :param values:
+    :param window_range:
+    :return:
+    """
+    input_len = len(values)
+
+    # If the input is empty: Return an empty array
+    if input_len == 0:
+        return []
+
+    # If the input shorter than or euqal to 1+window_range this is a real special case: Then we get a constant output
+    if input_len < (1 + window_range):
+        return [sum(values) / input_len] * input_len
+
+    # Prepare the output array and also some running values
+    result = [0.] * len(values)
+    current_sum = 0.
+    current_divisor = 0
+
+    # Trivial implementation (maybe a bit slow: It could be faster if the first and the last window_range values are handled seperatly, then no "ifs" would be required)
+    current_sum += sum(values[0:window_range])
+    current_divisor += window_range
+    for i in range(len(values)):
+        i_remove = i - window_range - 1
+        i_add = i + window_range
+        if i_remove >= 0:
+            current_sum -= values[i_remove]
+            current_divisor -= 1
+        if i_add < input_len:
+            current_sum += values[i_add]
+            current_divisor += 1
+        result[i] = current_sum / current_divisor
+
+    return result
 
 
 def sliding_window_average(values, window_range=2, interpolation_for_None='linear'):
@@ -279,13 +319,19 @@ def sliding_window_average(values, window_range=2, interpolation_for_None='linea
             # The interpolation doesn't work: Just return the input array (probably it only contains None values)
             return values
 
-    # Do the averaging
-    def get_value(i):
-        i_start = max(0, i - window_range)
-        i_end = min(len(values), i + 1 + window_range)
-        return sum(values[i_start:i_end]) / (i_end - i_start)
-    return list(map(get_value, range(len(values))))
+    # # Do the averaging
+    # def get_value(i):
+    #     i_start = max(0, i - window_range)
+    #     i_end = min(len(values), i + 1 + window_range)
+    #     return sum(values[i_start:i_end]) / (i_end - i_start)
+    # return list(map(get_value, range(len(values))))
 
+    # Do the averaging a bit faster
+    return sliding_window_average_for_notNone(values, window_range)
+
+    # Maybe pandas.rolling_average would be event faster? Unfortunately its handling for the edge values sucks. But sliding_window_average_for_notNone
+    # and pandas.rolling_average scale linear (rolling_average is about 6 times faster, also sliding_window_average_for_notNone requires only
+    # 1.2s on my notebook for 1'000'000 values; thats ok)
 
 __MODEL_FILE_WEIGHTS_SUFFIX = '.weights.pkl'
 __MODEL_FILE_HISTORY_SUFFIX = '.history.pkl'
@@ -498,4 +544,49 @@ def load_history(base_filename):
 #     # uninitialized layers without weights.
 #     return initialized_layers, target_layers_with_weights
 #
+
+if __name__ == '__main__':
+    from random import random
+    from time import time
+    import pandas as pd
+
+    count = 1000000
+    window_range = count // 10
+    window_len = 2 * window_range + 1
+
+    y = [random() for i in range(count)]
+
+    print("Start")
+    t_start = time()
+    y1 = sliding_window_average_for_notNone(y, window_range)
+    t_end = time()
+    print("Required time [s]: {}".format(t_end - t_start))
+
+    print("Start")
+    t_start = time()
+    y1 = list(pd.rolling_mean(np.asarray(y), window_len, center=True))
+    t_end = time()
+    print("Required time [s]: {}".format(t_end - t_start))
+
+    print("Start")
+    t_start = time()
+    def get_value(i):
+        i_start = max(0, i - window_range)
+        i_end = min(len(y), i + 1 + window_range)
+        return sum(y[i_start:i_end]) / (i_end - i_start)
+    y2 = list(map(get_value, range(len(y))))
+    t_end = time()
+    print("Required time [s]: {}".format(t_end - t_start))
+
+    print("Start")
+    t_start = time()
+    l = len(y)
+    def get_value(i):
+        i_start = max(0, i - window_range)
+        i_end = min(l, i + 1 + window_range)
+        return sum(y[i_start:i_end]) / (i_end - i_start)
+    y3 = list(map(get_value, range(l)))
+    t_end = time()
+    print("Required time [s]: {}".format(t_end - t_start))
+
 

@@ -1,4 +1,14 @@
 NEXT STEPS:
+- These line are very slow:
+    def get_value(i):
+        i_start = max(0, i - window_range)
+        i_end = min(len(values), i + 1 + window_range)
+        return sum(values[i_start:i_end]) / (i_end - i_start)
+    res = list(map(get_value, range(len(values))))
+  - Fix this! Use a running sum: sum the first (e.g. 10%) values together and the always subtract the first
+    value and add the next value
+- Print evaluation metrics to the command line (validation metrics)
+  - Currently they are printed in the "Training" line, but obviously they should be printed in the validation line or just in another new line
 - Use the weights for the try00
 - Testing;)
 
@@ -12,6 +22,7 @@ TODO:
 - Reihenfolge (private / protected / public) Zeugs mal aufräumen
 - If weighted classes are used: Always print used weights compared with effective ratio
 - Does the weighted loss work correct?
+- Are metrics plotted for partially trained networks (see fixedc on the server: they are not plotted?)
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units
