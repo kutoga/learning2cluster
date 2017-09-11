@@ -23,6 +23,9 @@ TODO:
 - If weighted classes are used: Always print used weights compared with effective ratio
 - Does the weighted loss work correct?
 - Are metrics plotted for partially trained networks (see fixedc on the server: they are not plotted?)
+- Weightec alsses improve the cluster detection accuracy, but sometimes multiple clusters are merged to one cluster.
+  - Why? Because in the similarities output the "1"s create a low error, therefore for the network it is "ok" if there
+    are too many "1"s. The clusters are always identified correctly, therefore the true "1s" are all detected.
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units

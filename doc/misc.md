@@ -16,10 +16,10 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
     
 # Commands
 	
-	bash ./scripts/run.sh ./app/test_minimal_cluster_nn.py /tmp/test_minimal_cluster_nn.py.log
-	bash ./scripts/run.sh ./app/test_cluster_nn_try00.py /tmp/test_cluster_nn_try00.py.log
-	bash ./scripts/run.sh ./app/test_cluster_nn_try00_noembd.py /tmp/test_cluster_nn_try00_noembd.py.log
-	bash ./scripts/run.sh ./app/test_cluster_nn_try00_fixedc.py /tmp/test_cluster_nn_try00_fixedc.py.log
-	bash ./scripts/run.sh ./app/test_cluster_nn_try01.py /tmp/test_cluster_nn_try01.py.log
-	bash ./scripts/run.sh ./app/test_cluster_nn_try02.py /tmp/test_cluster_nn_try02.py.log
-	bash ./scripts/run.sh ./app/test_cluster_nn_try02_mod01.py /tmp/test_cluster_nn_try02_mod01.py.log
+	bash ./scripts/run.sh ./app/test_minimal_cluster_nn.py /tmp/test/test_minimal_cluster_nn.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00.py /tmp/test/test_cluster_nn_try00.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_noembd.py /tmp/test/test_cluster_nn_try00_noembd.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_fixedc.py /tmp/test/test_cluster_nn_try00_fixedc.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try01.py /tmp/test/test_cluster_nn_try01.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try02.py /tmp/test/test_cluster_nn_try02.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try02_mod01.py /tmp/test/test_cluster_nn_try02_mod01.py.log

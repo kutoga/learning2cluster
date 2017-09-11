@@ -38,11 +38,11 @@ class SimpleLossClusterNN(ClusterNN):
         self._weighted_classes = weighted_classes
 
     @property
-    def class_weights_approximator(self):
+    def class_weights_approximation(self):
         return self._class_weights_approximator
 
-    @class_weights_approximator.setter
-    def class_weights_approximator(self, class_weights_approximator):
+    @class_weights_approximation.setter
+    def class_weights_approximation(self, class_weights_approximator):
         self._class_weights_approximator = class_weights_approximator
 
     def _get_cluster_count_possibilities(self):
