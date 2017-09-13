@@ -26,6 +26,7 @@ TODO:
 - Weightec alsses improve the cluster detection accuracy, but sometimes multiple clusters are merged to one cluster.
   - Why? Because in the similarities output the "1"s create a low error, therefore for the network it is "ok" if there
     are too many "1"s. The clusters are always identified correctly, therefore the true "1s" are all detected.
+  - Eventuell Bei Gewichtengen noch logarithmieren oder Wurzel oder so
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units

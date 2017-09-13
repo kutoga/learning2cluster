@@ -1,3 +1,4 @@
+from inspect import signature
 from time import time
 
 import numpy as np
@@ -20,6 +21,8 @@ class SimpleLossClusterNN(ClusterNN):
 
         self._weighted_classes = weighted_classes
         self._class_weights_approximator = 'simple_approximation' # Possible values: ['stochastic', 'simple_approximation]
+        self._class_weights_post_processing_f = None # None == lambda x: x == identity function
+        self._normalize_class_weights = True
 
     @property
     def include_self_comparison(self):
@@ -44,6 +47,22 @@ class SimpleLossClusterNN(ClusterNN):
     @class_weights_approximation.setter
     def class_weights_approximation(self, class_weights_approximator):
         self._class_weights_approximator = class_weights_approximator
+
+    @property
+    def class_weights_post_processing_f(self):
+        return self._class_weights_post_processing_f
+
+    @class_weights_post_processing_f.setter
+    def class_weights_post_processing_f(self, class_weights_post_processing_f):
+        self._class_weights_post_processing_f = class_weights_post_processing_f
+
+    @property
+    def normalize_class_weights(self):
+        return self._normalize_class_weights
+
+    @normalize_class_weights.setter
+    def normalize_class_weights(self, normalize_class_weights):
+        self._normalize_class_weights = normalize_class_weights
 
     def _get_cluster_count_possibilities(self):
         return self.data_provider.get_max_cluster_count() - self.data_provider.get_min_cluster_count() + 1
@@ -261,13 +280,13 @@ class SimpleLossClusterNN(ClusterNN):
         # c_1 = total_expected_ones
         #
         # w_0 * c_0 = w_0 * c_0
-        # w_0 + w_1 = weights_count = 2
+        # w_0 + w_1 = weights_count = 1
         #
         # If we solve these two equations, we get:
-        # w_0 = 2 * c_1 / (c_0 + c_1)
-        # w_1 = 2 * c_0 / (c_0 + c_1) = 2 -  w_0
-        w0 = 2 * total_expected_ones / (total_expected_zeros + total_expected_ones)
-        w1 = 2 - w0
+        # w_0 = c_1 / (c_0 + c_1)
+        # w_1 = c_0 / (c_0 + c_1) = 1 -  w_0
+        w0 = total_expected_ones / (total_expected_zeros + total_expected_ones)
+        w1 = 1 - w0
 
         print("Calculated class weights: w0={}, w1={}".format(w0, w1))
         return w0, w1
@@ -316,18 +335,45 @@ class SimpleLossClusterNN(ClusterNN):
         expected_zeros_percentage = 1 - mean
 
         # Calculate the weights
-        w0 = 2 * expected_ones_percentage
-        w1 = 2 * expected_zeros_percentage
+        w0 = expected_ones_percentage
+        w1 = expected_zeros_percentage
 
         print("Calculated class weights: w0={}, w1={}".format(w0, w1))
 
         return w0, w1
 
-
-
     def _get_keras_loss(self):
         if self.weighted_classes:
+
+            # Calculate the class weights
             w0, w1 = self.get_class_weights()
+            print("Calculated class weights: w0={}, w1={}".format(w0, w1))
+
+            # If required: Reweight them
+            if self._class_weights_post_processing_f is not None:
+                print("Post-process the calculated weights (e.g. use the sqrt / log / etc.)")
+
+                # Check the count of parameters of the post-processing function: If 1 argument is used, then
+                # execute it for both weights, if it has two arguments input both weights at once
+                arg_count = len(signature(self._class_weights_post_processing_f).parameters)
+                if arg_count == 1:
+                    w0 = self._class_weights_post_processing_f(w0)
+                    w1 = self._class_weights_post_processing_f(w1)
+                elif arg_count == 2:
+                    w0, w1 = self._class_weights_post_processing_f(w0, w1)
+                else:
+                    raise Exception("Invalid argument count for self._class_weights_post_processing_f: 1 or 2 arguments are required, but the current function has {} arguments".format(arg_count))
+                print("Post-processed weights: w0={}, w1={}".format(w0, w1))
+
+            # Normalize the weights if required: The sum should be equal to 2
+            if self._normalize_class_weights:
+                print("Normalize the class weights")
+                s = w0 + w1
+                w0 = 2 * w0 / s
+                w1 = 2 * w1 / s
+                print("Normalized weights: w0={}, w1={}".format(w0, w1))
+
+            print("Final calculated weights: w0={}, w1={}".format(w0, w1))
             similarities_loss = create_weighted_binary_crossentropy(w0, w1)
         else:
             similarities_loss = 'binary_crossentropy'
