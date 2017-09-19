@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 
 def generate_points(n):
@@ -43,6 +44,7 @@ initial_clusters = input_points[:5]
 initial_clusters = generate_points(5)
 iterations = 10
 
+
 # Some helper functions
 def relu(x):
     return max(x, 0)
@@ -58,6 +60,36 @@ def euclidean_distance(x, y, square=False):
     if not square:
         res = np.sqrt(res)
     return res
+
+
+# Choose more intelligent initial start points
+cluster_count = 5
+initial_clusters = [input_points[-31]] # The first point is trivial: Just use the first point
+k = 2
+df = lambda d: sum(d)**k
+df = lambda d: np.exp(10*min(d))
+# df = lambda d: sum(np.power(d, k))
+for i in range(1, cluster_count):
+    c = [0, 0]
+    s = 0
+    weights = []
+    for p in input_points:
+        dists = [euclidean_distance(cp, p, False) for cp in initial_clusters]
+        mind = min(dists)
+        d = df(dists)
+        c += np.multiply(p, d)
+        s += d
+        weights.append(d)
+    c = np.multiply(c, 1. / s)
+    if i == cluster_count - 1:
+        print("jaja")
+    initial_clusters.append(c)
+
+iterations = 15
+# initial_clusters = list(input_points[-5:])
+# initial_clusters = generate_points(5)
+
+c_initial_clusters = np.asarray(initial_clusters).tolist()
 
 # Execute the algorithm itself
 cluster_centers = initial_clusters
@@ -83,7 +115,8 @@ for itr in range(iterations):
         for c_i in range(len(cluster_centers)):
             c = cluster_centers[c_i]
             d = distance(p, c)
-            cluster_assignements[p_i][c_i] = -(1+d)**2
+            print(-(1+3*d)**3)
+            cluster_assignements[p_i][c_i] = -(1+3*np.sqrt(d))**3# + 3/(1.+d)
         cluster_assignements[p_i] = softmax(cluster_assignements[p_i])
 
 def print_arr(arr):
@@ -106,5 +139,12 @@ for cluster in clusters:
     px = np.asarray(list(map(lambda c: c[0], cluster)))
     py = np.asarray(list(map(lambda c: c[1], cluster)))
     ax.scatter(px, py, alpha=0.8)
+px = np.asarray(list(map(lambda c: c[0], c_initial_clusters)))
+py = np.asarray(list(map(lambda c: c[1], c_initial_clusters)))
+ax.scatter(px, py, alpha=0.8, color='black')
+px = np.asarray(list(map(lambda c: c[0], cluster_centers)))
+py = np.asarray(list(map(lambda c: c[1], cluster_centers)))
+ax.scatter(px, py, alpha=0.8, color='yellow')
+
 
 plt.show(block=True)
