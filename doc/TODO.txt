@@ -27,6 +27,7 @@ TODO:
   - Why? Because in the similarities output the "1"s create a low error, therefore for the network it is "ok" if there
     are too many "1"s. The clusters are always identified correctly, therefore the true "1s" are all detected.
   - Eventuell Bei Gewichtengen noch logarithmieren oder Wurzel oder so
+- Add dropout to the try00 network
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units

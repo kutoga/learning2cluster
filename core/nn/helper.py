@@ -7,7 +7,7 @@ import scipy.stats as st
 
 from contextlib import contextmanager
 
-from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape
+from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer
 from keras.models import Sequential
 import keras.backend as K
 
@@ -148,7 +148,32 @@ def concat_layer(axis=-1, name=None, input_count=None):
     return Activation('linear', name=name)
 
 
-def gaussian_random_layer(shape=(10,), name=None, stddev=1.):
+class DynamicGaussianNoise(Layer):
+
+    def __init__(self, stddev=1., mean=0., only_execute_for_training=True, **kwargs):
+        super(DynamicGaussianNoise, self).__init__(**kwargs)
+        self.supports_masking = True
+        self.stddev = stddev
+        self.mean = mean
+        self.only_execute_for_training = only_execute_for_training
+
+    def call(self, inputs, training=None):
+        def noised():
+            return inputs + K.random_normal(shape=K.shape(inputs),
+                                            mean=self.mean,
+                                            stddev=self.stddev)
+        if self.only_execute_for_training:
+            return K.in_train_phase(noised, inputs, training=training)
+        else:
+            return noised()
+
+    def get_config(self):
+        config = {'stddev': self.stddev}
+        base_config = super(GaussianNoise, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+def gaussian_random_layer(shape=(10,), name=None, stddev=1., mean=0., only_execute_for_training=True):
     """
     Just generate a layer with random numbers. Unfortunately this layer has to be called with an input tensor, but the
     values of this input tensor are not used at all. That's ugly, but currently this cannot be avoided.
@@ -163,8 +188,8 @@ def gaussian_random_layer(shape=(10,), name=None, stddev=1.):
 
     layers = []
     layers.append(Dense(name=get_name("_DENSE0"), units=np.prod(shape), kernel_initializer='zeros', bias_initializer='zeros', trainable=False))
-    layers.append(Reshape(name=get_name("_RESHAPE0"), shape=shape))
-    layers.append(GaussianNoise(name=get_name("_GAUSSIAN0"), stddev=stddev))
+    layers.append(Reshape(name=get_name("_RESHAPE0"), target_shape=shape))
+    layers.append(DynamicGaussianNoise(name=get_name("_GAUSSIAN0"), stddev=stddev, mean=mean, only_execute_for_training=only_execute_for_training))
 
     def res(val):
         for layer in layers:

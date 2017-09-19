@@ -550,7 +550,7 @@ class ClusterNN(BaseNN):
 
         return metrics
 
-    def predict(self, X):
+    def predict(self, X, debug_mode=None):
         # Cases:
         # X is a list of lists or np-arrays -> multiple runs
         # X is a list of np-arrays -> single run
@@ -563,6 +563,8 @@ class ClusterNN(BaseNN):
         # Important:
         # If X contains less inputs than the neural networks expects (e.g. len(X[0]) < self._input_count), then some
         # inputs will be 0.
+        if debug_mode is None:
+            debug_mode = self.debug_mode
 
         data_shape = self.data_provider.get_data_shape()
         X_preprocessed = [
@@ -587,15 +589,24 @@ class ClusterNN(BaseNN):
             prediction = prediction[:-prediction_debug_output_count]
 
             # If the debug mode is enabled: Print the debug values
-            if self.debug_mode:
+            if debug_mode:
                 print("~~~~~~~~~~~~~~~~~~~~~")
                 print("~Debug output: Start~")
                 print("~~~~~~~~~~~~~~~~~~~~~")
+                print("Minibatch size: {}".format(self.minibatch_size))
+                print("Input count: {}".format(self.input_count))
+                print()
                 with np_show_complete_array():
                     for i in range(prediction_debug_output_count):
-                        print("Layer Name: {}".format(self._prediction_debug_outputs[i].name))
+                        if i > 0:
+                            print()
+                        print("Layer name: {}".format(self._prediction_debug_outputs[i].name))
+                        print("Data shape: {}".format(debug_outputs[i].shape))
                         print("Value(s):")
                         print(debug_outputs[i])
+                        if self.additional_debug_array_printer is not None:
+                            print("Additional debug array printer output:")
+                            print(self.additional_debug_array_printer(debug_outputs[i]))
                 print("~~~~~~~~~~~~~~~~~~~~~")
                 print("~Debug output: End  ~")
                 print("~~~~~~~~~~~~~~~~~~~~~")
@@ -651,7 +662,7 @@ class ClusterNN(BaseNN):
 
         return result
 
-    def build_networks(self):
+    def build_networks(self, print_summaries=False):
         if self._embedding_nn is not None:
             self._embedding_nn.build(self.data_provider.get_data_shape())
 
@@ -662,6 +673,8 @@ class ClusterNN(BaseNN):
         prediction_debug_output = []
         self._build_network(nw_input, nw_output, additional_network_outputs, prediction_debug_output)
         self._model_prediction = Model(nw_input, nw_output + prediction_debug_output)
+        if print_summaries:
+            self._model_prediction.summary()
         self._prediction_debug_outputs = prediction_debug_output
         # self._model_prediction.summary()
 
@@ -669,6 +682,8 @@ class ClusterNN(BaseNN):
         loss_output = []
         self._build_loss_network(nw_output, loss_output, additional_network_outputs)
         self._model_training = Model(nw_input, loss_output)
+        if print_summaries:
+            self._model_training.summary()
         # self._model_training.summary()
 
         # Compile the training model

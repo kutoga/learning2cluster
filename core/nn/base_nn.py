@@ -9,7 +9,7 @@ from core.nn.history import History
 from core.event import Event
 
 class BaseNN:
-    def __init__(self, name="NN_[CLASS]", debug_mode=False):
+    def __init__(self, name="NN_[CLASS]", debug_mode=False, additional_debug_array_printer=None):
         self._name = name
         self._formatted_name = self._generate_formatted_name()
         self._debug_mode = None
@@ -39,7 +39,16 @@ class BaseNN:
         self.event_debug_mode_on = Event()
         self.event_debug_mode_off = Event()
 
-        self.debug_mode = debug_mode
+        self._debug_mode = debug_mode
+        self._additional_debug_array_printer = additional_debug_array_printer
+
+    @property
+    def additional_debug_array_printer(self):
+        return self._additional_debug_array_printer
+
+    @additional_debug_array_printer.setter
+    def additional_debug_array_printer(self, additional_debug_array_printer):
+        self._additional_debug_array_printer = additional_debug_array_printer
 
     @property
     def debug_mode(self):
