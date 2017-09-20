@@ -13,6 +13,7 @@ NEXT STEPS:
 - Testing;)
 
 TODO:
+- Für die AVG-Linie in den Diagrammen: Jeweils nur über 5% der Daten und nicht 10% (10% ist schon arg viel)
 - Maybe print the network summary to somewhere?
 - The validation loss seems to be always worse than the training loss, but the used data is always generated?
   - Test what happens if the training data is used for the validation run. See: BUG_LOSS.txt

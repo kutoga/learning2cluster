@@ -17,7 +17,7 @@ initial_clusters = [
     (0.3, 0.7),
     (0.8, 0.2)
 ]
-initial_clusters = generate_points(8)
+initial_clusters = generate_points(1000)
 iterations = 100
 
 # input_points = [
@@ -117,6 +117,7 @@ for itr in range(iterations):
             d = distance(p, c)
             print(-(1+3*d)**3)
             cluster_assignements[p_i][c_i] = -(1+3*np.sqrt(d))**3# + 3/(1.+d)
+            # cluster_assignements[p_i][c_i] = -(1+np.sqrt(d))**2# + 3/(1.+d)
         cluster_assignements[p_i] = softmax(cluster_assignements[p_i])
 
 def print_arr(arr):

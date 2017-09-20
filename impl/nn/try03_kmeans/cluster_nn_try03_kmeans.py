@@ -122,12 +122,12 @@ class ClusterNNTry03KMeans(SimpleLossClusterNN):
         cluster_assignements = {}
         for k in cluster_counts:
 
-            # # Create initial cluster centers
+            # Create initial cluster centers
             # clusters = [self._s_layer(
             #     'k_{}_init_{}'.format(k, i), lambda name: gaussian_random_layer((1, cluster_vector_size), name=name, only_execute_for_training=False)
             # )(embeddings[0]) for i in range(k)]
 
-            # Use the first n input points
+            # # Use the first n input points
             clusters = embeddings_processed[:k]
 
             for i in range(len(clusters)):

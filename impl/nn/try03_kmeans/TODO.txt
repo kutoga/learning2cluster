@@ -1,0 +1,16 @@
+
+- Add a final transformation after the LSTM-layer to "downscale" the embeddings to a given size (e.g. 2)
+- Implement everything from differentiable_kmeans.py
+
+- Die Cluster-Center-Berechnung soll verbessert werden
+    - Cluster, die selber keine nahen Punkte hben sollen tendenziell zu Punkten hingezogen werden, die keine nahen Cluster-Zentren haben
+- Jeweils alle Cluster-Center bei der Berechnung abhängig von den bereits berechneten Centern machen
+    - So kann verhindert werden, dass zwei Punkte auf dieselbe Stelle kommen (bereits erstelle Zentren können abstossend sein)
+- Bevor der Clustering-Algorithmus selbst ausgeführt wird: Jeweils überall tanh ausführen: Das schränkt den Wertebereich
+  auf [-1, 1] ein -> die Parameter von kmeans können besser angepasst werden
+- Die Wahl der initialen Punkte sollte ohne Bias auf die ersten Punkte fallen
+    - Zurzeit werden immer die ersten N Punkte gewählt. Dies kanndas Netz dazu bringen diese Punkte speziell zu verändern,
+      was aber ungewünscht ist
+    - Alternative: Den ersten initialen Cluster-Punkt einfach als mean über alle vorhandenen Punkte wählen, danach
+      wie im bereits implementieren Algorithmus in differentiable_kmeans.py
+- Plot für Repräsentation vor dem kmeans einfügen

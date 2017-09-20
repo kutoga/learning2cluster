@@ -37,7 +37,8 @@ Der Clustering-Algorithmus funktioniert ähnlich wie k-means:
                     # Use 1 / (0.01 + d(x, y)) to make a function that creates a result for softmax
                     #
                     # Alternative: Use -d(x, y)^2 (why squared? then the euclidean distance calculation is simplified)
-                    k_dists.append(1 / (0.01 + d(CLUSTERS[i], e[j])))
+                    # better alternative: -(1+d(x,y))^2
+                    k_dists.append(-(1+d(CLUSTERS[i], e[j]))^2)
                 p[j] = softmax(k_dists)
 
             # Recalculate the cluster centers
