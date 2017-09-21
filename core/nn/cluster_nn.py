@@ -550,7 +550,7 @@ class ClusterNN(BaseNN):
 
         return metrics
 
-    def predict(self, X, debug_mode=None):
+    def predict(self, X, debug_mode=None, debug_outputs=None):
         # Cases:
         # X is a list of lists or np-arrays -> multiple runs
         # X is a list of np-arrays -> single run
@@ -607,6 +607,11 @@ class ClusterNN(BaseNN):
                         if self.additional_debug_array_printer is not None:
                             print("Additional debug array printer output:")
                             print(self.additional_debug_array_printer(debug_outputs[i]))
+                        if debug_outputs is not None:
+                            debug_outputs.append({
+                                'layer': self._prediction_debug_outputs[i],
+                                'output': debug_outputs[i]
+                            })
                 print("~~~~~~~~~~~~~~~~~~~~~")
                 print("~Debug output: End  ~")
                 print("~~~~~~~~~~~~~~~~~~~~~")

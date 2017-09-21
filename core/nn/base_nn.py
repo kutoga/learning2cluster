@@ -1,3 +1,4 @@
+from itertools import chain, repeat
 from math import ceil
 
 import matplotlib.pyplot as plt
@@ -25,6 +26,8 @@ class BaseNN:
         # Plot settings: If the given plot_sliding_window_average method is used, how large in percent/100 of all given
         # values should the averaging range be?
         self._plot_sliding_window_range_percentage = 0.05  # 0.05 => 5 percent
+        self._plot_sliding_window_range_max_len = 150
+        self._plot_sliding_window_max_values_for_calculation = 10000
 
         # Training histories: The key is a keras model and the value a history object
         self._histories = {}
@@ -72,6 +75,14 @@ class BaseNN:
     def plot_sliding_window_range_percentage(self):
         return self._plot_sliding_window_range_percentage
 
+    @property
+    def plot_sliding_window_range_max_len(self):
+        return self._plot_sliding_window_range_max_len
+
+    @property
+    def plot_sliding_window_max_values_for_calculation(self):
+        return self._plot_sliding_window_max_values_for_calculation
+
     def _get_history(self, model):
         if model not in self._histories:
             self._histories[model] = History()
@@ -114,7 +125,23 @@ class BaseNN:
     def plot_sliding_window_average(self, values):
 
         # Add 0.1 to the length of all values to avoid some "0" problems
-        return sliding_window_average(values, int(ceil((len(values) + 0.1) * self._plot_sliding_window_range_percentage)))
+        window_range = int(ceil((len(values) + 0.1) * self._plot_sliding_window_range_percentage))
+        if self._plot_sliding_window_range_max_len is not None:
+            window_range = min(self._plot_sliding_window_range_max_len, window_range)
+
+        # TODO: Implement a possibility to overjump every second / third / whatever value for the calculation of the average
+        if self._plot_sliding_window_max_values_for_calculation < len(values):
+            assert self._plot_sliding_window_max_values_for_calculation > 0
+            nth_value = int(ceil(len(values) / self._plot_sliding_window_max_values_for_calculation))
+            values = values[::nth_value]
+        else:
+            nth_value = None
+
+        result = sliding_window_average(values, window_range)
+
+        if nth_value is not None:
+            result = list(chain.from_iterable(repeat(x, nth_value) for x in result))[:len(values)]
+        return result
 
     def _clear_registered_plots(self, figure=None, all_figures=True):
         if all_figures and (figure is not None):
@@ -211,8 +238,9 @@ class BaseNN:
                         load_optimizer_state(model, current_base_filename)
                     if include_history:
                         self._get_history(model).load_keras_history(load_history(current_base_filename))
-                except:
+                except Exception as e:
                     print('Could not load weights / history / optimizer state...')
+                    # print('Could not load weights / history / optimizer state. Error: {}'.format(e.message.replace('\n', '; ')))
 
         self.event_load_weights_after.fire(base_filename, include_history)
 

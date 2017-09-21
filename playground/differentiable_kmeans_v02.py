@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import math
 import matplotlib.pyplot as plt
 
 def generate_points(n):
@@ -88,18 +89,23 @@ for i in range(1, cluster_count):
         pass#print("jaja")#this print is just to create a breakpoint
     initial_clusters.append(c)
 
-iterations = 15
+initial_clusters = random.sample(input_points, cluster_count)
+
+iterations = 8
 # initial_clusters = list(input_points[-5:])
 # initial_clusters = generate_points(cluster_count)
 
 
-# Do the point preprocessing
-input_points = list(map(point_preprocessor, input_points))
-initial_clusters = list(map(point_preprocessor, initial_clusters))
-
+# # Do the point preprocessing
+# input_points = list(map(point_preprocessor, input_points))
+# initial_clusters = list(map(point_preprocessor, initial_clusters))
+initial_clusters = generate_points(cluster_count)
 
 
 c_initial_clusters = np.asarray(initial_clusters).tolist()
+
+def gauss_noise():
+    return np.random.normal(0, 1, 2)
 
 # Execute the algorithm itself
 cluster_centers = initial_clusters
@@ -107,18 +113,21 @@ cluster_assignements = [
     [0] * len(initial_clusters) for p in range(len(input_points))
 ]
 def distance(x, y):
-    return euclidean_distance(x, y, True)
+    return euclidean_distance(x, y, False)
 for itr in range(iterations):
     print("Iteration {}".format(itr))
     if itr > 0:
         for c_i in range(len(cluster_centers)):
             c = 0
-            s = 0
+            s = 1e-16 # epsilon: avoid division through zero
             for p_i in range(len(input_points)):
                 c += np.multiply(cluster_assignements[p_i][c_i], input_points[p_i])
                 s += cluster_assignements[p_i][c_i]
-            c = list(map(lambda x: x / s, c))
-            cluster_centers[c_i] = c
+            c_new = list(map(lambda x: x / s, c))
+            # c_new += gauss_noise() / 30
+            if any(map(math.isnan, c_new)):
+                print("ez")
+            cluster_centers[c_i] = c_new
 
     # Renew
     for p_i in range(len(input_points)):
@@ -127,9 +136,14 @@ for itr in range(iterations):
             c = cluster_centers[c_i]
             d = distance(p, c)
             # print(-(1+3*d)**3)
-            cluster_assignements[p_i][c_i] = -min(500, (1+3*np.sqrt(d))**3)# + 3/(1.+d)
+            # cluster_assignements[p_i][c_i] = -4**(1+3*d)# + 3/(1.+d)
+            # if math.isnan(cluster_assignements[p_i][c_i]):
+            #     print("hea")
+            cluster_assignements[p_i][c_i] = -min(500, (1+3*d)**3)# + 3/(1.+d)
             # cluster_assignements[p_i][c_i] = -(1+np.sqrt(d))**2# + 3/(1.+d)
         cluster_assignements[p_i] = softmax(cluster_assignements[p_i])
+        if any(map(lambda x: math.isnan(x), cluster_assignements[p_i])):
+            print("waya")
 
 def print_arr(arr):
     print(np.asarray(arr))
