@@ -10,7 +10,7 @@ from core.nn.helper import filter_None, concat_layer, create_weighted_binary_cro
 
 
 class SimpleLossClusterNN(ClusterNN):
-    def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False):
+    def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False, cluster_n_output_loss='categorical_crossentropy'):
         super().__init__(data_provider, input_count, embedding_nn)
 
         # For the loss all n outputs are compared with each other. More exactly:
@@ -23,6 +23,8 @@ class SimpleLossClusterNN(ClusterNN):
         self._class_weights_approximator = 'simple_approximation' # Possible values: ['stochastic', 'simple_approximation]
         self._class_weights_post_processing_f = None # None == lambda x: x == identity function
         self._normalize_class_weights = True
+
+        self._cluster_n_output_loss = 'categorical_crossentropy'
 
     @property
     def include_self_comparison(self):
@@ -63,6 +65,14 @@ class SimpleLossClusterNN(ClusterNN):
     @normalize_class_weights.setter
     def normalize_class_weights(self, normalize_class_weights):
         self._normalize_class_weights = normalize_class_weights
+
+    @property
+    def cluster_n_output_loss(self):
+        return self._cluster_n_output_loss
+
+    @cluster_n_output_loss.setter
+    def cluster_n_output_loss(self, cluster_n_output_loss):
+        self._cluster_n_output_loss = cluster_n_output_loss
 
     def _get_cluster_count_possibilities(self):
         return self.data_provider.get_max_cluster_count() - self.data_provider.get_min_cluster_count() + 1
@@ -381,7 +391,7 @@ class SimpleLossClusterNN(ClusterNN):
             'similarities_output': similarities_loss
         }
         if len(self.data_provider.get_cluster_counts()) > 1:
-            loss['cluster_count_output'] = 'categorical_crossentropy'
+            loss['cluster_count_output'] = self._cluster_n_output_loss
         return loss
 
     def _get_keras_metrics(self):

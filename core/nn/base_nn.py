@@ -26,7 +26,7 @@ class BaseNN:
         # Plot settings: If the given plot_sliding_window_average method is used, how large in percent/100 of all given
         # values should the averaging range be?
         self._plot_sliding_window_range_percentage = 0.05  # 0.05 => 5 percent
-        self._plot_sliding_window_range_max_len = 150
+        self._plot_sliding_window_range_max_len = 500
         self._plot_sliding_window_max_values_for_calculation = 10000
 
         # Training histories: The key is a keras model and the value a history object
@@ -129,19 +129,23 @@ class BaseNN:
         if self._plot_sliding_window_range_max_len is not None:
             window_range = min(self._plot_sliding_window_range_max_len, window_range)
 
-        # TODO: Implement a possibility to overjump every second / third / whatever value for the calculation of the average
-        if self._plot_sliding_window_max_values_for_calculation < len(values):
-            assert self._plot_sliding_window_max_values_for_calculation > 0
-            nth_value = int(ceil(len(values) / self._plot_sliding_window_max_values_for_calculation))
-            values = values[::nth_value]
-        else:
-            nth_value = None
+        # BUGGY: If only every nh value is used, there are problems with the alidation data
+        # # TODO: Implement a possibility to overjump every second / third / whatever value for the calculation of the average
+        # if self._plot_sliding_window_max_values_for_calculation < len(values):
+        #     assert self._plot_sliding_window_max_values_for_calculation > 0
+        #     nth_value = int(ceil(len(values) / self._plot_sliding_window_max_values_for_calculation))
+        #     input_values = values[::nth_value]
+        # else:
+        #     nth_value = None
+        #     input_values = values
+        #
+        # result = sliding_window_average(input_values, window_range)
+        #
+        # if nth_value is not None:
+        #     result = list(chain.from_iterable(repeat(x, nth_value) for x in result))[:len(values)]
+        # return result
 
-        result = sliding_window_average(values, window_range)
-
-        if nth_value is not None:
-            result = list(chain.from_iterable(repeat(x, nth_value) for x in result))[:len(values)]
-        return result
+        return sliding_window_average(values, window_range)
 
     def _clear_registered_plots(self, figure=None, all_figures=True):
         if all_figures and (figure is not None):

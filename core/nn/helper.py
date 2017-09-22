@@ -219,6 +219,28 @@ def create_weighted_binary_crossentropy(zero_weight, one_weight):
     return weighted_binary_crossentropy
 
 
+def create_crps_loss(use_binary_crossentropy=False, summation_f=K.square):
+    """
+    TODO: Add paper
+
+    :param use_binary_crossentropy: Use the binary cross-entropy for the summantion
+    :param summation_f: A summation function for the difference between the cumulative distribution. It is recommended that f(x)=f(-x) and f(0)=0
+    :return:
+    """
+    def crps_loss(y_true, y_pred):
+        if use_binary_crossentropy:
+            d = K.binary_crossentropy(
+                K.cumsum(y_true),
+                K.cumsum(y_pred)
+            )
+        else:
+            d = summation_f(
+                K.cumsum(y_pred - y_true)
+            )
+        return K.sum(d)
+    return crps_loss
+
+
 @contextmanager
 def np_show_complete_array():
     # See: https://stackoverflow.com/a/45831462/916672

@@ -193,7 +193,7 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
                     clusters = []
                     for c_i in range(k):
                         c = 0
-                        s = K.epsilon() # Avoid zero-divison
+                        s = 1e-8 # Avoid zero-divison
                         for e_i in range(len(embeddings_processed)):
                             t = get_val_at(current_cluster_assignements[e_i], [1, c_i])
                             c = Lambda(lambda x: c + x * t, output_shape=(1, cluster_vector_size))(embeddings_processed[e_i])
@@ -233,12 +233,12 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
                     # k_distances = Lambda(lambda x: 1 / (0.01 + x))(k_distances)
 
                     # k_distances = Lambda(lambda x: -(1+x)**2)(k_distances)
-                    # def kmax(c, x):
-                    #     return K.relu(x - c) + c
-                    # def kmin(c, x):
-                    #     return -kmax(-c, -x)
-                    # k_distances = Lambda(lambda x: -kmin(300, (1 + 3 * K.sqrt(x)) ** 3))(k_distances)
-                    k_distances = Lambda(lambda x: -(1 + 3 * K.sqrt(x)) ** 3)(k_distances)
+                    def kmax(c, x):
+                        return K.relu(x - c) + c
+                    def kmin(c, x):
+                        return -kmax(-c, -x)
+                    k_distances = Lambda(lambda x: -(1 + x)**2)(k_distances)
+                    # k_distances = Lambda(lambda x: -(1 + 3 * K.sqrt(x)) ** 3)(k_distances)
 
                     # cluster_assignements[p_i][c_i] = -min(500, (1 + 3 * np.sqrt(d)) ** 3)  # + 3/(1.+d)
 

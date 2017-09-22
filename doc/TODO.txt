@@ -1,4 +1,6 @@
 NEXT STEPS:
+- There is a bug with the averaging line: Fix it
+    - Ok, it is only for the validation set available. Fix this
 - These line are very slow:
     def get_value(i):
         i_start = max(0, i - window_range)
@@ -29,6 +31,10 @@ TODO:
     are too many "1"s. The clusters are always identified correctly, therefore the true "1s" are all detected.
   - Eventuell Bei Gewichtengen noch logarithmieren oder Wurzel oder so
 - Add dropout to the try00 network
+- Implement CRPS loss (siehe Mail vom 22.09.2017)
+    loss = summe(n=1, k, (P(p_k<=n) - L(p_k<=n))^2)
+    wobei P(p_k<=n)=summe(k=1, n, softmax(k)) und L(p_k<=n)=summe(k=1, n, labelsoftmax(k))
+    See nn/helper.py:create_crps loss and check simple_loss_cluster_n.py:cluster_n_output_loss
 
 IDEAS:
 - Try00 nehmen mit mehr LSTM-Layer und mehr Dense-Units
