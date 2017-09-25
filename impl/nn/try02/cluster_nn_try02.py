@@ -29,7 +29,7 @@ class ClusterNNTry02(SimpleLossClusterNN):
         self.__f_cluster_assignment_units = f_cluster_assignment_units
         self.__f_cluster_assignment_dense_layer_count = f_cluster_assignment_dense_layer_count
 
-    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output, additional_prediction_outputs):
+    def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
 
         # f_update_global_state

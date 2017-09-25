@@ -11,7 +11,7 @@ from core.nn.helper import slice_layer, gaussian_random_layer, concat_layer
 from impl.nn.base.simple_loss.simple_loss_cluster_nn import SimpleLossClusterNN
 
 
-class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
+class ClusterNNTry03KMeansV04(SimpleLossClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, lstm_units=64, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False, kmeans_itrs=3, kmeans_input_dimension=2):

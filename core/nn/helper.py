@@ -1,6 +1,7 @@
 import _pickle as pickle
 from os import path
 from shutil import move
+from inspect import getframeinfo, stack
 
 import numpy as np
 import scipy.stats as st
@@ -239,6 +240,11 @@ def create_crps_loss(use_binary_crossentropy=False, summation_f=K.square):
             ) / y_true.shape[1]
         return K.sum(d)
     return crps_loss
+
+
+def get_caller():
+    # See: https://stackoverflow.com/a/24439444/916672
+    return getframeinfo(stack()[1][0])
 
 
 @contextmanager

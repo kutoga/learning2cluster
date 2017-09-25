@@ -2,7 +2,6 @@ from itertools import chain
 from random import Random
 from os import path
 from time import time
-from inspect import getframeinfo, stack
 
 import numpy as np
 
@@ -15,7 +14,7 @@ from keras.layers import Input
 
 from core.nn.base_nn import BaseNN
 from core.nn.history import History
-from core.nn.helper import filter_None, AlignedTextTable, np_show_complete_array
+from core.nn.helper import filter_None, AlignedTextTable, np_show_complete_array, get_caller
 from core.event import Event
 from core.helper import try_makedirs
 
@@ -216,7 +215,7 @@ class ClusterNN(BaseNN):
             plt.grid(True)
         self._register_plot(model_name, best_loss_plot, 'loss')
 
-    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output, additional_prediction_outputs):
+    def _build_network(self, network_input, network_output, additional_network_outputs):
         return None
 
     def _build_loss_network(self, network_output, loss_output, additional_network_outputs):
@@ -609,10 +608,14 @@ class ClusterNN(BaseNN):
                 print()
                 with np_show_complete_array():
                     for i in range(prediction_debug_output_count):
+                        debug_output = self._prediction_debug_outputs[i]
                         if i > 0:
                             print()
-                        print("Layer name: {}".format(self._prediction_debug_outputs[i].name))
-                        print("Data shape: {}".format(debug_outputs[i].shape))
+                        if 'name' in debug_output and debug_output['name'] is not None:
+                            print("Name: {}".format(debug_output['name']))
+                        print("Caller: {}:{}".format(debug_output['filename'], debug_output['line']))
+                        print("Layer name: {}".format(debug_output['layer'].name))
+                        print("Data shape: {}".format(debug_output['layer'].shape))
                         print("Value(s):")
                         print(debug_outputs[i])
                         if self.additional_debug_array_printer is not None:
@@ -685,6 +688,27 @@ class ClusterNN(BaseNN):
 
         return result
 
+    def __reset_debug_outputs(self):
+        self._prediction_debug_outputs = []
+
+    def __reset_additional_prediction_outputs(self):
+        self._additional_prediction_outputs = []
+
+    def _add_debug_output(self, layer, name=None):
+        caller = get_caller()
+        self._prediction_debug_outputs.append({
+            'name': name,
+            'layer': layer,
+            'filename': caller.filename,
+            'line': caller.lineno
+        })
+
+    def _add_additional_prediction_output(self, layer, name):
+        self._additional_prediction_outputs.append({
+            'name': name,
+            'layer': layer
+        })
+
     def build_networks(self, print_summaries=False):
         if self._embedding_nn is not None:
             self._embedding_nn.build(self.data_provider.get_data_shape())
@@ -693,14 +717,16 @@ class ClusterNN(BaseNN):
         nw_input = self.__build_inputs()
         nw_output = []
         additional_network_outputs = {}
-        prediction_debug_output = []
-        additional_prediction_outputs = []
-        self._build_network(nw_input, nw_output, additional_network_outputs, prediction_debug_output, additional_prediction_outputs)
-        self._model_prediction = Model(nw_input, nw_output + prediction_debug_output + list(map(lambda a: a['layer'], additional_prediction_outputs)))
+        self.__reset_debug_outputs()
+        self.__reset_additional_prediction_outputs()
+        self._build_network(nw_input, nw_output, additional_network_outputs)
+        self._model_prediction = Model(
+            nw_input, nw_output +
+            list(map(lambda a: a['layer'], self._prediction_debug_outputs)) +
+            list(map(lambda a: a['layer'], self._additional_prediction_outputs))
+        )
         if print_summaries:
             self._model_prediction.summary()
-        self._prediction_debug_outputs = prediction_debug_output
-        self._additional_prediction_outputs = additional_prediction_outputs
         # self._model_prediction.summary()
 
         # Build the training model (it is based on the prediction model)

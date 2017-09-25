@@ -15,7 +15,7 @@ class MinimalClusterNN(SimpleLossClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False):
         super().__init__(data_provider, input_count, embedding_nn, weighted_classes)
 
-    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output, additional_prediction_outputs):
+    def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
 
         # The simple loss cluster NN requires a specific output: a list of softmax distributions

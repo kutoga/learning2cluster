@@ -28,7 +28,7 @@ class ClusterNNTry03KMeansV03(SimpleLossClusterNN):
         self.__cluster_count_dense_units = cluster_count_dense_units
         self.__output_dense_layers = output_dense_layers
 
-    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output, additional_prediction_outputs):
+    def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
 
         # The simple loss cluster NN requires a specific output: a list of softmax distributions
@@ -38,8 +38,10 @@ class ClusterNNTry03KMeansV03(SimpleLossClusterNN):
         def point_preprocessor(p):
             return Lambda(lambda x: K.tanh(x))(p)
 
+        # Obsolete
         def add_dbg_output(name, layer):
-            debug_output.append(Activation('linear', name=name)(layer))
+            self._add_debug_output(layer, name)
+            # debug_output.append(Activation('linear', name=name)(layer))
 
         # First we get an embedding for the network inputs
         embeddings = self._get_embedding(network_input)
