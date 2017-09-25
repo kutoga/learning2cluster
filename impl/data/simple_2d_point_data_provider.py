@@ -68,7 +68,8 @@ class Simple2DPointDataProvider(DataProvider):
         # Generate an image of the ground truth
         self.__plot_cluster_image(clusters, path.join(output_directory, get_filename('solution.png')), 'Solution')
 
-        # Generate a csv file for the inputs
+        # Generate a csv file for the inputs (and also a cluster index array; this might be needed later)
+        ci_lst = []
         with open(path.join(output_directory, get_filename('input.csv')), 'wt') as f:
             f.write('input_index;cluster_index;x;y\n')
             for i in range(len(X)):
@@ -82,6 +83,7 @@ class Simple2DPointDataProvider(DataProvider):
                 ci = list(
                     map(lambda cluster: sum(map(lambda p: np.array_equal(p, point), cluster)) > 0, clusters)
                 ).index(True)
+                ci_lst.append(ci)
 
                 f.write('{};{};{};{}\n'.format(
                     i, ci, point[0], point[1]
@@ -179,7 +181,58 @@ class Simple2DPointDataProvider(DataProvider):
                         ))
                     f.close()
 
-    def __plot_cluster_image(self, clusters, output_file, additional_title=None):
+            # Generate additional plots
+            if 'additional_outputs' in prediction: # backward compatibility
+                a_i = 0
+                for additional_output_name in sorted(prediction['additional_outputs'].keys()):
+                    additional_output = prediction['additional_outputs'][additional_output_name]
+
+                    # Check for 2d data: if it is 2d, plot it, otherwise ignore it
+                    # If the data is plotted: use the name of the output for the
+                    # title of the plot
+                    is_2d_data = len(additional_output.shape) == 2 and additional_output.shape[-1] == 2
+                    if not is_2d_data:
+                        continue
+
+                    if additional_output.shape[0] == len(X):
+
+                        # Create clusters: If the count of points is equal to the input count, assume the points are
+                        # transformed inputs. Draw them once in the expected cluster color and once in the predicted
+                        # cluster color
+                        expected_clusters = [[] for i in range(len(clusters))]
+                        predicted_clusters = [[] for i in range(most_probable_cluster_count)]
+
+                        for p_i in range(additional_output.shape[0]):
+                            point = additional_output[p_i]
+                            expected_clusters[ci_lst[p_i]].append(point)
+                            predicted_clusters[np.argmax(prediction['elements'][p_i][most_probable_cluster_count]) + cluster_counts[0] - 1].append(point)
+
+                        self.__plot_cluster_image(
+                            expected_clusters, path.join(output_directory, get_filename('additional_output_{}_expected'.format(a_i))),
+                            additional_title='Additional output \'{}\': Expected clusters'.format(additional_output_name),
+                            use_auto_generated_title=False
+                        )
+                        self.__plot_cluster_image(
+                            predicted_clusters, path.join(output_directory, get_filename('additional_output_{}_predicted'.format(a_i))),
+                            additional_title='Additional output \'{}\': Predicted clusters'.format(additional_output_name),
+                            use_auto_generated_title=False
+                        )
+
+                    else:
+
+                        # Assume the inputs are just "some points". Draw them all in the same color
+                        points = []
+                        for p_i in range(additional_output.shape[0]):
+                            points.append(additional_output[p_i])
+                        self.__plot_cluster_image(
+                            [points], path.join(output_directory, get_filename('additional_output_{}'.format(a_i))),
+                            additional_title='Additional output {}'.format(additional_output_name),
+                            use_auto_generated_title=False
+                        )
+
+                    a_i += 1
+
+    def __plot_cluster_image(self, clusters, output_file, additional_title=None, use_auto_generated_title=True):
         # Input format:
         # [
         #   [cluster0point0_as_tuple, cluster0point1_as_tuple, ...],
@@ -196,8 +249,12 @@ class Simple2DPointDataProvider(DataProvider):
         if additional_title is None:
             additional_title = ''
         else:
-            additional_title = ': {}'.format(additional_title)
-        plt.title('Cluster count: {} (empty clusters: {}){}'.format(len(clusters), empty_clusters, additional_title))
+            additional_title = additional_title if not use_auto_generated_title else ': {}'.format(additional_title)
+        if use_auto_generated_title:
+            auto_title = 'Cluster count: {} (empty clusters: {})'.format(len(clusters), empty_clusters)
+        else:
+            auto_title = ''
+        plt.title('{}{}'.format(auto_title, additional_title))
         plt.savefig(output_file)
         plt.clf()
         plt.close()

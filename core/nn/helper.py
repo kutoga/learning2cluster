@@ -236,7 +236,7 @@ def create_crps_loss(use_binary_crossentropy=False, summation_f=K.square):
         else:
             d = summation_f(
                 K.cumsum(y_pred - y_true)
-            )
+            ) / y_true.shape[1]
         return K.sum(d)
     return crps_loss
 

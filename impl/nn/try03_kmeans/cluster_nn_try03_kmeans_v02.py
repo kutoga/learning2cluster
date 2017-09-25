@@ -28,7 +28,7 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
         self.__cluster_count_dense_units = cluster_count_dense_units
         self.__output_dense_layers = output_dense_layers
 
-    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output):
+    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output, additional_prediction_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
 
         # The simple loss cluster NN requires a specific output: a list of softmax distributions
@@ -80,7 +80,7 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
             # We just update the input dimensions for the kmeans, therefore no activation function is used
             layers = [
                 self._s_layer('kmeans_dimension_changer_dense', lambda name: Dense(self.__kmeans_input_dimension, name=name)),
-                self._s_layer('kmeans_dimension_changer_batch', lambda name: Dense(self.__kmeans_input_dimension, name=name))
+                self._s_layer('kmeans_dimension_changer_batch', lambda name: BatchNormalization(name=name))
             ]
             for layer in layers:
                 embeddings_processed = [layer(e) for e in embeddings_processed]
@@ -89,6 +89,10 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
         # this makes kmeans easier
         embeddings_processed = [point_preprocessor(e) for e in embeddings_processed]
         add_dbg_output('EMBEDDINGS_PREPROCESSED', processed)
+        additional_prediction_outputs.append({
+            'name': 'embeddings processed',
+            'layer': Concatenate(axis=1)(embeddings_processed)
+        })
 
         # Define a distance-function
         d = lambda x, y: K.sqrt(K.sum(K.square(x - y))) # euclidean distance

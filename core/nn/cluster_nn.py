@@ -2,6 +2,7 @@ from itertools import chain
 from random import Random
 from os import path
 from time import time
+from inspect import getframeinfo, stack
 
 import numpy as np
 
@@ -52,6 +53,9 @@ class ClusterNN(BaseNN):
 
         # Debug outputs
         self._prediction_debug_outputs = None
+
+        # Additional prediction outputs
+        self._additional_prediction_outputs = None
 
         # Evaluation metrics: Initialize variables and register the default metrics
         self._evaluation_metrics = {}
@@ -212,7 +216,7 @@ class ClusterNN(BaseNN):
             plt.grid(True)
         self._register_plot(model_name, best_loss_plot, 'loss')
 
-    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output):
+    def _build_network(self, network_input, network_output, additional_network_outputs, debug_output, additional_prediction_outputs):
         return None
 
     def _build_loss_network(self, network_output, loss_output, additional_network_outputs):
@@ -580,13 +584,20 @@ class ClusterNN(BaseNN):
         # TODO: Prepare X (use it directory from the data provider)
         prediction = self._model_prediction.predict(X_preprocessed, batch_size=self._minibatch_size)
 
-        # Check debug outputs.
         prediction_debug_output_count = len(self._prediction_debug_outputs)
+        additional_prediction_output_count = len(self._additional_prediction_outputs)
+
+        # Split the output: "Normal output", debug and additional outputs
+        prediction_outpus = prediction[:-(prediction_debug_output_count + additional_prediction_output_count)]
+        debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):-additional_prediction_output_count]
+        additional_prediction_outputs = prediction[-additional_prediction_output_count:]
+
+        # Check debug outputs.
         if prediction_debug_output_count > 0:
 
             # Extract and remove the debug outputs
-            debug_outputs = prediction[-prediction_debug_output_count:]
-            prediction = prediction[:-prediction_debug_output_count]
+            # debug_outputs = prediction[-prediction_debug_output_count:]
+            # prediction = prediction[:-prediction_debug_output_count]
 
             # If the debug mode is enabled: Print the debug values
             if debug_mode:
@@ -643,7 +654,7 @@ class ClusterNN(BaseNN):
         for r in range(X_preprocessed[0].shape[0]):
 
             # Get the cluster distribution
-            cluster_count = prediction[-1][r] # The latest element contains the cluster distribution
+            cluster_count = prediction_outpus[-1][r] # The latest element contains the cluster distribution
             elements = []
 
             # Go through each input element
@@ -655,14 +666,21 @@ class ClusterNN(BaseNN):
                     # Index:
                     # len(cluster_count) * i +  # For each element we get len(cluster_count) distributions
                     # (k - k_min)               # The index for the cluster k
-                    distribution = prediction[len(cluster_counts) * i + (k - k_min)][r, 0]
+                    distribution = prediction_outpus[len(cluster_counts) * i + (k - k_min)][r, 0]
                     clusters[k] = distribution
 
                 elements.append(clusters)
 
+            # Get all additional prediction outputs
+            current_additional_prediction_outputs = {}
+            for j in range(len(self._additional_prediction_outputs)):
+                additional_prediction_output = self._additional_prediction_outputs[j]
+                current_additional_prediction_outputs[additional_prediction_output['name']] = additional_prediction_outputs[j][r]
+
             result.append({
                 'cluster_count': cluster_count,
-                'elements': elements
+                'elements': elements,
+                'additional_outputs': current_additional_prediction_outputs
             })
 
         return result
@@ -676,11 +694,13 @@ class ClusterNN(BaseNN):
         nw_output = []
         additional_network_outputs = {}
         prediction_debug_output = []
-        self._build_network(nw_input, nw_output, additional_network_outputs, prediction_debug_output)
-        self._model_prediction = Model(nw_input, nw_output + prediction_debug_output)
+        additional_prediction_outputs = []
+        self._build_network(nw_input, nw_output, additional_network_outputs, prediction_debug_output, additional_prediction_outputs)
+        self._model_prediction = Model(nw_input, nw_output + prediction_debug_output + list(map(lambda a: a['layer'], additional_prediction_outputs)))
         if print_summaries:
             self._model_prediction.summary()
         self._prediction_debug_outputs = prediction_debug_output
+        self._additional_prediction_outputs = additional_prediction_outputs
         # self._model_prediction.summary()
 
         # Build the training model (it is based on the prediction model)

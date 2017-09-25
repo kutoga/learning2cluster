@@ -14,3 +14,4 @@
     - Alternative: Den ersten initialen Cluster-Punkt einfach als mean über alle vorhandenen Punkte wählen, danach
       wie im bereits implementieren Algorithmus in differentiable_kmeans.py
 - Plot für Repräsentation vor dem kmeans einfügen
+

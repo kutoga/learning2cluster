@@ -52,3 +52,12 @@ Der Clustering-Algorithmus funktioniert ähnlich wie k-means:
 
         # The softmaxs are just available in p[embedding]
     }
+
+~~~~~~~~~~~~~~~~~~~~
+
+V02 nutzt eine bessere Distanzfunktion und schränkt das Feld für die Punkte vor dem kmeans auf [-1, 1] ein.
+
+V03 nutzt trainierbare Distanzfunktionen (ansonsten gleich wie V02)
+- Eventuell noch ein initial cluster point guess network hinzufügen (für jeden möglichen clusterpunkt ein LSTM-verbund)
+
+V04 basiert auf V02, jedoch sind die initialen Cluster-Zentren trainiert und nicht einfach random
