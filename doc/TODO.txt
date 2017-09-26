@@ -1,10 +1,5 @@
 NEXT STEPS:
-- Additional outputs implementieren
-    - Zusätzliche Outputs, die immer generiert werden, aber für einzekne Netze spezifisch sein können und nicht relevant
-      für das finale Ergebnis sind. Sie können aber für Plots usw. relevant sein
-- Debug output usw. hinzufügen ist aktuell mühsam. Das könnte vereinfacht werden mit Funktionen wie
-    self._add_deug_output(layer, name=abc)
-    Das gleiche gilt für die additional outputs
+- Additional outputs auch als csv ausgeben
 - There is a bug with the averaging line: Fix it
     - Ok, it is only for the validation set available. Fix this
 - These line are very slow:
@@ -126,3 +121,9 @@ DONE:
   - Entweder Grpah entfernen oder einen knmstanten Wert von 1.0 einfügen
 - Scores implementieren: http://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation
   - Program evaluate_metrics in cluster_nn.py
+- Additional outputs implementieren
+    - Zusätzliche Outputs, die immer generiert werden, aber für einzekne Netze spezifisch sein können und nicht relevant
+      für das finale Ergebnis sind. Sie können aber für Plots usw. relevant sein
+- Debug output usw. hinzufügen ist aktuell mühsam. Das könnte vereinfacht werden mit Funktionen wie
+    self._add_deug_output(layer, name=abc)
+    Das gleiche gilt für die additional outputs

@@ -244,7 +244,7 @@ def create_crps_loss(use_binary_crossentropy=False, summation_f=K.square):
 
 def get_caller():
     # See: https://stackoverflow.com/a/24439444/916672
-    return getframeinfo(stack()[1][0])
+    return getframeinfo(stack()[2][0])
 
 
 @contextmanager

@@ -37,7 +37,7 @@ class Simple2DPointDataProvider(DataProvider):
         return clusters
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
-        cluster_counts = self.get_cluster_counts()
+        cluster_counts = list(self.get_cluster_counts())
 
         def get_filename(name):
             global fi
@@ -194,6 +194,8 @@ class Simple2DPointDataProvider(DataProvider):
                     if not is_2d_data:
                         continue
 
+                    xlim = (-1.2, 1.2)
+                    ylim = (-1.2, 1.2)
                     if additional_output.shape[0] == len(X):
 
                         # Create clusters: If the count of points is equal to the input count, assume the points are
@@ -202,20 +204,31 @@ class Simple2DPointDataProvider(DataProvider):
                         expected_clusters = [[] for i in range(len(clusters))]
                         predicted_clusters = [[] for i in range(most_probable_cluster_count)]
 
+                        x = []
+                        y = []
+
                         for p_i in range(additional_output.shape[0]):
                             point = additional_output[p_i]
                             expected_clusters[ci_lst[p_i]].append(point)
-                            predicted_clusters[np.argmax(prediction['elements'][p_i][most_probable_cluster_count]) + cluster_counts[0] - 1].append(point)
+                            x.append(point[0])
+                            y.append(point[1])
+                            # predicted_clusters[np.argmax(prediction['elements'][p_i][most_probable_cluster_count]) + cluster_counts[0] - 1].append(point)
+                            predicted_clusters[np.argmax(prediction['elements'][p_i][most_probable_cluster_count])].append(point)
+
+                        if min(x) < xlim[0] or max(x) > xlim[1]:
+                            xlim = None
+                        if min(y) < ylim[0] or max(y) > ylim[1]:
+                            ylim = None
 
                         self.__plot_cluster_image(
                             expected_clusters, path.join(output_directory, get_filename('additional_output_{}_expected'.format(a_i))),
-                            additional_title='Additional output \'{}\': Expected clusters'.format(additional_output_name),
-                            use_auto_generated_title=False
+                            additional_title='Additional output "{}": Expected clusters'.format(additional_output_name),
+                            use_auto_generated_title=False, xlim=xlim, ylim=ylim
                         )
                         self.__plot_cluster_image(
                             predicted_clusters, path.join(output_directory, get_filename('additional_output_{}_predicted'.format(a_i))),
-                            additional_title='Additional output \'{}\': Predicted clusters'.format(additional_output_name),
-                            use_auto_generated_title=False
+                            additional_title='Additional output "{}": Predicted clusters'.format(additional_output_name),
+                            use_auto_generated_title=False, xlim=xlim, ylim=ylim
                         )
 
                     else:
@@ -227,12 +240,12 @@ class Simple2DPointDataProvider(DataProvider):
                         self.__plot_cluster_image(
                             [points], path.join(output_directory, get_filename('additional_output_{}'.format(a_i))),
                             additional_title='Additional output {}'.format(additional_output_name),
-                            use_auto_generated_title=False
+                            use_auto_generated_title=False, xlim=xlim, ylim=ylim
                         )
 
                     a_i += 1
 
-    def __plot_cluster_image(self, clusters, output_file, additional_title=None, use_auto_generated_title=True):
+    def __plot_cluster_image(self, clusters, output_file, additional_title=None, use_auto_generated_title=True, xlim=(-.2, 1.2), ylim=(-.2, 1.2)):
         # Input format:
         # [
         #   [cluster0point0_as_tuple, cluster0point1_as_tuple, ...],
@@ -243,8 +256,10 @@ class Simple2DPointDataProvider(DataProvider):
             px = np.asarray(list(map(lambda c: c[0], cluster)))
             py = np.asarray(list(map(lambda c: c[1], cluster)))
             ax.scatter(px, py, alpha=0.8)
-        plt.xlim(-0.2, 1.2)
-        plt.ylim(-0.2, 1.2)
+        if xlim is not None:
+            plt.xlim(*xlim)
+        if ylim is not None:
+            plt.ylim(*ylim)
         empty_clusters = len(list(filter(lambda c: len(c) == 0, clusters)))
         if additional_title is None:
             additional_title = ''

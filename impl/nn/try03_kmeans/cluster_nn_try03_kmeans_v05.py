@@ -11,10 +11,10 @@ from core.nn.helper import slice_layer, gaussian_random_layer, concat_layer
 from impl.nn.base.simple_loss.simple_loss_cluster_nn import SimpleLossClusterNN
 
 
-class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
+class ClusterNNTry03KMeansV05(SimpleLossClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, lstm_units=64, output_dense_units=512,
-                 cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
-                 weighted_classes=False, kmeans_itrs=3, kmeans_input_dimension=2):
+                 cluster_count_dense_layers=1, lstm_layers=0, output_dense_layers=1, cluster_count_dense_units=512,
+                 weighted_classes=False, kmeans_itrs=2, kmeans_input_dimension=2):
         super().__init__(data_provider, input_count, embedding_nn, weighted_classes)
 
         # Network parameters
@@ -31,7 +31,7 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
     def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
 
-        # The simple loss cluster NN requires a specific output: a list of softmax distributions
+        # The simple loss cluster NN requires a specific outputlayer: a list of softmax distributions
         # First in this list are all softmax distributions for k=k_min for each object, then for k=k_min+1 for each
         # object etc. At the end, there is the cluster count output.
 
@@ -59,17 +59,17 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
 
         # Use now some BDLSTM-layer to process all embeddings.
         processed = embeddings_merged
-        for i in range(self.__lstm_layers):
-            processed = self._s_layer(
-                'LSTM_proc_{}'.format(i), lambda name: Bidirectional(LSTM(self.__lstm_units, return_sequences=True), name=name)
-            )(processed)
-            processed = self._s_layer(
-                'LSTM_proc_{}_batch'.format(i), lambda name: BatchNormalization(name=name)
-            )(processed)
+        # for i in range(self.__lstm_layers):
+        #     processed = self._s_layer(
+        #         'LSTM_proc_{}'.format(i), lambda name: Bidirectional(LSTM(self.__lstm_units, return_sequences=True), name=name)
+        #     )(processed)
+        #     processed = self._s_layer(
+        #         'LSTM_proc_{}_batch'.format(i), lambda name: BatchNormalization(name=name)
+        #     )(processed)
 
         # Batch normalize everything if not already done
-        add_dbg_output('EMBEDDINGS', processed)
         if self.__lstm_layers == 0:
+            add_dbg_output('EMBEDDINGS', processed)
             processed = BatchNormalization()(processed)
         add_dbg_output('EMBEDDINGS_NORMALIZED', processed)
 
@@ -89,12 +89,10 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
 
         # Apply the preprocessing for all embeddings (we force the network to have all values in the range [-1, 1]);
         # this makes kmeans easier
+        self._add_additional_prediction_output(Concatenate(axis=1)(embeddings_processed), '0_Reshaped_Embeddings')
         embeddings_processed = [point_preprocessor(e) for e in embeddings_processed]
-        add_dbg_output('EMBEDDINGS_PREPROCESSED', processed)
-        self._add_additional_prediction_output(Concatenate(axis=1)(embeddings_processed), 'Processed_Embeddings')
-
-        # Define a distance-function
-        d = lambda x, y: K.sqrt(K.sum(K.square(x - y))) # euclidean distance
+        add_dbg_output('EMBEDDINGS_PREPROCESSED', Concatenate(axis=1)(embeddings_processed))
+        self._add_additional_prediction_output(Concatenate(axis=1)(embeddings_processed), '1_Processed_Embeddings')
 
         def euclideanDistance(inputs, squared=False):
             if (len(inputs) != 2):
@@ -107,25 +105,39 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
             output = K.expand_dims(output, 1)
             return output
 
+
         # Apply k-means for each possible k
         assert self.__kmeans_itrs > 0
         cluster_vector_size = self.__kmeans_input_dimension #(self.__lstm_units * 2) if self.__lstm_layers > 0 else embedding_size
         cluster_assignements = {}
+        initial_cluster_guess = Concatenate(axis=1)(embeddings_processed)
+        initial_cluster_guess_lstm_count = 3
+        for i in range(initial_cluster_guess_lstm_count):
+            initial_cluster_guess = self._s_layer(
+                'initial_cluster_guess_bdlstm{}'.format(i),
+                lambda name: Bidirectional(LSTM(cluster_vector_size * sum(cluster_counts), return_sequences=i < (initial_cluster_guess_lstm_count - 1)))
+            )(initial_cluster_guess)
+            initial_cluster_guess = self._s_layer(
+                'initial_cluster_guess_batch{}'.format(i),
+                lambda name: BatchNormalization(name=name)
+            )(initial_cluster_guess)
         for k in cluster_counts:
 
             # Create initial cluster centers
-            clusters = [self._s_layer(
-                'k_{}_init_{}'.format(k, i), lambda name: gaussian_random_layer((1, cluster_vector_size), name=name, only_execute_for_training=False)
-            )(embeddings[0]) for i in range(k)]
+            # clusters = [self._s_layer(
+            #     'k_{}_init_{}'.format(k, i), lambda name: gaussian_random_layer((1, cluster_vector_size), name=name, only_execute_for_training=False)
+            # )(embeddings[0]) for i in range(k)]
+
+            # # Create initial cluster guesses
+            clusters = [Reshape((1, cluster_vector_size))(Dense(cluster_vector_size)(initial_cluster_guess)) for i in range(k)]
 
             # Apply the preprocessing
             clusters = [point_preprocessor(c) for c in clusters]
 
             self._add_additional_prediction_output(
                 Concatenate(axis=1)(clusters),
-                'Initial cluster guesses (k={})'.format(k)
+                '2_Initial_cluster_guesses_(k={})'.format(k)
             )
-
 
             # # # Use the first n input points
             # clusters = embeddings_processed[:k]
@@ -235,7 +247,7 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
                     ]
 
                     # Merge the distances and calculate a softmax
-                    k_distances = Concatenate()(k_distances)
+                    k_distances = Concatenate(axis=1)(k_distances)
                     k_distances = Reshape((k,))(k_distances)
                     add_dbg_output("k{}_ITR{}_e_i{}_DISTANCES_PLAIN".format(k, i, e_i), k_distances)
                     # k_distances = Lambda(lambda x: 1 / (0.01 + x))(k_distances)
@@ -263,7 +275,7 @@ class ClusterNNTry03KMeansV02(SimpleLossClusterNN):
 
             self._add_additional_prediction_output(
                 Concatenate(axis=1)(clusters),
-                'Final cluster guesses (k={})'.format(k)
+                '3_Final_cluster_guesses_(k={})'.format(k)
             )
 
         # Reshape all softmax layers

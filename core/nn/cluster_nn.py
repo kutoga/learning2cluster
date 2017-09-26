@@ -10,7 +10,7 @@ from sklearn import metrics
 from termcolor import colored
 
 from keras.models import Model
-from keras.layers import Input
+from keras.layers import Input, Activation
 
 from core.nn.base_nn import BaseNN
 from core.nn.history import History
@@ -694,7 +694,9 @@ class ClusterNN(BaseNN):
     def __reset_additional_prediction_outputs(self):
         self._additional_prediction_outputs = []
 
-    def _add_debug_output(self, layer, name=None):
+    def _add_debug_output(self, layer, name=None, create_wrapper_layer=False):
+        if create_wrapper_layer:
+            layer = Activation('linear')(layer)
         caller = get_caller()
         self._prediction_debug_outputs.append({
             'name': name,
@@ -703,7 +705,9 @@ class ClusterNN(BaseNN):
             'line': caller.lineno
         })
 
-    def _add_additional_prediction_output(self, layer, name):
+    def _add_additional_prediction_output(self, layer, name, create_wrapper_layer=False):
+        if create_wrapper_layer:
+            layer = Activation('linear')(layer)
         self._additional_prediction_outputs.append({
             'name': name,
             'layer': layer
