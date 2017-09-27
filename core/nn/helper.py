@@ -598,6 +598,82 @@ def load_history(base_filename):
 #     return initialized_layers, target_layers_with_weights
 #
 
+
+def get_val_at(input_layer, i_i):
+    def at(val, indices):
+        for index in indices:
+            val = val[index]
+        return val
+    return Lambda(lambda x: at(x, i_i), output_shape=(1,))(input_layer)
+
+
+def get_cluster_centers(embeddings, cluster_classification, base_name='get_cluster_centers'):
+    """
+    :param embeddings: A list of embeddings
+    :param cluster_classification: A list of softmaxs
+    :param base_name:
+    :return:
+    """
+    def get_name(name):
+        return '{}_{}'.format(base_name, name)
+    cluster_count = cluster_classification[0].shape[2]
+    s = [0] * cluster_count
+    c = [1e-10] * cluster_count
+    for e_i in range(len(embeddings)):
+        embedding = embeddings[e_i]
+        for c_i in range(cluster_count):
+            p = get_val_at(cluster_classification[e_i], [1, c_i])
+            s[c_i] = Lambda(lambda x: x * embedding + s[c_i])(p)
+            c[c_i] = Lambda(lambda x: x  + c[c_i])(p)
+    for c_i in range(cluster_count):
+        s[c_i] = Lambda(lambda x: x / c[c_i])(s[c_i])
+    return s
+
+
+def get_cluster_separation(cluster_centers, distance_f=lambda x, y: K.sum(K.square(x - y)), base_name='get_cluster_separation'):
+    """
+    Important: The result has to be negated if it is used inside a loss function.
+
+    :param cluster_centers: A list of [1, N] cluster centers
+    :param distance_f: A distance function. The current implementation assumes that d(x, x) = 0 and d(x, y) = d(y, x)
+    :param base_name:
+    :return:
+    """
+    distance_sum = 0
+    counter = 0
+    for c_i in range(1, len(cluster_centers)):
+        for c_j in range(c_i):
+            c_source = cluster_centers[c_i]
+            c_target = cluster_centers[c_j]
+            c_distance = Lambda(lambda c_source: distance_f(c_source, c_target))(c_source)
+            distance_sum = Lambda(lambda c_distance: distance_sum + c_distance)(c_distance)
+            counter += 1
+    avg_distance = Lambda(lambda distance_sum: distance_sum / counter)(distance_sum)
+    return avg_distance
+
+
+def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, distance_f=lambda x, y: K.sum(K.square(x - y))):
+    """
+    Calculate cluster cohesion and return the resulting layer.
+    :param cluster_centers: A list of [1, N] cluster centers
+    :param embeddings: A list of embeddings / [1, N]
+    :param cluster_classification:
+    :param distance_f:
+    :return:
+    """
+    distance_sum = 0
+    for e_i in range(len(embeddings)):
+        embedding = embeddings[e_i]
+        for c_i in range(len(cluster_centers)):
+            cluster_center = cluster_centers[c_i]
+            p = get_val_at(cluster_classification[e_i], [1, c_i])
+            distance = Lambda(lambda cluster_center: distance_f(cluster_center, embedding) * p)(cluster_center)
+            distance_sum = Lambda(lambda distance: distance_sum + distance)(distance)
+    embedding_count = len(embeddings)
+    avg_distance = Lambda(lambda distance_sum: distance_sum / embedding_count)(distance_sum)
+    return avg_distance
+
+
 if __name__ == '__main__':
     from random import random
     from time import time

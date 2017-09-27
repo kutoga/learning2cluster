@@ -1,4 +1,5 @@
 from os import path
+import random
 
 import matplotlib.pyplot as plt
 
@@ -6,16 +7,19 @@ import numpy as np
 
 from core.data.data_provider import DataProvider
 from impl.data.misc.data_gen_2d import DataGen2dv02
+from impl.data.misc.extended_data_gen_2d import ExtendedDataGen2d
 
 # This class generates simple 2d clusters: random generated centers with gaussian distributed data
 
 class Simple2DPointDataProvider(DataProvider):
-    def __init__(self, min_cluster_count=2, max_cluster_count=10, allow_less_clusters=False):
+    def __init__(self, min_cluster_count=2, max_cluster_count=10, allow_less_clusters=False, use_extended_data_gen=False):
         super().__init__()
         self._dg = DataGen2dv02()
+        self._edg = ExtendedDataGen2d(self._dg)
         self._min_cluster_count = min_cluster_count
         self._max_cluster_count = max_cluster_count
         self._allow_less_clusters = allow_less_clusters
+        self._use_extended_data_gen = use_extended_data_gen
 
     def get_min_cluster_count(self):
         return self._min_cluster_count
@@ -29,11 +33,21 @@ class Simple2DPointDataProvider(DataProvider):
     def get_clusters(self, element_count, cluster_count=None, data_type='train'):
         if cluster_count is not None and cluster_count > self.get_max_cluster_count():
             cluster_count = self.get_max_cluster_count()
-        clusters = self._dg.generate(cluster_count=cluster_count, records=element_count,
-                                     cluster_count_min=self._min_cluster_count,
-                                     cluster_count_max=self._max_cluster_count,
-                                     allow_less_clusters=self._allow_less_clusters
-                                     )
+        if self._use_extended_data_gen:
+
+            # Use the extended data generator
+            if cluster_count is None:
+                cluster_count = random.randint(self._min_cluster_count, self._max_cluster_count)
+            clusters = self._edg.generate(cluster_count, element_count)
+
+        else:
+
+            # Use the classical data generator
+            clusters = self._dg.generate(cluster_count=cluster_count, records=element_count,
+                                         cluster_count_min=self._min_cluster_count,
+                                         cluster_count_max=self._max_cluster_count,
+                                         allow_less_clusters=self._allow_less_clusters
+                                         )
         return clusters
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
@@ -298,7 +312,8 @@ class Simple2DPointDataProvider(DataProvider):
         plt.close()
 
 if __name__ == '__main__':
-    dp = Simple2DPointDataProvider()
+    # dp = Simple2DPointDataProvider(use_extended_data_gen=True)
+    dp = Simple2DPointDataProvider(use_extended_data_gen=False)
     data = dp.get_data(50, 1)
     print(data)
 

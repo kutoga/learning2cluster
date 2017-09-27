@@ -32,3 +32,4 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try03_kmeans_v04b.py /tmp/test/test_cluster_nn_try03_kmeans_v04b.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try03_kmeans_v05.py /tmp/test/test_cluster_nn_try03_kmeans_v05.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v02.py /tmp/test/test_cluster_nn_try00_v02.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v03.py /tmp/test/test_cluster_nn_try00_v03.py.log
