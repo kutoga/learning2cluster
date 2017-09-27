@@ -607,30 +607,30 @@ def get_val_at(input_layer, i_i):
     return Lambda(lambda x: at(x, i_i), output_shape=(1,))(input_layer)
 
 
-def get_cluster_centers(embeddings, cluster_classification, base_name='get_cluster_centers'):
+def get_cluster_centers(embeddings, cluster_classification):
     """
     :param embeddings: A list of embeddings
     :param cluster_classification: A list of softmaxs
     :param base_name:
     :return:
     """
-    def get_name(name):
-        return '{}_{}'.format(base_name, name)
-    cluster_count = cluster_classification[0].shape[2]
+    cluster_count = int(str(cluster_classification[0].shape[2]))
     s = [0] * cluster_count
     c = [1e-10] * cluster_count
     for e_i in range(len(embeddings)):
         embedding = embeddings[e_i]
+        current_cluster_classification = cluster_classification[e_i]
+        current_cluster_classification = Reshape((cluster_count, 1))(current_cluster_classification)
         for c_i in range(cluster_count):
-            p = get_val_at(cluster_classification[e_i], [1, c_i])
+            p = Reshape((1,))(slice_layer(current_cluster_classification, c_i)) #get_val_at(current_cluster_classification, [1, c_i])
             s[c_i] = Lambda(lambda x: x * embedding + s[c_i])(p)
-            c[c_i] = Lambda(lambda x: x  + c[c_i])(p)
+            c[c_i] = Lambda(lambda x: x + c[c_i])(p)
     for c_i in range(cluster_count):
         s[c_i] = Lambda(lambda x: x / c[c_i])(s[c_i])
     return s
 
 
-def get_cluster_separation(cluster_centers, distance_f=lambda x, y: K.sum(K.square(x - y)), base_name='get_cluster_separation'):
+def get_cluster_separation(cluster_centers, distance_f=lambda x, y: K.sum(K.square(x - y))):
     """
     Important: The result has to be negated if it is used inside a loss function.
 
@@ -661,12 +661,15 @@ def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, di
     :param distance_f:
     :return:
     """
+    cluster_count = int(str(cluster_classification[0].shape[2]))
     distance_sum = 0
     for e_i in range(len(embeddings)):
         embedding = embeddings[e_i]
+        current_cluster_classification = cluster_classification[e_i]
+        current_cluster_classification = Reshape((cluster_count, 1))(current_cluster_classification)
         for c_i in range(len(cluster_centers)):
             cluster_center = cluster_centers[c_i]
-            p = get_val_at(cluster_classification[e_i], [1, c_i])
+            p = Reshape((1,))(slice_layer(current_cluster_classification, c_i)) #get_val_at(current_cluster_classification, [1, c_i])
             distance = Lambda(lambda cluster_center: distance_f(cluster_center, embedding) * p)(cluster_center)
             distance_sum = Lambda(lambda distance: distance_sum + distance)(distance)
     embedding_count = len(embeddings)

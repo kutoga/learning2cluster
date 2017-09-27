@@ -25,6 +25,7 @@ class SimpleLossClusterNN(ClusterNN):
         self._normalize_class_weights = True
 
         self._cluster_n_output_loss = 'categorical_crossentropy'
+        self._use_additional_loss = False
 
     @property
     def include_self_comparison(self):
@@ -177,6 +178,10 @@ class SimpleLossClusterNN(ClusterNN):
         if len(cluster_counts) > 1:
             y['cluster_count_output'] = cluster_count
 
+        # If required: Add the additional loss value (it will be ignored by the network)
+        if self._use_additional_loss:
+            y['additional_loss'] = np.zeros((len(inputs), 1), dtype=np.float32)
+
         # # DEBUG output
         # c0 = np.    sum(similarities_output == 0)
         # c1 = np.sum(similarities_output == 1)
@@ -245,6 +250,11 @@ class SimpleLossClusterNN(ClusterNN):
         # Also add the cluster count output, but only if there is more than one possible cluster count
         if len(cluster_counts) > 1:
             loss_output.append(n_cluster_output)
+
+        # Is there an additional loss defined by the "sub-network"? If yes: add it
+        if 'additional_loss' in additional_network_outputs:
+            loss_output.append(additional_network_outputs['additional_loss'])
+            self._use_additional_loss = True
 
         return True
 
@@ -392,6 +402,11 @@ class SimpleLossClusterNN(ClusterNN):
         }
         if len(self.data_provider.get_cluster_counts()) > 1:
             loss['cluster_count_output'] = self._cluster_n_output_loss
+
+        if self._use_additional_loss:
+            # The additional loss is some kind of regularizer: Just return the prediction value
+            loss['additional_loss'] = lambda y_true, y_pred: y_pred
+
         return loss
 
     def _get_keras_metrics(self):
