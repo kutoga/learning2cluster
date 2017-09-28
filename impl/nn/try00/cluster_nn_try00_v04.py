@@ -107,7 +107,7 @@ class ClusterNNTry00_V04(SimpleLossClusterNN):
             self._add_debug_output(Concatenate(axis=1)(cluster_centers), 'eval_cluster_centers_k{}'.format(k))
             cohesion = get_cluster_cohesion(cluster_centers, embeddings_reshaped, cluster_classifiers[k])
             self._add_debug_output(cohesion, 'eval_cohesion_k{}'.format(k))
-            separation = get_cluster_separation(cluster_centers)
+            separation = get_cluster_separation(cluster_centers, cluster_classifiers[k])
             self._add_debug_output(separation, 'eval_separation_k{}'.format(k))
 
             cluster_quality_loss = Lambda(lambda cohesion:

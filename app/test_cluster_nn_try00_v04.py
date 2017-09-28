@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # c_nn.class_weights_approximation = 'stochastic'
     c_nn.minibatch_size = 2
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
-    c_nn.validate_every_nth_epoch = 1
+    c_nn.validate_every_nth_epoch = 100
     c_nn.debug_mode = True
 
     # c_nn.f_cluster_count = lambda: 10
@@ -57,16 +57,22 @@ if __name__ == '__main__':
     c_nn.build_networks()
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V02'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V04'
     c_nn.register_autosave(autosave_dir)#, nth_iteration=1)
     c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
-    #c_nn.train(1)
+    # c_nn.train(500)
 
     c_nn.predict([
         [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]],
         [[0., 1.], [1., 0.], [0.7, 0.3]]
+    ])
+    c_nn.predict([
+        [[0., 1.], [1., 0.], [0.7, 0.3]],
+        [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]],
+        [[0., 1.], [1., 0.], [0.7, 0.3]],
+        [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]]
     ])
 
 

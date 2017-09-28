@@ -8,7 +8,7 @@ import scipy.stats as st
 
 from contextlib import contextmanager
 
-from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer
+from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer, RepeatVector
 from keras.models import Sequential
 import keras.backend as K
 
@@ -615,6 +615,7 @@ def get_cluster_centers(embeddings, cluster_classification):
     :return:
     """
     cluster_count = int(str(cluster_classification[0].shape[2]))
+    embedding_dim = int(str(embeddings[0].shape[2]))
     s = [0] * cluster_count
     c = [1e-10] * cluster_count
     for e_i in range(len(embeddings)):
@@ -623,14 +624,16 @@ def get_cluster_centers(embeddings, cluster_classification):
         current_cluster_classification = Reshape((cluster_count, 1))(current_cluster_classification)
         for c_i in range(cluster_count):
             p = Reshape((1,))(slice_layer(current_cluster_classification, c_i)) #get_val_at(current_cluster_classification, [1, c_i])
+            p = RepeatVector(embedding_dim)(p)
             s[c_i] = Lambda(lambda x: x * embedding + s[c_i])(p)
             c[c_i] = Lambda(lambda x: x + c[c_i])(p)
     for c_i in range(cluster_count):
         s[c_i] = Lambda(lambda x: x / c[c_i])(s[c_i])
+        s[c_i] = slice_layer(s[c_i], 0)
     return s
 
 
-def get_cluster_separation(cluster_centers, distance_f=lambda x, y: K.sum(K.square(x - y))):
+def get_cluster_separation(cluster_centers, cluster_classification, distance_f=lambda x, y: K.sum(K.square(x - y), axis=2)):
     """
     Important: The result has to be negated if it is used inside a loss function.
 
@@ -641,18 +644,27 @@ def get_cluster_separation(cluster_centers, distance_f=lambda x, y: K.sum(K.squa
     """
     distance_sum = 0
     counter = 0
-    for c_i in range(1, len(cluster_centers)):
-        for c_j in range(c_i):
+    mcluster_classification = Concatenate(axis=1)(cluster_classification) # (E, 7) -> transpose -> (7, E) -> sum(axis=2)
+    weights = Lambda(lambda x: K.sum(x, axis=1))(mcluster_classification)
+    weights = Reshape((len(cluster_centers), 1))(weights)
+    for c_i in range(len(cluster_centers)):
+        current_distance_sum = 0
+        for c_j in range(len(cluster_centers)):
             c_source = cluster_centers[c_i]
             c_target = cluster_centers[c_j]
             c_distance = Lambda(lambda c_source: distance_f(c_source, c_target))(c_source)
-            distance_sum = Lambda(lambda c_distance: distance_sum + c_distance)(c_distance)
+            current_distance_sum = Lambda(lambda c_distance: current_distance_sum + c_distance)(c_distance)
             counter += 1
-    avg_distance = Lambda(lambda distance_sum: distance_sum / counter)(distance_sum)
+
+        # Calculate w_i
+        w_i = Reshape((1,))(slice_layer(weights, c_i))
+        distance_sum = Lambda(lambda current_distance_sum: current_distance_sum * w_i + distance_sum)(current_distance_sum)
+
+    avg_distance = Lambda(lambda distance_sum: distance_sum / (len(cluster_classification) * len(cluster_centers)))(distance_sum)
     return avg_distance
 
 
-def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, distance_f=lambda x, y: K.sum(K.square(x - y))):
+def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, distance_f=lambda x, y: K.sum(K.square(x - y), axis=2)):
     """
     Calculate cluster cohesion and return the resulting layer.
     :param cluster_centers: A list of [1, N] cluster centers
@@ -663,6 +675,7 @@ def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, di
     """
     cluster_count = int(str(cluster_classification[0].shape[2]))
     distance_sum = 0
+
     for e_i in range(len(embeddings)):
         embedding = embeddings[e_i]
         current_cluster_classification = cluster_classification[e_i]
@@ -670,10 +683,11 @@ def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, di
         for c_i in range(len(cluster_centers)):
             cluster_center = cluster_centers[c_i]
             p = Reshape((1,))(slice_layer(current_cluster_classification, c_i)) #get_val_at(current_cluster_classification, [1, c_i])
-            distance = Lambda(lambda cluster_center: distance_f(cluster_center, embedding) * p)(cluster_center)
+            distance = Lambda(lambda cluster_center: distance_f(cluster_center, embedding))(cluster_center)
+            distance = Lambda(lambda distance: distance * p)(distance)
             distance_sum = Lambda(lambda distance: distance_sum + distance)(distance)
-    embedding_count = len(embeddings)
-    avg_distance = Lambda(lambda distance_sum: distance_sum / embedding_count)(distance_sum)
+
+    avg_distance = Lambda(lambda distance_sum: distance_sum / len(embeddings))(distance_sum)
     return avg_distance
 
 
