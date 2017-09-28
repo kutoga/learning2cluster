@@ -29,14 +29,14 @@ if __name__ == '__main__':
     en = SimpleFCEmbedding(output_size=2, hidden_layers=[16, 32, 64, 64], final_activation='tanh')
     # en = None
 
-    c_nn = ClusterNNTry00_V04(dp, 3, en, lstm_layers=5, lstm_units=64, cluster_count_dense_layers=1, cluster_count_dense_units=128,
+    c_nn = ClusterNNTry00_V04(dp, 50, en, lstm_layers=5, lstm_units=64, cluster_count_dense_layers=1, cluster_count_dense_units=128,
                           output_dense_layers=1, output_dense_units=128)
     c_nn.weighted_classes = True
-    # c_nn.class_weights_approximation = 'stochastic'
-    c_nn.minibatch_size = 2
+    c_nn.class_weights_approximation = 'stochastic'
+    c_nn.minibatch_size = 200
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
-    c_nn.validate_every_nth_epoch = 100
-    c_nn.debug_mode = True
+    c_nn.validate_every_nth_epoch = 10
+    # c_nn.debug_mode = True
 
     # c_nn.f_cluster_count = lambda: 10
     # c_nn.minibatch_size = 200
@@ -62,17 +62,17 @@ if __name__ == '__main__':
     c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
-    # c_nn.train(500)
+    c_nn.train(100000000000)
 
-    c_nn.predict([
-        [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]],
-        [[0., 1.], [1., 0.], [0.7, 0.3]]
-    ])
-    c_nn.predict([
-        [[0., 1.], [1., 0.], [0.7, 0.3]],
-        [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]],
-        [[0., 1.], [1., 0.], [0.7, 0.3]],
-        [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]]
-    ])
+    # c_nn.predict([
+    #     [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]],
+    #     [[0., 1.], [1., 0.], [0.7, 0.3]]
+    # ])
+    # c_nn.predict([
+    #     [[0., 1.], [1., 0.], [0.7, 0.3]],
+    #     [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]],
+    #     [[0., 1.], [1., 0.], [0.7, 0.3]],
+    #     [[0.3, 0.7], [0.5, 0.1], [0.7, 0.3]]
+    # ])
 
 
