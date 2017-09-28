@@ -1,12 +1,13 @@
 from keras.layers import Reshape, Concatenate, Bidirectional, LSTM, Dense, BatchNormalization, \
     Activation, Lambda
+import keras.backend as K
 
 import numpy as np
 
 from core.nn.helper import slice_layer, get_cluster_centers, get_cluster_cohesion, get_cluster_separation
-from impl.nn.base.simple_loss.simple_loss_cluster_nn import SimpleLossClusterNN
+from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
-class ClusterNNTry00_V04(SimpleLossClusterNN):
+class ClusterNNTry00_V05(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, lstm_units=64, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False):
@@ -95,7 +96,7 @@ class ClusterNNTry00_V04(SimpleLossClusterNN):
 
                 cluster_classifiers[k].append(output_classifier)
 
-        cluster_quality_loss = 0
+        clustering_quality = 0
         alpha = 0.5
         beta = 0.25
         self._add_debug_output(Concatenate(axis=1)(embeddings_reshaped), 'eval_embeddings')
@@ -110,14 +111,21 @@ class ClusterNNTry00_V04(SimpleLossClusterNN):
             separation = get_cluster_separation(cluster_centers, cluster_classifiers[k])
             self._add_debug_output(separation, 'eval_separation_k{}'.format(k))
 
-            cluster_quality_loss = Lambda(lambda cohesion:
+            clustering_quality = Lambda(lambda cohesion:
 
                 # Update the loss
-                cluster_quality_loss + (alpha * cohesion - beta * separation)
+                clustering_quality + (alpha * cohesion - beta * separation)
             )(cohesion)
-        cluster_quality_loss = Lambda(lambda x: x / len(cluster_counts))(cluster_quality_loss)
 
-        additional_network_outputs['additional_loss'] = Activation('linear', name='additional_loss')(cluster_quality_loss)
+        # Normalize the cluster quality
+        clustering_quality = Lambda(lambda x: x / len(cluster_counts))(clustering_quality)
+
+        # What to do with the cluster quality? We use it for an additional loss, this loss should optimize
+        # the cluster quality as soon as the clustering works relatively well.
+        self._register_additional_grouping_similarity_loss(
+            'cluster_quality',
+            lambda similiarty_loss: K.exp(- similiarty_loss * similiarty_loss) * clustering_quality
+        )
 
         # Calculate the real cluster count
         cluster_count = self._s_layer('cluster_count_LSTM_merge', lambda name: Bidirectional(LSTM(self.__lstm_units), name=name)(embeddings_merged))

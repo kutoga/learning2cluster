@@ -140,7 +140,7 @@ class ClusterNN(BaseNN):
                     '{}: validation AVG'.format(metric)
                 ])
                 plt.xlabel('iteration')
-                plt.ylabel('loss')
+                plt.ylabel('score')
                 plt.grid(True)
             self._register_plot(model_name, metric_plot, metrics_plot_name)
 

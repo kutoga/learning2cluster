@@ -6,7 +6,7 @@ import numpy as np
 from random import randint
 from time import time
 
-from impl.nn.try00.cluster_nn_try00_v04 import ClusterNNTry00_V04
+from impl.nn.try00.cluster_nn_try00_v05 import ClusterNNTry00_V05
 
 if __name__ == '__main__':
 
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     en = SimpleFCEmbedding(output_size=2, hidden_layers=[16, 32, 64, 64], final_activation='tanh')
     # en = None
 
-    c_nn = ClusterNNTry00_V04(dp, 50, en, lstm_layers=5, lstm_units=64, cluster_count_dense_layers=1, cluster_count_dense_units=128,
+    c_nn = ClusterNNTry00_V05(dp, 50, en, lstm_layers=5, lstm_units=64, cluster_count_dense_layers=1, cluster_count_dense_units=128,
                           output_dense_layers=1, output_dense_units=128)
     c_nn.weighted_classes = True
     c_nn.class_weights_approximation = 'stochastic'
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     c_nn.build_networks()
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V04'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V05'
     c_nn.register_autosave(autosave_dir)#, nth_iteration=1)
     c_nn.try_load_from_autosave(autosave_dir)
 
