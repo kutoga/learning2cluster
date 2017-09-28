@@ -434,7 +434,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         # Register all additional similarity losses
         for additional_grouping_similarity_loss in self._additional_grouping_similarity_losses:
             loss[additional_grouping_similarity_loss['name']] =\
-                lambda y_true, y_pred: additional_grouping_similarity_loss['loss_f'](similarities_loss(y_true, y_pred))
+                lambda y_true, y_pred, loss_f=additional_grouping_similarity_loss['loss_f']: loss_f(similarities_loss(y_true, y_pred))
 
         # Register all regularisations
         if len(self._additional_regularisations) > 0:

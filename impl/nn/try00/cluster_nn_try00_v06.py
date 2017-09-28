@@ -7,7 +7,7 @@ import numpy as np
 from core.nn.helper import slice_layer, get_cluster_centers, get_cluster_cohesion, get_cluster_separation
 from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
-class ClusterNNTry00_V05(SimpleLossClusterNN_V02):
+class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, lstm_units=64, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False):
@@ -102,6 +102,13 @@ class ClusterNNTry00_V05(SimpleLossClusterNN_V02):
         alpha = 0.5
         beta = 0.25
         self._add_debug_output(Concatenate(axis=1)(embeddings_reshaped), 'eval_embeddings')
+
+        # # Squared euclidean distance
+        # distance_f = lambda x, y: K.sum(K.square(x - y), axis=2)
+
+        # Euclidean distance
+        distance_f = lambda x, y: K.sqrt(K.sum(K.square(x - y), axis=2))
+
         for k in cluster_counts:
 
             # Create evaluation metrics
