@@ -691,6 +691,10 @@ def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, di
     return avg_distance
 
 
+# An implementation of the KL-divergence proposed by Lukic et al. (Learning embeddings for speaker clustering based on voice equality)
+# TODO
+
+
 if __name__ == '__main__':
     from random import random
     from time import time

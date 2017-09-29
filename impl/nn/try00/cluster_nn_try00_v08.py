@@ -1,5 +1,6 @@
 from keras.layers import Reshape, Concatenate, Bidirectional, LSTM, Dense, BatchNormalization, \
-    Activation, Lambda
+    Activation, Lambda, TimeDistributed
+from keras.layers.advanced_activations import LeakyReLU
 import keras.backend as K
 
 import numpy as np
@@ -7,14 +8,15 @@ import numpy as np
 from core.nn.helper import slice_layer, get_cluster_centers, get_cluster_cohesion, get_cluster_separation
 from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
-class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
+class ClusterNNTry00_V08(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, lstm_units=64, output_dense_units=512,
-                 cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
+                 cluster_count_dense_layers=1, lstm_layers=3, pre_lstm_layers=3, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False):
         super().__init__(data_provider, input_count, embedding_nn, weighted_classes)
 
         # Network parameters
         self.__lstm_layers = lstm_layers
+        self.__pre_lstm_layers = pre_lstm_layers
         self.__lstm_units = lstm_units
         self.__output_dense_units = output_dense_units
         self.__cluster_count_dense_layers = cluster_count_dense_layers
@@ -42,13 +44,29 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
         # Merge all embeddings to one tensor
         embeddings_merged = self._s_layer('embeddings_merge', lambda name: Concatenate(axis=1, name=name))(embeddings_reshaped)
 
-        self._add_additional_prediction_output(embeddings_merged, 'Embeddings')
+        self._add_additional_prediction_output(embeddings_merged, '0_Embeddings')
 
         # The value range of the embeddings must be [-1, 1] to allow an efficient execution of the cluster evaluations,
         # so be sure the embeddings are processed by tanh or some similar activation
 
-        # Use now some LSTM-layer to process all embeddings
+        # Use some LSTMs for some kind of preprocessing. After these layers a regularisation is applied
         processed = embeddings_merged
+        for i in range(self.__pre_lstm_layers):
+            processed = self._s_layer(
+                'PRE_LSTM_proc_{}'.format(i), lambda name: Bidirectional(LSTM(self.__lstm_units, return_sequences=True), name=name)
+            )(processed)
+            processed = self._s_layer(
+                'PRE_LSTM_proc_{}_batch'.format(i), lambda name: BatchNormalization(name=name)
+            )(processed)
+        # Reshape the data now to a embeddings sized representation representation
+        processed = TimeDistributed(Dense(embedding_size, activation='tanh'))(processed)
+
+        # Store these processed embeddings
+        preprocessed_embeddings = [slice_layer(processed, i) for i in range(len(network_input))]
+        self._add_additional_prediction_output(processed, "1_LSTM_Preprocessed_Embeddings")
+
+        # Use now some LSTM-layer to process all embeddings
+        # processed = embeddings_merged
         for i in range(self.__lstm_layers):
             processed = self._s_layer(
                 'LSTM_proc_{}'.format(i), lambda name: Bidirectional(LSTM(self.__lstm_units, return_sequences=True), name=name)
@@ -70,7 +88,8 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
             layers += [
                 self._s_layer('output_dense{}'.format(i), lambda name: Dense(self.__output_dense_units, name=name)),
                 self._s_layer('output_batch'.format(i), lambda name: BatchNormalization(name=name)),
-                self._s_layer('output_relu'.format(i), lambda name: Activation('relu', name=name))
+                # self._s_layer('output_relu'.format(i), lambda name: Activation('relu', name=name))
+                LeakyReLU()
             ]
         cluster_softmax = {
             k: self._s_layer('softmax_cluster_{}'.format(k), lambda name: Dense(k, activation='softmax', name=name)) for k in cluster_counts
@@ -101,7 +120,7 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
         sum_separation = 0
         alpha = 0.5
         beta = 0.25
-        self._add_debug_output(Concatenate(axis=1)(embeddings_reshaped), 'eval_embeddings')
+        self._add_debug_output(Concatenate(axis=1)(preprocessed_embeddings), 'eval_embeddings')
 
         # # Squared euclidean distance
         # distance_f = lambda x, y: K.sum(K.square(x - y), axis=2)
@@ -113,15 +132,15 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
 
             # Create evaluation metrics
             self._add_debug_output(Concatenate(axis=1)(cluster_classifiers[k]), 'eval_classifications_k{}'.format(k))
-            cluster_centers = get_cluster_centers(embeddings_reshaped, cluster_classifiers[k])
+            cluster_centers = get_cluster_centers(preprocessed_embeddings, cluster_classifiers[k])
             self._add_debug_output(Concatenate(axis=1)(cluster_centers), 'eval_cluster_centers_k{}'.format(k))
-            cohesion = get_cluster_cohesion(cluster_centers, embeddings_reshaped, cluster_classifiers[k])
+            cohesion = get_cluster_cohesion(cluster_centers, preprocessed_embeddings, cluster_classifiers[k])
             self._add_debug_output(cohesion, 'eval_cohesion_k{}'.format(k))
             separation = get_cluster_separation(cluster_centers, cluster_classifiers[k])
             self._add_debug_output(separation, 'eval_separation_k{}'.format(k))
 
             self._add_additional_prediction_output(
-                Concatenate(axis=1, name='cluster_centers_k{}'.format(k))(cluster_centers),
+                Concatenate(axis=1, name='2_cluster_centers_k{}'.format(k))(cluster_centers),
                 'cluster_centers_k{}'.format(k)
             )
 
@@ -142,14 +161,14 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
         sum_separation = Lambda(lambda sum_separation: sum_separation / len(cluster_counts))(sum_separation)
 
         # Add the losses for the cohesion and the separation. Use for both the same loss function
-        cluster_quality_loss = lambda x: lambda similiarty_loss, x=x: K.exp(- similiarty_loss * similiarty_loss * 2) * x
+        cluster_quality_loss = lambda x: lambda similiarty_loss, x=x: K.exp(- similiarty_loss * similiarty_loss * 4) * x
         self._register_additional_grouping_similarity_loss(
             'cluster_cohesion',
             cluster_quality_loss(sum_cohesion)
         )
         self._register_additional_grouping_similarity_loss(
             'cluster_separation',
-            cluster_quality_loss(- sum_separation)
+            cluster_quality_loss(- K.log(1 + 2 * sum_separation))
         )
 
         # # Normalize the cluster quality
@@ -168,7 +187,8 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
         for i in range(self.__cluster_count_dense_layers):
             cluster_count = self._s_layer('cluster_count_dense{}'.format(i), lambda name: Dense(self.__cluster_count_dense_units, name=name))(cluster_count)
             cluster_count = self._s_layer('cluster_count_batch{}'.format(i), lambda name: BatchNormalization(name=name))(cluster_count)
-            cluster_count = self._s_layer('cluster_count_relu{}'.format(i), lambda name: Activation('relu', name=name))(cluster_count)
+            # cluster_count = self._s_layer('cluster_count_relu{}'.format(i), lambda name: Activation('relu', name=name))(cluster_count)
+            cluster_count = LeakyReLU()(cluster_count)
 
         # The next layer is an output-layer, therefore the name must not be formatted
         cluster_count = self._s_layer(

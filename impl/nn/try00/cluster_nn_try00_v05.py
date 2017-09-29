@@ -113,6 +113,11 @@ class ClusterNNTry00_V05(SimpleLossClusterNN_V02):
             separation = get_cluster_separation(cluster_centers, cluster_classifiers[k])
             self._add_debug_output(separation, 'eval_separation_k{}'.format(k))
 
+            self._add_additional_prediction_output(
+                Concatenate(axis=1, name='cluster_centers_k{}'.format(k))(cluster_centers),
+                'cluster_centers_k{}'.format(k)
+            )
+
             sum_cohesion = Lambda(lambda cohesion: sum_cohesion + cohesion)(cohesion)
             sum_separation = Lambda(lambda separation: sum_separation + separation)(separation)
             # clustering_quality = Lambda(lambda cohesion:

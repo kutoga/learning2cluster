@@ -143,7 +143,11 @@ class SimpleLossClusterNN(ClusterNN):
         cluster_counts = self.data_provider.get_cluster_counts()
 
         # Create output arrays
-        similarities_output = np.zeros((len(inputs), self.input_count * (self.input_count + 1) // 2), dtype=np.float32)
+        if self.include_self_comparison:
+            similarities_output_length = self.input_count * (self.input_count + 1) // 2
+        else:
+            similarities_output_length = self.input_count * (self.input_count - 1) // 2
+        similarities_output = np.zeros((len(inputs), similarities_output_length), dtype=np.float32)
         cluster_count = np.zeros((len(inputs), len(cluster_counts)))
 
         for c in range(len(inputs)):

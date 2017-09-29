@@ -1,13 +1,13 @@
 from keras.layers import Reshape, Concatenate, Bidirectional, LSTM, Dense, BatchNormalization, \
-    Activation, Lambda
-import keras.backend as K
+    Activation
+from keras.layers.advanced_activations import LeakyReLU
 
 import numpy as np
 
-from core.nn.helper import slice_layer, get_cluster_centers, get_cluster_cohesion, get_cluster_separation
+from core.nn.helper import slice_layer
 from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
-class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
+class ClusterNNTry00_V07(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, lstm_units=64, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False):
@@ -44,9 +44,6 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
 
         self._add_additional_prediction_output(embeddings_merged, 'Embeddings')
 
-        # The value range of the embeddings must be [-1, 1] to allow an efficient execution of the cluster evaluations,
-        # so be sure the embeddings are processed by tanh or some similar activation
-
         # Use now some LSTM-layer to process all embeddings
         processed = embeddings_merged
         for i in range(self.__lstm_layers):
@@ -70,7 +67,8 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
             layers += [
                 self._s_layer('output_dense{}'.format(i), lambda name: Dense(self.__output_dense_units, name=name)),
                 self._s_layer('output_batch'.format(i), lambda name: BatchNormalization(name=name)),
-                self._s_layer('output_relu'.format(i), lambda name: Activation('relu', name=name))
+                LeakyReLU()
+                # self._s_layer('output_relu'.format(i), lambda name: Activation(LeakyReLU(), name=name))
             ]
         cluster_softmax = {
             k: self._s_layer('softmax_cluster_{}'.format(k), lambda name: Dense(k, activation='softmax', name=name)) for k in cluster_counts
@@ -78,7 +76,6 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
 
         # Create now the outputs
         clusters_output = additional_network_outputs['clusters'] = {}
-        cluster_classifiers = {k: [] for k in cluster_counts}
         for i in range(len(embeddings_processed)):
             embedding_proc = embeddings_processed[i]
 
@@ -94,81 +91,14 @@ class ClusterNNTry00_V06(SimpleLossClusterNN_V02):
                 input_clusters_output['cluster{}'.format(k)] = output_classifier
                 network_output.append(output_classifier)
 
-                cluster_classifiers[k].append(output_classifier)
-
-        clustering_quality = 0
-        sum_cohesion = 0
-        sum_separation = 0
-        alpha = 0.5
-        beta = 0.25
-        self._add_debug_output(Concatenate(axis=1)(embeddings_reshaped), 'eval_embeddings')
-
-        # # Squared euclidean distance
-        # distance_f = lambda x, y: K.sum(K.square(x - y), axis=2)
-
-        # Euclidean distance
-        distance_f = lambda x, y: K.sqrt(K.sum(K.square(x - y), axis=2))
-
-        for k in cluster_counts:
-
-            # Create evaluation metrics
-            self._add_debug_output(Concatenate(axis=1)(cluster_classifiers[k]), 'eval_classifications_k{}'.format(k))
-            cluster_centers = get_cluster_centers(embeddings_reshaped, cluster_classifiers[k])
-            self._add_debug_output(Concatenate(axis=1)(cluster_centers), 'eval_cluster_centers_k{}'.format(k))
-            cohesion = get_cluster_cohesion(cluster_centers, embeddings_reshaped, cluster_classifiers[k])
-            self._add_debug_output(cohesion, 'eval_cohesion_k{}'.format(k))
-            separation = get_cluster_separation(cluster_centers, cluster_classifiers[k])
-            self._add_debug_output(separation, 'eval_separation_k{}'.format(k))
-
-            self._add_additional_prediction_output(
-                Concatenate(axis=1, name='cluster_centers_k{}'.format(k))(cluster_centers),
-                'cluster_centers_k{}'.format(k)
-            )
-
-            sum_cohesion = Lambda(lambda cohesion: sum_cohesion + cohesion)(cohesion)
-            sum_separation = Lambda(lambda separation: sum_separation + separation)(separation)
-            # clustering_quality = Lambda(lambda cohesion:
-            #
-            #     # Update the loss
-            #     clustering_quality + (alpha * cohesion - beta * separation)
-            # )(cohesion)
-
-        # Add alpha and beta to the cohesion and the separation
-        sum_cohesion = Lambda(lambda sum_cohesion: alpha * sum_cohesion)(sum_cohesion)
-        sum_separation = Lambda(lambda sum_separation: beta * sum_separation)(sum_separation)
-
-        # Normalize the cohesion and the separation by the cluster_counts
-        sum_cohesion = Lambda(lambda sum_cohesion: sum_cohesion / len(cluster_counts))(sum_cohesion)
-        sum_separation = Lambda(lambda sum_separation: sum_separation / len(cluster_counts))(sum_separation)
-
-        # Add the losses for the cohesion and the separation. Use for both the same loss function
-        cluster_quality_loss = lambda x: lambda similiarty_loss, x=x: K.exp(- similiarty_loss * similiarty_loss * 2) * x
-        self._register_additional_grouping_similarity_loss(
-            'cluster_cohesion',
-            cluster_quality_loss(sum_cohesion)
-        )
-        self._register_additional_grouping_similarity_loss(
-            'cluster_separation',
-            cluster_quality_loss(- sum_separation)
-        )
-
-        # # Normalize the cluster quality
-        # clustering_quality = Lambda(lambda x: x / len(cluster_counts))(clustering_quality)
-        #
-        # # What to do with the cluster quality? We use it for an additional loss, this loss should optimize
-        # # the cluster quality as soon as the clustering works relatively well.
-        # self._register_additional_grouping_similarity_loss(
-        #     'cluster_quality',
-        #     lambda similiarty_loss: K.exp(- similiarty_loss * similiarty_loss) * clustering_quality
-        # )
-
         # Calculate the real cluster count
         cluster_count = self._s_layer('cluster_count_LSTM_merge', lambda name: Bidirectional(LSTM(self.__lstm_units), name=name)(embeddings_merged))
         cluster_count = self._s_layer('cluster_count_LSTM_merge_batch', lambda name: BatchNormalization(name=name))(cluster_count)
         for i in range(self.__cluster_count_dense_layers):
             cluster_count = self._s_layer('cluster_count_dense{}'.format(i), lambda name: Dense(self.__cluster_count_dense_units, name=name))(cluster_count)
             cluster_count = self._s_layer('cluster_count_batch{}'.format(i), lambda name: BatchNormalization(name=name))(cluster_count)
-            cluster_count = self._s_layer('cluster_count_relu{}'.format(i), lambda name: Activation('relu', name=name))(cluster_count)
+            cluster_count = LeakyReLU()(cluster_count)
+            # cluster_count = self._s_layer('cluster_count_relu{}'.format(i), lambda name: Activation(LeakyReLU(), name=name))(cluster_count)
 
         # The next layer is an output-layer, therefore the name must not be formatted
         cluster_count = self._s_layer(

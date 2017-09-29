@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras.models import Sequential
-from keras.layers import BatchNormalization, Dense, Activation
+from keras.layers import BatchNormalization, Dense, Activation, Layer
 
 from core.nn.embedding_nn import EmbeddingNN
 
@@ -33,6 +33,9 @@ class SimpleFCEmbedding(EmbeddingNN):
         model = Sequential(name=self._get_name('Model'))
         if self._batch_norm_for_init_layer:
             model.add(self._s_layer('batch_init', lambda name: BatchNormalization(name=name, input_shape=input_shape)))
+        else:
+            # The first layer always requires the networks input shape. Create a dummy layer (its the easiest way)
+            model.add(self._s_layer('dummy_init', lambda name: Activation('linear', name=name, input_shape=input_shape)))
 
         if isinstance(self._hidden_layers, list):
             dimensions = self._hidden_layers
@@ -42,7 +45,10 @@ class SimpleFCEmbedding(EmbeddingNN):
         for i in range(len(dimensions)):
             model.add(self._s_layer('dense{}'.format(i), lambda name: Dense(dimensions[i], name=name)))
             model.add(self._s_layer('batch{}'.format(i), lambda name: BatchNormalization(name=name)))
-            model.add(self._s_layer('activation{}'.format(i), lambda name: Activation(self._hidden_activation, name=name)))
+            if isinstance(self._hidden_activation, Layer):
+                model.add(self._hidden_activation)
+            else:
+                model.add(self._s_layer('activation{}'.format(i), lambda name: Activation(self._hidden_activation, name=name)))
 
         # TODO: change name (currently unchanged, because of compatibility issues; if the name is changed, old weights no longer can be loaded)
         model.add(self._s_layer('output', lambda name: Dense(self._output_size, name=name)))

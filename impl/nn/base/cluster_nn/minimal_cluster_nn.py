@@ -80,7 +80,7 @@ class MinimalClusterNN(SimpleLossClusterNN):
         cluster_count = self._s_layer('cluster_count_batch0', lambda name: BatchNormalization(name=name))(cluster_count)
 
         # Add a debug output
-        debug_output.append(cluster_count)
+        self._add_debug_output(cluster_count, 'cluster_count')
 
         cluster_count = self._s_layer('cluster_count_relu0', lambda name: Activation('relu', name=name))(cluster_count)
 

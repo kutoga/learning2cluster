@@ -4,6 +4,7 @@ matplotlib.use('Agg')
 from random import randint
 from time import time
 
+from impl.nn.base.cluster_nn.minimal_cluster_nn import MinimalClusterNN
 from impl.nn.try00.cluster_nn_try00 import ClusterNNTry00
 
 if __name__ == '__main__':
@@ -14,43 +15,53 @@ if __name__ == '__main__':
     from sys import platform
 
     from impl.data.simple_2d_point_data_provider import Simple2DPointDataProvider
+    from impl.data.mnist_data_provider import MNISTDataProvider
     from impl.nn.base.embedding_nn.simple_fc_embedding import SimpleFCEmbedding
+    from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
 
     dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
+    dp = MNISTDataProvider()
+
     #en = SimpleFCEmbedding()
     en = None
+    en = CnnEmbedding()
 
-    # clusters = dp.get_data(50, 200)
+    cnn = MinimalClusterNN(dp, 3, en)
+    cnn.build_networks()
 
-    c_nn = ClusterNNTry00(dp, 3, en, weighted_classes=True)
+    clusters = dp.get_data(50, 200)
 
-    # c_nn.f_cluster_count = lambda: 10
-    c_nn.minibatch_size = 2
-
-    # i = 0
-    # start = time()
-    # while True:
-    #     try:
-    #         print(i)
-    #         c = dp.get_data(50, 200)
-    #         print("Min cluster count: {}, Max cluster count: {}".format(min(map(len, c)), max(map(len, c))))
-    #         now = time()
-    #         i += 1
-    #         print("Avg: {}".format((now - start) / i))
-    #     except:
-    #         print("ERROR")
-
-    c_nn.build_networks()
-
-    # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNN_playground'
-    c_nn.register_autosave(autosave_dir)#, nth_iteration=1)
-    c_nn.try_load_from_autosave(autosave_dir)
-
-    # Train a loooong time
-    c_nn.train(1000000)
+    # # clusters = dp.get_data(50, 200)
+    #
+    # c_nn = ClusterNNTry00(dp, 3, en, weighted_classes=True)
+    #
+    # # c_nn.f_cluster_count = lambda: 10
+    # c_nn.minibatch_size = 2
+    #
+    # # i = 0
+    # # start = time()
+    # # while True:
+    # #     try:
+    # #         print(i)
+    # #         c = dp.get_data(50, 200)
+    # #         print("Min cluster count: {}, Max cluster count: {}".format(min(map(len, c)), max(map(len, c))))
+    # #         now = time()
+    # #         i += 1
+    # #         print("Avg: {}".format((now - start) / i))
+    # #     except:
+    # #         print("ERROR")
+    #
+    # c_nn.build_networks()
+    #
+    # # Enable autosave and try to load the latest configuration
+    # autosave_dir = top_dir + 'test/autosave_ClusterNN_playground'
+    # c_nn.register_autosave(autosave_dir)#, nth_iteration=1)
+    # c_nn.try_load_from_autosave(autosave_dir)
+    #
+    # # Train a loooong time
+    # c_nn.train(1000000)
 
 
