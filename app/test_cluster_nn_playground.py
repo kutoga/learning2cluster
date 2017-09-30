@@ -1,11 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 
-from random import randint
-from time import time
-
 from impl.nn.base.cluster_nn.minimal_cluster_nn import MinimalClusterNN
-from impl.nn.try00.cluster_nn_try00 import ClusterNNTry00
 
 if __name__ == '__main__':
 
@@ -15,15 +11,18 @@ if __name__ == '__main__':
     from sys import platform
 
     from impl.data.simple_2d_point_data_provider import Simple2DPointDataProvider
-    from impl.data.mnist_data_provider import MNISTDataProvider
-    from impl.nn.base.embedding_nn.simple_fc_embedding import SimpleFCEmbedding
+    from impl.data.image.mnist_data_provider import MNISTDataProvider
+    from impl.data.image.cifar10_data_provider import Cifar10DataProvider
+    from impl.data.image.cifar100_data_provider import Cifar100DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
 
     dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
-    dp = MNISTDataProvider()
+    dp = MNISTDataProvider(min_cluster_count=3, max_cluster_count=3)
+    dp = Cifar10DataProvider(min_cluster_count=3, max_cluster_count=3)
+    dp = Cifar100DataProvider(min_cluster_count=3, max_cluster_count=3)
 
     #en = SimpleFCEmbedding()
     en = None
@@ -31,8 +30,15 @@ if __name__ == '__main__':
 
     cnn = MinimalClusterNN(dp, 3, en)
     cnn.build_networks()
+    cnn.minibatch_size = 2
+    cnn.validate_every_nth_epoch = 1
 
-    clusters = dp.get_data(50, 200)
+    # clusters = dp.get_data(50, 200)
+
+    autosave_dir = top_dir + 'test/autosave_ClusterNN_playground'
+    cnn.register_autosave(autosave_dir)  # , nth_iteration=1)
+
+    cnn.train(1)
 
     # # clusters = dp.get_data(50, 200)
     #

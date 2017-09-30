@@ -25,7 +25,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         self._class_weights_post_processing_f = None # None == lambda x: x == identity function
         self._normalize_class_weights = True
 
-        self._cluster_n_output_loss = 'categorical_crossentropy'
+        self._cluster_n_output_loss = cluster_n_output_loss
 
         self._additional_grouping_similarity_losses = []
         self._additional_regularisations = []

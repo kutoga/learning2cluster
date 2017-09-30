@@ -2,15 +2,20 @@ from os import path
 from keras.datasets import mnist
 import random
 
+from core.helper import try_makedirs
+import shutil
+
 import matplotlib.pyplot as plt
+from scipy.misc import imsave
+from yattag import Doc
 
 import numpy as np
 
 from core.data.data_provider import DataProvider
 
 
-class MNISTDataProvider(DataProvider):
-    def __init__(self, train_classes=[0, 2, 3, 4, 6, 7], validate_classes=[1, 5, 8, 9], test_classes=[1, 5, 8, 9],
+class ImageDataProvider(DataProvider):
+    def __init__(self, train_classes, validate_classes, test_classes,
                  min_cluster_count=None, max_cluster_count=None):
         super().__init__()
 
@@ -33,35 +38,16 @@ class MNISTDataProvider(DataProvider):
             self.__min_cluster_count = max([self.__min_cluster_count, min([min_cluster_count, self.__max_cluster_count])])
 
         # Load the data
-        self.__data = None
-        self.__load_data()
+        self.__data = self._load_data()
 
     def get_min_cluster_count(self):
-        return 1
+        return self.__min_cluster_count
 
     def get_max_cluster_count(self):
         return self.__max_cluster_count
 
-    def get_data_shape(self):
-        return (28, 28, 1)
-
-    def __load_data(self):
-
-        # Load all records
-        (x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-        # Merge them (we split them by classes)
-        x = np.concatenate((x_train, x_test))
-        y = np.concatenate((y_train, y_test))
-
-        # Rehsape x for tensorflow
-        x = x.reshape((x.shape[0],) + self.get_data_shape())
-
-        # Normalize x to [0, 1]
-        x = x.astype(np.float32) / 255
-
-        # Split the records by classes and store it
-        self.__data = {i: x[y == i] for i in range(10)}
+    def _load_data(self):
+        pass
 
     def __get_random_element(self, class_name):
         data = self.__data[class_name]
@@ -143,14 +129,14 @@ class MNISTDataProvider(DataProvider):
             #     path.join(output_directory, get_filename('prediction.png')),
             #     'Prediction'
             # )
+            self.__plot_image_clusters(
+                predicted_clusters[most_probable_cluster_count],  # - cluster_counts[0]],
+                path.join(output_directory, get_filename('prediction')),
+                'Prediction'
+            )
 
             def get_point_infos(input_index, cluster_count):
                 # Return (input_index, x, y, cluster_index, [cluster0_probability, cluster1_probability, ...])
-
-                # Extract x and y
-                p = X[input_index]
-                x = p[0]
-                y = p[1]
 
                 # Get the probabilities for the clusters
                 c_probabilities = prediction['elements'][input_index][cluster_count]
@@ -163,7 +149,7 @@ class MNISTDataProvider(DataProvider):
 
                 # Return everything
                 return (
-                    input_index, x, y, cluster_index, c_probabilities
+                    input_index, cluster_index, c_probabilities
                 )
 
             # Generate the cluster distribution image
@@ -211,15 +197,21 @@ class MNISTDataProvider(DataProvider):
                 #     additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count - cluster_counts[0]])
                 # )
 
+                # Generate the image
+                self.__plot_image_clusters(
+                    clusters, path.join(output_directory, get_filename(filename)),
+                    additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count - cluster_counts[0]])
+                )
+
                 # Generate the csv file
                 with open(path.join(output_directory, get_filename(filename + '.csv')), 'wt') as f:
-                    f.write('input_index;x;y;cluster_index;cluster_probability;{}\n'.format(
+                    f.write('input_index;cluster_index;cluster_probability;{}\n'.format(
                         ';'.join(map(lambda c: 'cluster{}_probability'.format(c), range(cluster_count))))
                     )
                     for input_index in range(len(X)):
-                        input_index, x, y, cluster_index, c_probabilities = get_point_infos(input_index, cluster_count)
-                        f.write('{};{};{};{};{};{}\n'.format(
-                            input_index, x, y, cluster_index, c_probabilities[cluster_index],
+                        input_index, cluster_index, c_probabilities = get_point_infos(input_index, cluster_count)
+                        f.write('{};{}\n'.format(
+                            input_index,  cluster_index, c_probabilities[cluster_index],
                             ';'.join(map(str, c_probabilities))
                         ))
                     f.close()
@@ -290,6 +282,93 @@ class MNISTDataProvider(DataProvider):
                         )
 
                     a_i += 1
+
+    def __plot_image_clusters(self, clusters, output_directory, additional_title=None, use_auto_generated_title=True):
+
+        # Create the required directories
+        shutil.rmtree(output_directory, ignore_errors=True)
+        try_makedirs(output_directory)
+        img_dir = path.join(output_directory, 'img')
+        try_makedirs(img_dir)
+
+        # Store the cluster-images to some subdirectories (this makes it easier to post-process them)
+        img_clusters = []
+        for i in range(len(clusters)):
+            cluster_dir_name = 'cluster{:03d}'.format(i)
+            cluster_dir = path.join(img_dir, cluster_dir_name)
+            try_makedirs(cluster_dir)
+            cluster_objs = clusters[i]
+            img_cluster = []
+            img_clusters.append(img_cluster)
+            for j in range(len(cluster_objs)):
+                img = cluster_objs[j]
+                img_file_name = 'object{:03d}.png'.format(j)
+                img_file = path.join(cluster_dir, img_file_name)
+
+                # The image is normalized to [0, 1], denormalize it to [0, 255]
+                img = (img * 255).astype(np.uint8)
+
+                if len(img.shape) > 3:
+                    img = img.reshape(img.shape[-3:])
+                if img.shape[-1] == 1:
+                    img = img.reshape(img.shape[:-1])
+
+                imsave(img_file, img)
+
+                # Save the relative path
+                img_cluster.append(path.join(img_dir, cluster_dir_name, img_file_name))
+
+        # Generate the title
+        empty_clusters = len(list(filter(lambda c: len(c) == 0, clusters)))
+        if additional_title is None:
+            additional_title = ''
+        else:
+            additional_title = additional_title if not use_auto_generated_title else ': {}'.format(additional_title)
+        if use_auto_generated_title:
+            auto_title = 'Cluster count: {} (empty clusters: {})'.format(len(clusters), empty_clusters)
+        else:
+            auto_title = ''
+        title = '{}{}'.format(auto_title, additional_title)
+
+        # Create now a "nice looking" html file
+        doc, tag, text = Doc().tagtext()
+        with tag('html'):
+            with tag('head'):
+                with tag('style', type="text/css"):
+                    pass
+            with tag('body'):
+                with tag('h1'):
+                    text(title)
+                with tag('table', border='1'):
+                    with tag('tr'):
+                        with tag('th'):
+                            text('Cluster Index')
+                        with tag('th'):
+                            text('Object Count')
+                        with tag('th'):
+                            text('Objects')
+                    for i in range(len(img_clusters)):
+                        img_cluster = img_clusters[i]
+                        with tag('tr'):
+                            with tag('td'):
+                                text('{}'.format(i))
+                            with tag('td'):
+                                text('{}'.format(len(img_cluster)))
+                            with tag('td'):
+                                for img_path in img_cluster:
+                                    with tag('img', src=img_path, height='120px'):
+                                        pass
+                                    text(" ")
+        html = doc.getvalue()
+
+        # Save the html file
+        text_file = open(path.join(output_directory, 'index.html'), "w")
+        text_file.write(html)
+        text_file.close()
+
+
+
+
 
 
     def __plot_cluster_image(self, clusters, output_file, additional_title=None, use_auto_generated_title=True,
