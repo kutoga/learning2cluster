@@ -197,7 +197,7 @@ class DataProvider:
         digits = 1
         if input_records > 0:
             digits = int(ceil(log10(input_records) + 0.1))
-        output_directory_name = 'test{0:>' + str(digits) + '}'
+        output_directory_name = 'test{:0' + str(digits) + 'd}'
         for i in range(len(clusters)):
 
             current_X = X[i] #list(map(lambda X_i: X_i[i], X))

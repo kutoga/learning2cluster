@@ -6,7 +6,7 @@ Docker auf srv-lab-t-697 starten:
     srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 bash
     # if required: docker build -t keras-meierbe8-3 images/keras3
     nvidia-docker run -it -v ~/data:/data -v ~/code/:/code -v ~/code/tmp:/src/tmp -v ~ keras-meierbe8-3 bash
-    pip install termcolor
+    pip install termcolor librosa
     cd tmp/ClusterNN
     ln -s /data/MT/ /tmp/test
     bash ./scripts/run.sh ./app/test_minimal_cluster_nn.py /tmp/test_minimal_cluster_nn.py.log
@@ -39,3 +39,5 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v07.py /tmp/test/test_cluster_nn_try00_v07.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v08.py /tmp/test/test_cluster_nn_try00_v08.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v09.py /tmp/test/test_cluster_nn_try00_v09.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v10.py /tmp/test/test_cluster_nn_try00_v10.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v11.py /tmp/test/test_cluster_nn_try00_v11.py.log

@@ -57,6 +57,8 @@ cluster_generators.append(
     (2, lambda samples: make_circles(n_samples=samples, noise=random.uniform(0, 0.08), factor=random.uniform(0.1, 0.4)))
 )
 
+circles = make_circles(n_samples=15, noise=random.uniform(0, 0.08), factor=random.uniform(0.1, 0.4))
+
 for i in range(10):
     data = make_blobs(50, centers=5)
     data = make_moons(n_samples=101, noise=random.uniform(0, 0.08))
