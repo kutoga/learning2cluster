@@ -230,12 +230,9 @@ class ExtendedDataGen2d:
             if can_expand_top_right and can_expand_bottom_right:
                 possible_expansions.append((1, (-1, 1), [top_index, top_right_index, right_index, bottom_right_index, bottom_index]))
 
-            # With a probability of 66% try to expand in some direction
-            expand_direction = (0, 0, [])
-            if len(possible_expansions) > 0 and self.__rand.randint(0, 2) > 0:
-
-                # Try to expand
-                expand_direction = self.__rand.choice(possible_expansions)
+            # Add a dummy expansion direction and select a random one (if possible an expansion will be probably done)
+            possible_expansions.append((0, 0, []))
+            expand_direction = self.__rand.choice(possible_expansions)
 
             grid_indices += expand_direction[2]
 
