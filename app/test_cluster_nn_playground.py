@@ -14,6 +14,7 @@ if __name__ == '__main__':
     from impl.data.image.mnist_data_provider import MNISTDataProvider
     from impl.data.image.cifar10_data_provider import Cifar10DataProvider
     from impl.data.image.cifar100_data_provider import Cifar100DataProvider
+    from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
@@ -23,6 +24,10 @@ if __name__ == '__main__':
     dp = MNISTDataProvider(min_cluster_count=3, max_cluster_count=3)
     dp = Cifar10DataProvider(min_cluster_count=3, max_cluster_count=3)
     dp = Cifar100DataProvider(min_cluster_count=3, max_cluster_count=3)
+    dp = TIMITDataProvider(
+        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
+        min_clu
+    )
 
     #en = SimpleFCEmbedding()
     en = None

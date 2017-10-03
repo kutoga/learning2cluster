@@ -16,7 +16,8 @@ from core.data.data_provider import DataProvider
 
 class ImageDataProvider(DataProvider):
     def __init__(self, train_classes, validate_classes, test_classes,
-                 min_cluster_count=None, max_cluster_count=None):
+                 min_cluster_count=None, max_cluster_count=None, auto_load_data=True,
+                 return_1d_images=False):
         super().__init__()
 
         self.__data_classes = {
@@ -37,8 +38,12 @@ class ImageDataProvider(DataProvider):
         if min_cluster_count is not None:
             self.__min_cluster_count = max([self.__min_cluster_count, min([min_cluster_count, self.__max_cluster_count])])
 
-        # Load the data
-        self.__data = self._load_data()
+        self.__data = None
+        if auto_load_data:
+            # Load the data
+            self.load_data()
+
+        self.__return_1d_images = return_1d_images
 
     def get_min_cluster_count(self):
         return self.__min_cluster_count
@@ -46,12 +51,29 @@ class ImageDataProvider(DataProvider):
     def get_max_cluster_count(self):
         return self.__max_cluster_count
 
+    def load_data(self):
+        self.__data = self._load_data()
+
+    def _get_data(self):
+        return self.__data
+
     def _load_data(self):
         pass
 
-    def __get_random_element(self, class_name):
+    def _get_random_element(self, class_name):
         data = self.__data[class_name]
         return np.reshape(data[random.randint(0, data.shape[0] - 1)], (1,) + data.shape[1:])
+
+    def __image_2d_to_1d(self, img):
+        if len(img.shape) != 2:
+            if img.shape[2] != 1:
+                raise ValueError()
+            img = np.reshape(img.shape[:2], img)
+        return img
+
+    def __image_1d_to_2d(self, img):
+        img = np.reshape(img.shape + (1,), img)
+        return img
 
     def get_clusters(self, element_count, cluster_count=None, data_type='train'):
         if cluster_count is not None and cluster_count > self.get_max_cluster_count():
@@ -66,13 +88,17 @@ class ImageDataProvider(DataProvider):
         classes = np.random.choice(classes, cluster_count, replace=False)
 
         # Create the clusters and already add one element to each cluster (because every cluster must be non-empty)
-        clusters = {class_name: [self.__get_random_element(class_name)] for class_name in classes}
+        if self.__return_1d_images:
+            post_process = lambda x: self.__image_2d_to_1d(x)
+        else:
+            post_process = lambda x: x
+        clusters = {class_name: [post_process(self._get_random_element(class_name))] for class_name in classes}
         element_count -= cluster_count
 
         # Fill now all elements to the data structure
         for i in range(element_count):
             class_name = random.choice(classes)
-            clusters[class_name].append(self.__get_random_element(class_name))
+            clusters[class_name].append(self._get_random_element(class_name))
 
         # We need an array of arrays and the class names are no longer relevant
         clusters = list(clusters.values())
@@ -117,7 +143,12 @@ class ImageDataProvider(DataProvider):
             f.close()
 
         if prediction is not None:
-            predicted_clusters = self.convert_prediction_to_clusters(X, prediction)
+            if self.__return_1d_images:
+                image_post_processor = lambda x: self.__image_1d_to_2d(x)
+            else:
+                image_post_processor = None
+            predicted_clusters = self.convert_prediction_to_clusters(X, prediction, point_post_processor=image_post_processor)
+
             cluster_probabilities = prediction['cluster_count']
 
             # Generate an image for the result

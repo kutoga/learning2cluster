@@ -79,7 +79,7 @@ class DataProvider:
         else:
             return X
 
-    def convert_prediction_to_clusters(self, X, prediction):
+    def convert_prediction_to_clusters(self, X, prediction, point_post_processor=None):
 
         # Handle list inputs
         if isinstance(prediction, list):
@@ -98,6 +98,9 @@ class DataProvider:
             #probability = current_prediction['cluster_count'][cluster_counts[ci - cluster_counts[0]]]
             for ii in range(len(X)):
                 point = current_inputs[ii]
+                if point_post_processor is not None:
+                    point = point_post_processor(point)
+
                 cluster_index = np.argmax(current_prediction['elements'][ii][ci])
                 current_clusters[cluster_index].append(point)
             current_cluster_combinations[ci] = current_clusters

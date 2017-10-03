@@ -7,7 +7,7 @@ from impl.data.misc.helper import progress
 
 class AudioHelper:
     def __init__(self, n_fft=512, sample_rate=16000, intensify_spectrogram=True, coefficients=192,
-                 mel_coefficients=128, windows_length=320, normalize_spectrum=True, default_spectrum='normal'): # default_spectrum \in {'normal', 'mel'}
+                 mel_coefficients=128, windows_length=320, normalize_spectrum=True, default_spectrum='mel'): # default_spectrum \in {'normal', 'mel'}
         self.n_fft = n_fft
         self.sample_rate = sample_rate
         self.intensify_spectrogram = intensify_spectrogram
