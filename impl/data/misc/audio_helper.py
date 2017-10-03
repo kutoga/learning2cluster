@@ -46,6 +46,12 @@ class AudioHelper:
         y, sr = librosa.load(input_file, sr=None)
         librosa.output.write_wav(output_file, y, sr, norm=True)
 
+    def get_default_spectrogram_coefficients_count(self):
+        if self.default_spectrum == 'normal':
+            return self.coefficients
+        elif self.default_spectrum == 'mel':
+            return self.mel_coefficients
+
     def audio_to_default_spectrogram(self, file):
         if self.default_spectrum == 'normal':
             return self.audio_to_spectrogram(file)

@@ -719,6 +719,8 @@ class ClusterNN(BaseNN):
     def build_networks(self, print_summaries=False):
         if self._embedding_nn is not None:
             self._embedding_nn.build(self.data_provider.get_data_shape())
+            if print_summaries:
+                self._embedding_nn.model.summary()
 
         # Build the prediction model
         nw_input = self.__build_inputs()

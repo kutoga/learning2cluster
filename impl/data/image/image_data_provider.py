@@ -19,6 +19,7 @@ class ImageDataProvider(DataProvider):
                  min_cluster_count=None, max_cluster_count=None, auto_load_data=True,
                  return_1d_images=False):
         super().__init__()
+        self.__return_1d_images = return_1d_images
 
         self.__data_classes = {
             'train': train_classes,
@@ -43,7 +44,14 @@ class ImageDataProvider(DataProvider):
             # Load the data
             self.load_data()
 
-        self.__return_1d_images = return_1d_images
+    def _get_img_data_shape(self):
+        pass
+
+    def get_data_shape(self):
+        img_data_shape = self._get_img_data_shape()
+        if self.__return_1d_images:
+            img_data_shape = img_data_shape[:2]
+        return img_data_shape
 
     def get_min_cluster_count(self):
         return self.__min_cluster_count
@@ -68,11 +76,11 @@ class ImageDataProvider(DataProvider):
         if len(img.shape) != 2:
             if img.shape[2] != 1:
                 raise ValueError()
-            img = np.reshape(img.shape[:2], img)
+            img = np.reshape(img, img.shape[:2])
         return img
 
     def __image_1d_to_2d(self, img):
-        img = np.reshape(img.shape + (1,), img)
+        img = np.reshape(img, img.shape + (1,))
         return img
 
     def get_clusters(self, element_count, cluster_count=None, data_type='train'):
@@ -314,6 +322,9 @@ class ImageDataProvider(DataProvider):
 
                     a_i += 1
 
+    def _image_plot_preprocessor(self, img):
+        return img
+
     def __plot_image_clusters(self, clusters, output_directory, additional_title=None, use_auto_generated_title=True):
 
         # Create the required directories
@@ -335,6 +346,9 @@ class ImageDataProvider(DataProvider):
                 img = cluster_objs[j]
                 img_file_name = 'object{:03d}.png'.format(j)
                 img_file = path.join(cluster_dir, img_file_name)
+
+                # Preprocess the image
+                img = self._image_plot_preprocessor(img)
 
                 # The image is normalized to [0, 1], denormalize it to [0, 255]
                 img = (img * 255).astype(np.uint8)

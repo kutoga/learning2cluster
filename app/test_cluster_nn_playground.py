@@ -25,16 +25,18 @@ if __name__ == '__main__':
     dp = Cifar10DataProvider(min_cluster_count=3, max_cluster_count=3)
     dp = Cifar100DataProvider(min_cluster_count=3, max_cluster_count=3)
     dp = TIMITDataProvider(
-        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
-        min_clu
+        data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
+        min_cluster_count=3,
+        max_cluster_count=3,
+        return_1d_audio_data=False
     )
 
     #en = SimpleFCEmbedding()
     en = None
-    en = CnnEmbedding()
+    en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[], output_size=3, dimensionality='auto')
 
     cnn = MinimalClusterNN(dp, 3, en)
-    cnn.build_networks()
+    cnn.build_networks(print_summaries=True)
     cnn.minibatch_size = 2
     cnn.validate_every_nth_epoch = 1
 

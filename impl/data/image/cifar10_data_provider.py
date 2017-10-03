@@ -8,7 +8,7 @@ class Cifar10DataProvider(ImageDataProvider):
                  min_cluster_count=None, max_cluster_count=None):
         super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count)
 
-    def get_data_shape(self):
+    def _get_img_data_shape(self):
         return (32, 32, 3)
 
     def _load_data(self):
