@@ -587,7 +587,10 @@ class ClusterNN(BaseNN):
         additional_prediction_output_count = len(self._additional_prediction_outputs)
 
         # Split the output: "Normal output", debug and additional outputs
-        prediction_outpus = prediction[:-(prediction_debug_output_count + additional_prediction_output_count)]
+        if (prediction_debug_output_count + additional_prediction_output_count) > 0:
+            prediction_outpus = prediction[:-(prediction_debug_output_count + additional_prediction_output_count)]
+        else:
+            prediction_outpus = prediction
         debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):-additional_prediction_output_count]
         additional_prediction_outputs = prediction[-additional_prediction_output_count:]
 
