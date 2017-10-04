@@ -371,7 +371,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
             print("Sample data count: {}".format(len(data)))
             lower_bound, upper_bound = mean_confidence_interval(data, confidence=confidence)
             interval_size = upper_bound - lower_bound
-            print("{}% confidence interval size: {}".format(confidence * 100, interval_size))
+            print("{}% confidence interval size (must be smaller than {}): {}".format(confidence * 100, max_diff, interval_size))
 
             if interval_size <= max_diff:
                 mean = (upper_bound + lower_bound) / 2

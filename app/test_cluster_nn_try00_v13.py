@@ -25,13 +25,13 @@ if __name__ == '__main__':
 
     # fixedc = 3
     dp = Simple2DPointDataProvider(
-        min_cluster_count=2, max_cluster_count=6, allow_less_clusters=False, use_extended_data_gen=True
+        min_cluster_count=1, max_cluster_count=5, allow_less_clusters=False, use_extended_data_gen=True
     )
     # dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=10, allow_less_clusters=False)
     en = SimpleFCEmbedding(output_size=2, hidden_layers=[16, 32, 64, 64], hidden_activation=LeakyReLU(), final_activation='tanh')
     # en = None
 
-    c_nn = ClusterNNTry00_V13(dp, 120, en, lstm_layers=7, lstm_units=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+    c_nn = ClusterNNTry00_V13(dp, 72, en, lstm_layers=7, lstm_units=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                               output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=2, cluster_count_lstm_units=96)
     c_nn.include_self_comparison = False
     c_nn.weighted_classes = True
