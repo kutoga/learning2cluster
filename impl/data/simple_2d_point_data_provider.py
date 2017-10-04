@@ -48,9 +48,14 @@ class Simple2DPointDataProvider(DataProvider):
                                          cluster_count_max=self._max_cluster_count,
                                          allow_less_clusters=self._allow_less_clusters
                                          )
-        return clusters
 
-    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
+        # get_clusters also returns some object information: For 2d points there is no more information
+        # required.
+        additional_obj_info = None
+
+        return clusters, additional_obj_info
+
+    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
         cluster_counts = list(self.get_cluster_counts())
 
         def get_filename(name):

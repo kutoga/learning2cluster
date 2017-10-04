@@ -302,10 +302,16 @@ class ClusterNN(BaseNN):
     def __get_last_epoch(self):
         return self._get_history(self._model_training).length()
 
-    def _get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, *args):
+    def _get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, return_additional_obj_infos=False, *args):
         if cluster_collection_count is None:
             cluster_collection_count = self._minibatch_size
-        return self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
+        clusters, additional_obj_info = self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
+
+        # If required also return the object infos
+        if return_additional_obj_infos:
+            return clusters, additional_obj_info
+        else:
+            return clusters
 
     def __train_iteration(self, dummy_train=False):
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
@@ -776,8 +782,12 @@ class ClusterNN(BaseNN):
     def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True):
 
         # Generate test data
-        test_data = self._get_data(data_type=data_type, cluster_collection_count=count) # self._data_provider.get_data(self._input_count, count, data_type=data_type)
+        test_data, test_data_obj_info = self._get_data(data_type=data_type, cluster_collection_count=count, return_additional_obj_infos=True) # self._data_provider.get_data(self._input_count, count, data_type=data_type)
         test_data_X, test_data_idx = self._data_provider.convert_data_to_prediction_X(test_data, shuffle=shuffle_data, return_shuffle_indices=True)
+
+        # Shuffle the test_data_obj_infos according to the shuffeling
+        test_data_obj_info = [(None if x is None else list(chain(*x))) for x in test_data_obj_info]
+        test_data_obj_info = [[test_data_obj_info[i][j] for j in test_data_idx[i]] for i in range(len(test_data_obj_info))]
 
         # Do a prediction
         print("Do a test prediction (output directory: {})...".format(output_directory))
@@ -792,7 +802,7 @@ class ClusterNN(BaseNN):
 
         # Summarize
         print("Summarize test results...")
-        self._data_provider.summarize_results(test_data_X, test_data, output_directory, prediction, create_date_dir, metrics)
+        self._data_provider.summarize_results(test_data_X, test_data, output_directory, prediction, create_date_dir, metrics, additional_obj_info=test_data_obj_info)
         print("Tests done...")
 
     def dummy_train(self):

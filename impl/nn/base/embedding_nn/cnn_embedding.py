@@ -11,7 +11,8 @@ class CnnEmbedding(EmbeddingNN):
     def __init__(self, output_size=4, cnn_layer_per_block=2, block_feature_counts=[16, 32, 64],
                  fc_layer_feature_counts=[512, 512],
                  hidden_activation='relu', final_activation='sigmoid',
-                 batch_norm_for_init_layer=False, batch_norm_for_final_layer=False, dimensionality='2d'):
+                 batch_norm_for_init_layer=False, batch_norm_for_final_layer=False, dimensionality='2d',
+                 batch_norm_after_activation=True):
         super().__init__()
         self._output_size = output_size
         self._cnn_layer_per_block = cnn_layer_per_block
@@ -22,6 +23,7 @@ class CnnEmbedding(EmbeddingNN):
         self._batch_norm_for_init_layer = batch_norm_for_init_layer
         self._batch_norm_for_final_layer = batch_norm_for_final_layer
         self._dimensionality = dimensionality
+        self._batch_norm_after_activation = batch_norm_after_activation
         assert self._dimensionality in ['1d', '2d', 'auto']
 
     def _build_model(self, input_shape):
@@ -52,8 +54,12 @@ class CnnEmbedding(EmbeddingNN):
                     model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, (3, 3), padding='same', name=name)))
                 else:
                     raise ValueError("Invalid dimensionality: {}".format(dimensionality))
-                model.add(self._s_layer('cnn{}_{}_batch'.format(i, j), lambda name: BatchNormalization(name=name)))
+                batch_norm = self._s_layer('cnn{}_{}_batch'.format(i, j), lambda name: BatchNormalization(name=name))
+                if not self._batch_norm_after_activation:
+                    model.add(batch_norm)
                 model.add(self._s_layer('cnn{}_{}_activation'.format(i, j), lambda name: Activation(self._hidden_activation, name=name)))
+                if self._batch_norm_after_activation:
+                    model.add(batch_norm)
             if dimensionality == '1d':
                 model.add(self._s_layer('max1{}'.format(i), lambda name: MaxPooling1D(name=name, pool_size=2)))
             elif dimensionality == '2d':
@@ -68,13 +74,20 @@ class CnnEmbedding(EmbeddingNN):
         for i in range(len(self._fc_layer_feature_counts)):
             fc_layer_feature_count = self._fc_layer_feature_counts[i]
             model.add(self._s_layer('fcl{}'.format(i), lambda name: Dense(fc_layer_feature_count, name=name)))
+            batch_norm = self._s_layer('fcl{}_batch'.format(i), lambda name: BatchNormalization(name=name))
+            if not self._batch_norm_after_activation:
+                model.add(batch_norm)
             model.add(self._s_layer('fcl{}_activation'.format(i), lambda name: Activation(self._hidden_activation, name=name)))
-            model.add(self._s_layer('fcl{}_batch'.format(i), lambda name: BatchNormalization(name=name)))
+            if self._batch_norm_after_activation:
+                model.add(batch_norm)
 
         # Add the output
         model.add(self._s_layer('output_dense', lambda name: Dense(self._output_size, name=name)))
-        if self._batch_norm_for_final_layer:
-            model.add(self._s_layer('output_batch', lambda name: BatchNormalization(name=name)))
+        batch_norm = self._s_layer('output_batch', lambda name: BatchNormalization(name=name))
+        if self._batch_norm_for_final_layer and not self._batch_norm_after_activation:
+            model.add(batch_norm)
         model.add(self._s_layer('output_activation', lambda name: Activation(self._final_activation, name=name)))
+        if self._batch_norm_for_final_layer and self._batch_norm_after_activation:
+            model.add(batch_norm)
 
         return model

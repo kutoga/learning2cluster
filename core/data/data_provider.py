@@ -79,22 +79,25 @@ class DataProvider:
         else:
             return X
 
-    def convert_prediction_to_clusters(self, X, prediction, point_post_processor=None):
+    def convert_prediction_to_clusters(self, X, prediction, point_post_processor=None, additional_obj_info=None,
+                                       return_reformatted_additional_obj_infos=False):
 
         # Handle list inputs
         if isinstance(prediction, list):
             return list(map(lambda i: self.convert_data_to_prediction_X(X[i], prediction[i]), range(len(prediction))))
 
         cluster_counts = list(self.get_cluster_counts())
-        # clusters = []
 
         # TODO: The following code was first created as a loop and modified -> cleanup
         current_inputs = X
         current_prediction = prediction
         current_cluster_combinations = {}
+        reformatted_additional_obj_infos = {}
 
         for ci in cluster_counts:
             current_clusters = [[] for i in range(ci)]
+            current_reformatted_additional_obj_infos = [[] for i in range(ci)]
+
             #probability = current_prediction['cluster_count'][cluster_counts[ci - cluster_counts[0]]]
             for ii in range(len(X)):
                 point = current_inputs[ii]
@@ -103,10 +106,15 @@ class DataProvider:
 
                 cluster_index = np.argmax(current_prediction['elements'][ii][ci])
                 current_clusters[cluster_index].append(point)
+                current_reformatted_additional_obj_infos[cluster_index].append(additional_obj_info[ii])
             current_cluster_combinations[ci] = current_clusters
+            reformatted_additional_obj_infos[ci] = current_reformatted_additional_obj_infos
         # clusters.append(current_cluster_combinations)
 
-        return current_cluster_combinations
+        if return_reformatted_additional_obj_infos:
+            return current_cluster_combinations, reformatted_additional_obj_infos
+        else:
+            return current_cluster_combinations
 
     def get_data(self, elements_per_cluster_collection, cluster_colletion_count,
                        cluster_count_f=None, cluster_count=None, cluster_count_range=None,
@@ -156,16 +164,19 @@ class DataProvider:
                 clusters = list(filter(lambda c: len(c) > 0, clusters))
 
                 train_data.append(clusters)
+            additional_obj_info = [None] * cluster_colletion_count
 
         else:
 
             # Generate the training data
-            train_data = [
-                self.get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
-                for i in range(cluster_colletion_count)
-            ]
+            train_data = []
+            additional_obj_info = []
+            for i in range(cluster_colletion_count):
+                data, obj_info = self.get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
+                train_data.append(data)
+                additional_obj_info.append(obj_info)
 
-        return train_data
+        return train_data, additional_obj_info
 
     def get_clusters(self, element_count, cluster_count=None, data_type='train'):
         """
@@ -173,11 +184,11 @@ class DataProvider:
         :param element_count:
         :param cluster_count:
         :param test_data
-        :return:
+        :return: clusters, additional_obj_info
         """
         pass
 
-    def summarize_results(self, X, clusters, output_directory, prediction=None, create_date_dir=True, metrics=None):
+    def summarize_results(self, X, clusters, output_directory, prediction=None, create_date_dir=True, metrics=None, additional_obj_info=None):
         """
         Summarize results and store the results to a defined output directory.
         :param X:
@@ -212,23 +223,26 @@ class DataProvider:
             current_metrics = None
             if metrics is not None:
                 current_metrics = metrics[i]
+            current_additional_obj_info = None
+            if additional_obj_info is not None:
+                current_additional_obj_info = additional_obj_info[i]
 
             self.summarize_single_result(
-                current_X, current_clusters, current_output_directory, current_prediction, current_metrics
+                current_X, current_clusters, current_output_directory, current_prediction, current_metrics, current_additional_obj_info
             )
 
         # Create a summary over everything
         # TBD
 
-    def summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
+    def summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
 
         # Create the output directory
         try_makedirs(output_directory)
 
         # Call the implementation
-        self._summarize_single_result(X, clusters, output_directory, prediction, metrics)
+        self._summarize_single_result(X, clusters, output_directory, prediction, metrics, additional_obj_info)
 
-    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
+    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
         pass
 
 

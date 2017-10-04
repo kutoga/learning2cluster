@@ -21,23 +21,23 @@ class ImageDataProvider(DataProvider):
         super().__init__()
         self.__return_1d_images = return_1d_images
 
-        self.__data_classes = {
+        self._data_classes = {
             'train': train_classes,
             'valid': validate_classes,
             'test': test_classes
         }
 
         # The maximum cluster count is the minimum number of available elements in our data sets (train, test, valid)
-        self.__max_cluster_count = min(map(len, self.__data_classes.values()))
+        self._max_cluster_count = min(map(len, self._data_classes.values()))
 
         # If the user defined an own max cluster count, try to use it
         if max_cluster_count is not None:
-            self.__max_cluster_count = min([self.__max_cluster_count, max_cluster_count])
+            self._max_cluster_count = min([self._max_cluster_count, max_cluster_count])
 
         # Define the minimum cluster count
         self.__min_cluster_count = 1
         if min_cluster_count is not None:
-            self.__min_cluster_count = max([self.__min_cluster_count, min([min_cluster_count, self.__max_cluster_count])])
+            self.__min_cluster_count = max([self.__min_cluster_count, min([min_cluster_count, self._max_cluster_count])])
 
         self.__data = None
         if auto_load_data:
@@ -57,7 +57,7 @@ class ImageDataProvider(DataProvider):
         return self.__min_cluster_count
 
     def get_max_cluster_count(self):
-        return self.__max_cluster_count
+        return self._max_cluster_count
 
     def load_data(self):
         self.__data = self._load_data()
@@ -87,10 +87,10 @@ class ImageDataProvider(DataProvider):
         if cluster_count is not None and cluster_count > self.get_max_cluster_count():
             cluster_count = self.get_max_cluster_count()
         if cluster_count is None:
-            cluster_count = random.randint(self.__min_cluster_count, self.__max_cluster_count)
+            cluster_count = random.randint(self.__min_cluster_count, self._max_cluster_count)
 
         # Choose the correct available classes
-        classes = self.__data_classes[data_type]
+        classes = self._data_classes[data_type]
 
         # Choose "cluster_count" classes
         classes = np.random.choice(classes, cluster_count, replace=False)
@@ -108,13 +108,16 @@ class ImageDataProvider(DataProvider):
             class_name = random.choice(classes)
             clusters[class_name].append(self._get_random_element(class_name))
 
-        # We need an array of arrays and the class names are no longer relevant
-        clusters = list(clusters.values())
+        # We need an array of arrays. Return it in the order of the classes.
+        res_clusters = [clusters[k] for k in sorted(clusters.keys())]
 
-        return clusters
+        # Return additional object information: The class names
+        additional_obj_info = [[k] * len(clusters[k]) for k in sorted(clusters.keys())]
+
+        return res_clusters, additional_obj_info
 
 
-    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None):
+    def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
         cluster_counts = list(self.get_cluster_counts())
 
         def get_filename(name):
@@ -155,7 +158,10 @@ class ImageDataProvider(DataProvider):
                 image_post_processor = lambda x: self.__image_1d_to_2d(x)
             else:
                 image_post_processor = None
-            predicted_clusters = self.convert_prediction_to_clusters(X, prediction, point_post_processor=image_post_processor)
+            predicted_clusters, reformatted_additional_obj_infos =\
+                self.convert_prediction_to_clusters(X, prediction, point_post_processor=image_post_processor,
+                                                    additional_obj_info=additional_obj_info,
+                                                    return_reformatted_additional_obj_infos=True)
 
             cluster_probabilities = prediction['cluster_count']
 
@@ -171,7 +177,7 @@ class ImageDataProvider(DataProvider):
             self.__plot_image_clusters(
                 predicted_clusters[most_probable_cluster_count],  # - cluster_counts[0]],
                 path.join(output_directory, get_filename('prediction')),
-                'Prediction'
+                'Prediction', reformatted_additional_obj_infos=reformatted_additional_obj_infos[most_probable_cluster_count]
             )
 
             def get_point_infos(input_index, cluster_count):
@@ -237,9 +243,11 @@ class ImageDataProvider(DataProvider):
                 # )
 
                 # Generate the image
+                cluster_count_index = cluster_count - cluster_counts[0]
                 self.__plot_image_clusters(
                     clusters, path.join(output_directory, get_filename(filename)),
-                    additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count - cluster_counts[0]])
+                    additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count_index]),
+                    reformatted_additional_obj_infos=reformatted_additional_obj_infos[cluster_count_index]
                 )
 
                 # Generate the csv file
@@ -325,7 +333,8 @@ class ImageDataProvider(DataProvider):
     def _image_plot_preprocessor(self, img):
         return img
 
-    def __plot_image_clusters(self, clusters, output_directory, additional_title=None, use_auto_generated_title=True):
+    def __plot_image_clusters(self, clusters, output_directory, additional_title=None, use_auto_generated_title=True,
+                              reformatted_additional_obj_infos=None):
 
         # Create the required directories
         shutil.rmtree(output_directory, ignore_errors=True)
@@ -361,7 +370,13 @@ class ImageDataProvider(DataProvider):
                 imsave(img_file, img)
 
                 # Save the relative path
-                img_cluster.append(path.join(img_dir, cluster_dir_name, img_file_name))
+                additional_img_info = None
+                if reformatted_additional_obj_infos is not None:
+                    additional_img_info = reformatted_additional_obj_infos[i][j]
+                img_cluster.append({
+                    'img_path': path.join(img_dir, cluster_dir_name, img_file_name),
+                    'additional_info': additional_img_info
+                })
 
         # Generate the title
         empty_clusters = len(list(filter(lambda c: len(c) == 0, clusters)))
@@ -400,10 +415,19 @@ class ImageDataProvider(DataProvider):
                             with tag('td'):
                                 text('{}'.format(len(img_cluster)))
                             with tag('td'):
-                                for img_path in img_cluster:
-                                    with tag('img', src=img_path, height='120px'):
-                                        pass
-                                    text(" ")
+
+                                # Create a table with all images for the current cluster
+                                with tag('table'):
+                                    with tag('tr'):
+                                        for img in img_cluster:
+                                            with tag('td'):
+                                                with tag('img', src=img['img_path'], height='120px'):
+                                                    pass
+                                    with tag('tr'):
+                                        for img in img_cluster:
+                                            with tag('td'):
+                                                if img['additional_info'] is not None:
+                                                    text(str(img['additional_info']))
         html = doc.getvalue()
 
         # Save the html file
