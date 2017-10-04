@@ -1,3 +1,7 @@
+ULTRA NEXT STEPS:
+- For the image data provider: Not for all data types the class is obvious (e.g. audio), therefore write it to the image.
+  The data provider needs the possibility to return additional information for the returned data.
+
 NEXT STEPS:
 - Additional outputs auch als csv ausgeben
 - There is a bug with the averaging line: Fix it
