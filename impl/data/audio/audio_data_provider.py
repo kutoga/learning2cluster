@@ -114,7 +114,7 @@ class AudioDataProvider(ImageDataProvider):
 
         # Select a random snippet
         start_index_range = (0, audio_object.shape[0] - self.__window_width)
-        start_index = self.__rand.randint(start_index_range[0], start_index_range[1] + 1)
+        start_index = self.__rand.randint(start_index_range[0], start_index_range[1])
 
         return audio_object[start_index:(start_index + self.__window_width)]
 
