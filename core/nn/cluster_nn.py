@@ -787,7 +787,7 @@ class ClusterNN(BaseNN):
 
         # Shuffle the test_data_obj_infos according to the shuffeling
         test_data_obj_info = [(None if x is None else list(chain(*x))) for x in test_data_obj_info]
-        test_data_obj_info = [[test_data_obj_info[i][j] for j in test_data_idx[i]] for i in range(len(test_data_obj_info))]
+        test_data_obj_info = [(None if test_data_obj_info[i] is None else [test_data_obj_info[i][j] for j in test_data_idx[i]]) for i in range(len(test_data_obj_info))]
 
         # Do a prediction
         print("Do a test prediction (output directory: {})...".format(output_directory))

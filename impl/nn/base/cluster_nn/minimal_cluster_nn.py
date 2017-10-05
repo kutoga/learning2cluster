@@ -4,9 +4,9 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers import Reshape, Concatenate, Bidirectional, LSTM, Dense, Activation
 
 from core.nn.helper import slice_layer
-from impl.nn.base.simple_loss.simple_loss_cluster_nn import SimpleLossClusterNN
+from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
-class MinimalClusterNN(SimpleLossClusterNN):
+class MinimalClusterNN(SimpleLossClusterNN_V02):
     """
     This minimal cluster NN is just a test implementation. It is very minimal and therefore can be used as a simple
     example for a clustering network.

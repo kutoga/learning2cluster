@@ -369,8 +369,20 @@ class SimpleLossClusterNN_V02(ClusterNN):
             print("Sample some data...")
             data += sample_data()
             print("Sample data count: {}".format(len(data)))
-            lower_bound, upper_bound = mean_confidence_interval(data, confidence=confidence)
-            interval_size = upper_bound - lower_bound
+
+            if min(data) == max(data):
+                print("All samples similarity probabilities do equal. Cannot calculate confidence interval.")
+                if len(data) >= 1000:
+                    print("Assuming all records are always equal: Just use the current (constant) value as mean")
+                    lower_bound = upper_bound = data[0]
+                else:
+                    lower_bound = upper_bound = None
+            else:
+                lower_bound, upper_bound = mean_confidence_interval(data, confidence=confidence)
+            if lower_bound is not None and upper_bound is not None:
+                interval_size = upper_bound - lower_bound
+            else:
+                interval_size = float('NaN')
             print("{}% confidence interval size (must be smaller than {}): {}".format(confidence * 100, max_diff, interval_size))
 
             if interval_size <= max_diff:
@@ -381,7 +393,6 @@ class SimpleLossClusterNN_V02(ClusterNN):
                 print("Interval is larger than {}. Sample more data...".format(max_diff))
         t_end = time()
         print("Required {} seconds...".format(t_end - t_start))
-
 
         expected_ones_percentage = mean
         expected_zeros_percentage = 1 - mean

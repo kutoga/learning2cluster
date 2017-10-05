@@ -2,20 +2,20 @@ import numpy as np
 
 from keras.models import Sequential
 from keras.layers import BatchNormalization, Dense, Activation, Convolution1D, Convolution2D, MaxPooling1D,\
-    MaxPooling2D, Flatten
+    MaxPooling2D, Flatten, Layer
 
 from core.nn.embedding_nn import EmbeddingNN
 
 
 class CnnEmbedding(EmbeddingNN):
-    def __init__(self, output_size=4, cnn_layer_per_block=2, block_feature_counts=[16, 32, 64],
+    def __init__(self, output_size=4, cnn_layers_per_block=2, block_feature_counts=[16, 32, 64],
                  fc_layer_feature_counts=[512, 512],
-                 hidden_activation='relu', final_activation='sigmoid',
+                 hidden_activation='relu', final_activation='tanh',
                  batch_norm_for_init_layer=False, batch_norm_for_final_layer=False, dimensionality='2d',
                  batch_norm_after_activation=True):
         super().__init__()
         self._output_size = output_size
-        self._cnn_layer_per_block = cnn_layer_per_block
+        self._cnn_layers_per_block = cnn_layers_per_block
         self._block_feature_counts = block_feature_counts
         self._fc_layer_feature_counts = fc_layer_feature_counts
         self._hidden_activation = hidden_activation
@@ -47,19 +47,30 @@ class CnnEmbedding(EmbeddingNN):
         # Add all convolutional layers
         for i in range(len(self._block_feature_counts)):
             block_feature_count = self._block_feature_counts[i]
-            for j in range(self._cnn_layer_per_block):
+            for j in range(self._cnn_layers_per_block):
+
+                # Add a convolutional layer
                 if dimensionality == '1d':
                     model.add(self._s_layer('cnn1d{}_{}'.format(i, j), lambda name: Convolution1D(block_feature_count, 3, padding='same', name=name)))
                 elif dimensionality == '2d':
                     model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, (3, 3), padding='same', name=name)))
                 else:
                     raise ValueError("Invalid dimensionality: {}".format(dimensionality))
+
                 batch_norm = self._s_layer('cnn{}_{}_batch'.format(i, j), lambda name: BatchNormalization(name=name))
                 if not self._batch_norm_after_activation:
                     model.add(batch_norm)
-                model.add(self._s_layer('cnn{}_{}_activation'.format(i, j), lambda name: Activation(self._hidden_activation, name=name)))
+
+                # Add the activation
+                if isinstance(self._hidden_activation, Layer):
+                    model.add(self._hidden_activation)
+                else:
+                    model.add(self._s_layer('cnn{}_{}_activation'.format(i, j), lambda name: Activation(self._hidden_activation, name=name)))
+
                 if self._batch_norm_after_activation:
                     model.add(batch_norm)
+
+            # Add max pooling
             if dimensionality == '1d':
                 model.add(self._s_layer('max1{}'.format(i), lambda name: MaxPooling1D(name=name, pool_size=2)))
             elif dimensionality == '2d':

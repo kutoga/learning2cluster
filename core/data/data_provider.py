@@ -106,7 +106,8 @@ class DataProvider:
 
                 cluster_index = np.argmax(current_prediction['elements'][ii][ci])
                 current_clusters[cluster_index].append(point)
-                current_reformatted_additional_obj_infos[cluster_index].append(additional_obj_info[ii])
+                if additional_obj_info is not None:
+                    current_reformatted_additional_obj_infos[cluster_index].append(additional_obj_info[ii])
             current_cluster_combinations[ci] = current_clusters
             reformatted_additional_obj_infos[ci] = current_reformatted_additional_obj_infos
         # clusters.append(current_cluster_combinations)

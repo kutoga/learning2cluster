@@ -9,6 +9,11 @@ from core.nn.cluster_nn import ClusterNN
 from core.nn.helper import filter_None, concat_layer, create_weighted_binary_crossentropy, mean_confidence_interval
 
 
+##############################################################################
+# THIS CLASS IS OBSOLETE: PLEASE USE SimpleLossClusterNNV02                  #
+# The only reason for this class is backward compatibility (for old tests)   #
+##############################################################################
+
 class SimpleLossClusterNN(ClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False, cluster_n_output_loss='categorical_crossentropy'):
         super().__init__(data_provider, input_count, embedding_nn)

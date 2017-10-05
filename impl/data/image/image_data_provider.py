@@ -177,7 +177,8 @@ class ImageDataProvider(DataProvider):
             self.__plot_image_clusters(
                 predicted_clusters[most_probable_cluster_count],  # - cluster_counts[0]],
                 path.join(output_directory, get_filename('prediction')),
-                'Prediction', reformatted_additional_obj_infos=reformatted_additional_obj_infos[most_probable_cluster_count]
+                'Prediction',
+                reformatted_additional_obj_infos=(None if reformatted_additional_obj_infos is None else reformatted_additional_obj_infos[most_probable_cluster_count])
             )
 
             def get_point_infos(input_index, cluster_count):
@@ -247,7 +248,7 @@ class ImageDataProvider(DataProvider):
                 self.__plot_image_clusters(
                     clusters, path.join(output_directory, get_filename(filename)),
                     additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count_index]),
-                    reformatted_additional_obj_infos=reformatted_additional_obj_infos[cluster_count_index]
+                    reformatted_additional_obj_infos=(None if reformatted_additional_obj_infos is None else reformatted_additional_obj_infos[cluster_count])
                 )
 
                 # Generate the csv file
@@ -339,8 +340,10 @@ class ImageDataProvider(DataProvider):
         # Create the required directories
         shutil.rmtree(output_directory, ignore_errors=True)
         try_makedirs(output_directory)
-        img_dir = path.join(output_directory, 'img')
+        img_dir_name = 'img'
+        img_dir = path.join(output_directory, img_dir_name)
         try_makedirs(img_dir)
+        available_additional_infos = []
 
         # Store the cluster-images to some subdirectories (this makes it easier to post-process them)
         img_clusters = []
@@ -373,8 +376,9 @@ class ImageDataProvider(DataProvider):
                 additional_img_info = None
                 if reformatted_additional_obj_infos is not None:
                     additional_img_info = reformatted_additional_obj_infos[i][j]
+                    available_additional_infos.append(additional_img_info)
                 img_cluster.append({
-                    'img_path': path.join(img_dir, cluster_dir_name, img_file_name),
+                    'img_path': path.join(img_dir_name, cluster_dir_name, img_file_name),
                     'additional_info': additional_img_info
                 })
 
@@ -391,6 +395,7 @@ class ImageDataProvider(DataProvider):
         title = '{}{}'.format(auto_title, additional_title)
 
         # Create now a "nice looking" html file
+        colors = self.__get_html_color_pairs(available_additional_infos)
         doc, tag, text = Doc().tagtext()
         with tag('html'):
             with tag('head'):
@@ -409,6 +414,11 @@ class ImageDataProvider(DataProvider):
                             text('Objects')
                     for i in range(len(img_clusters)):
                         img_cluster = img_clusters[i]
+
+                        # Try to sort the cluster
+                        if not any(map(lambda img: img['additional_info'] is None, img_cluster)):
+                            img_cluster = sorted(img_cluster, key=lambda img: img['additional_info'])
+
                         with tag('tr'):
                             with tag('td'):
                                 text('{}'.format(i))
@@ -420,25 +430,41 @@ class ImageDataProvider(DataProvider):
                                 with tag('table'):
                                     with tag('tr'):
                                         for img in img_cluster:
-                                            with tag('td'):
+                                            bgcolor = '#FFFFFF'
+                                            if img['additional_info'] is not None:
+                                                bgcolor = colors[img['additional_info']]
+                                            with tag('td', bgcolor=bgcolor):
                                                 with tag('img', src=img['img_path'], height='120px'):
                                                     pass
                                     with tag('tr'):
                                         for img in img_cluster:
-                                            with tag('td'):
+                                            bgcolor = '#FFFFFF'
+                                            if img['additional_info'] is not None:
+                                                bgcolor = colors[img['additional_info']]
+                                            with tag('td', bgcolor=bgcolor):
                                                 if img['additional_info'] is not None:
                                                     text(str(img['additional_info']))
         html = doc.getvalue()
 
         # Save the html file
-        text_file = open(path.join(output_directory, 'index.html'), "w")
-        text_file.write(html)
-        text_file.close()
+        with open(path.join(output_directory, 'index.html'), "w") as fh:
+            fh.write(html)
 
+    def __get_html_color_pairs(self, keys):
+        html_colors = list(self.__get_html_colors())
+        random.shuffle(html_colors)
+        mapping = {k: '#FFFFFF' for k in keys}
+        keys = list(keys)
+        for i in range(min(len(keys), len(html_colors))):
+            mapping[keys[i]] = html_colors[i]
+        return mapping
 
-
-
-
+    def __get_html_colors(self):
+        return {
+            '#00FFFF', '#F5F5DC', '#8A2BE2', '#A52A2A', '#7FFF00',
+            '#FF7F50', '#6495ED', '#008B8B', '#B8860B', '#006400',
+            '#FF8C00', '#8FBC8F', '#FF1493', '#696969', '#FFD700'
+        }
 
     def __plot_cluster_image(self, clusters, output_file, additional_title=None, use_auto_generated_title=True,
                              xlim=(-.2, 1.2), ylim=(-.2, 1.2)):

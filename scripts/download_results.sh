@@ -9,7 +9,15 @@ if [ ! -z "$2" ]; then
 fi
 echo $TARGET_DIR
 
-rsync -avz --delete meierbe8@$SERVER:~/data/MT "$TARGET_DIR"
+exclude="TIMIT cache"
+srv_base_dir="~/data/MT"
+
+exclude_args=""
+for exclude_path in $exclude; do
+    exclude_args="$exclude_args --exclude MT/$exclude_path"
+done
+
+rsync -avz $exclude_args --delete meierbe8@$SERVER:~/data/MT "$TARGET_DIR"
 
 # TODO:
 # Implement a download loop for rsync. Always use a timeout and the

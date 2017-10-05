@@ -16,26 +16,33 @@ if __name__ == '__main__':
     from impl.data.image.cifar100_data_provider import Cifar100DataProvider
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
+    from impl.nn.base.embedding_nn.simple_fc_embedding import SimpleFCEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
 
     dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
-    dp = MNISTDataProvider(min_cluster_count=3, max_cluster_count=3)
-    dp = Cifar10DataProvider(min_cluster_count=3, max_cluster_count=3)
-    dp = Cifar100DataProvider(min_cluster_count=3, max_cluster_count=3)
-    # dp = TIMITDataProvider(
-    #     data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
-    #     min_cluster_count=3,
-    #     max_cluster_count=3,
-    #     return_1d_audio_data=False
-    # )
+    # dp = MNISTDataProvider(min_cluster_count=3, max_cluster_count=3)
+    # dp = Cifar10DataProvider(min_cluster_count=3, max_cluster_count=3)
+    # dp = Cifar100DataProvider(min_cluster_count=3, max_cluster_count=3)
+    TIMIT20_lst = ['MTDB0','FCMG0','MABW0','MWEM0','MTLS0','MMAM0','MTJU0','FECD0','FVMH0','MDCD0','MJPG0','MRSP0','MRFK0','FCAU0','MRCG0','MRKM0','MPRT0','MCTT0','FEME0','MCRE0']
+    dp = TIMITDataProvider(
+        # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
+        min_cluster_count=1,
+        max_cluster_count=3,
+        return_1d_audio_data=False,
+        # test_classes=TIMIT20_lst,
+        # validate_classes=TIMIT20_lst,
+        concat_audio_files_of_speaker=True
+    )
 
-    #en = SimpleFCEmbedding()
-    en = None
+    en = SimpleFCEmbedding()
+    # en = None
     en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[], output_size=3, dimensionality='auto')
 
-    cnn = MinimalClusterNN(dp, 3, en)
+    cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
+    cnn.class_weights_approximation = 'stochastic'
     # cnn.build_networks(print_summaries=True)
     cnn.build_networks(print_summaries=False)
     cnn.minibatch_size = 2
