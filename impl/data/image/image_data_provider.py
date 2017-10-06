@@ -70,7 +70,12 @@ class ImageDataProvider(DataProvider):
 
     def _get_random_element(self, class_name):
         data = self.__data[class_name]
-        return np.reshape(data[random.randint(0, data.shape[0] - 1)], (1,) + data.shape[1:])
+        element = np.reshape(data[random.randint(0, data.shape[0] - 1)], (1,) + data.shape[1:])
+        additional_obj_info = {
+            'description': class_name,
+            'class': class_name
+        }
+        return element, additional_obj_info
 
     def __image_2d_to_1d(self, img):
         if len(img.shape) != 2:
@@ -97,24 +102,31 @@ class ImageDataProvider(DataProvider):
 
         # Create the clusters and already add one element to each cluster (because every cluster must be non-empty)
         if self.__return_1d_images:
-            post_process = lambda x: self.__image_2d_to_1d(x)
+            post_process = lambda element, additional_obj_info: (self.__image_2d_to_1d(element), additional_obj_info)
         else:
-            post_process = lambda x: x
-        clusters = {class_name: [post_process(self._get_random_element(class_name))] for class_name in classes}
+            post_process = lambda element, additional_obj_info: (element, additional_obj_info)
+        clusters = {class_name: [post_process(*self._get_random_element(class_name))] for class_name in classes}
         element_count -= cluster_count
 
         # Fill now all elements to the data structure
         for i in range(element_count):
             class_name = random.choice(classes)
-            clusters[class_name].append(self._get_random_element(class_name))
+            clusters[class_name].append(post_process(*self._get_random_element(class_name)))
 
-        # We need an array of arrays. Return it in the order of the classes.
-        res_clusters = [clusters[k] for k in sorted(clusters.keys())]
+        # Create the resulting clusters and the additional_obj_info
+        res_clusters = []
+        res_additional_obj_info = []
+        for k in sorted(clusters.keys()):
+            res_clusters.append(list(map(lambda x: x[0], clusters[k])))
+            res_additional_obj_info.append(list(map(lambda x: x[1], clusters[k])))
 
-        # Return additional object information: The class names
-        additional_obj_info = [[k] * len(clusters[k]) for k in sorted(clusters.keys())]
+        # # We need an array of arrays. Return it in the order of the classes.
+        # res_clusters = [clusters[k] for k in sorted(clusters.keys())]
+        #
+        # # Return additional object information: The class names
+        # additional_obj_info = [[k] * len(clusters[k]) for k in sorted(clusters.keys())]
 
-        return res_clusters, additional_obj_info
+        return res_clusters, res_additional_obj_info
 
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
@@ -395,7 +407,7 @@ class ImageDataProvider(DataProvider):
         title = '{}{}'.format(auto_title, additional_title)
 
         # Create now a "nice looking" html file
-        colors = self.__get_html_color_pairs(available_additional_infos)
+        colors = self.__get_html_color_pairs(list(map(lambda x: x['class'], available_additional_infos)))
         doc, tag, text = Doc().tagtext()
         with tag('html'):
             with tag('head'):
@@ -417,7 +429,7 @@ class ImageDataProvider(DataProvider):
 
                         # Try to sort the cluster
                         if not any(map(lambda img: img['additional_info'] is None, img_cluster)):
-                            img_cluster = sorted(img_cluster, key=lambda img: img['additional_info'])
+                            img_cluster = sorted(img_cluster, key=lambda img: img['additional_info']['class'])
 
                         with tag('tr'):
                             with tag('td'):
@@ -432,18 +444,19 @@ class ImageDataProvider(DataProvider):
                                         for img in img_cluster:
                                             bgcolor = '#FFFFFF'
                                             if img['additional_info'] is not None:
-                                                bgcolor = colors[img['additional_info']]
+                                                bgcolor = colors[img['additional_info']['class']]
                                             with tag('td', bgcolor=bgcolor):
-                                                with tag('img', src=img['img_path'], height='120px'):
-                                                    pass
+                                                with tag('center'):
+                                                    with tag('img', src=img['img_path'], width='95px'):
+                                                        pass
                                     with tag('tr'):
                                         for img in img_cluster:
                                             bgcolor = '#FFFFFF'
                                             if img['additional_info'] is not None:
-                                                bgcolor = colors[img['additional_info']]
-                                            with tag('td', bgcolor=bgcolor):
+                                                bgcolor = colors[img['additional_info']['class']]
+                                            with tag('td', bgcolor=bgcolor, style='width: 100px; overflow: hidden;'):
                                                 if img['additional_info'] is not None:
-                                                    text(str(img['additional_info']))
+                                                    text(str(img['additional_info']['description']))
         html = doc.getvalue()
 
         # Save the html file

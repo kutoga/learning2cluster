@@ -107,10 +107,12 @@ class ClusterNN(BaseNN):
         for name, f_metric in [
             ('adjusted_rand_score', metrics.adjusted_rand_score),
             ('adjusted_mutual_info_score', metrics.adjusted_mutual_info_score),
+            ('normalized_mutual_info_score', metrics.normalized_mutual_info_score),
+            ('mutual_info_score', metrics.mutual_info_score),
             ('homogeneity_score', metrics.homogeneity_score),
             ('completeness_score', metrics.completeness_score),
             ('v_measure_score', metrics.v_measure_score),
-            ('fowlkes_mallows_score', metrics.fowlkes_mallows_score)
+            ('fowlkes_mallows_score', metrics.fowlkes_mallows_score),
         ]:
             self.register_evaluation_metric(name, f_metric)
 

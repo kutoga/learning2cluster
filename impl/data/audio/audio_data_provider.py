@@ -82,17 +82,23 @@ class AudioDataProvider(ImageDataProvider):
 
                 # Get all audio snippets
                 snippets = map(
-                    lambda file: self.__load_audio_file(path.join(self.__data_dir, file)),
-                    clusters[k]
+                    lambda file: {
+                        'content': self.__load_audio_file(path.join(self.__data_dir, file)),
+                        'filename': path.splitext(path.basename(path.join(self.__data_dir, file)))
+                    },
+                    sorted(clusters[k])
                 )
 
                 # If required: Merge all snippets
                 if self.__concat_audio_files_of_speaker:
-                    snippets = [np.concatenate(list(snippets))]
+                    snippets = [{
+                        'content': np.concatenate(list(map(lambda x: x['content'], snippets))),
+                        'filename': 'CONCAT'
+                    }]
 
                 # Filter the snippets for the minimum length
                 snippets = list(filter(
-                    lambda snippet: snippet.shape[0] >= self.__window_width,
+                    lambda snippet: snippet['content'].shape[0] >= self.__window_width,
                     snippets
                 ))
 
@@ -111,12 +117,19 @@ class AudioDataProvider(ImageDataProvider):
 
     def _get_random_element(self, class_name):
         audio_object = self.__rand.choice(self._get_data()[class_name])
+        audio_content = audio_object['content']
 
         # Select a random snippet
-        start_index_range = (0, audio_object.shape[0] - self.__window_width)
+        start_index_range = (0, audio_content.shape[0] - self.__window_width)
         start_index = self.__rand.randint(start_index_range[0], start_index_range[1])
 
-        return audio_object[start_index:(start_index + self.__window_width)]
+        element = audio_content[start_index:(start_index + self.__window_width)]
+        additional_obj_info = {
+            'description': '{} [{}] [{}-{}]'.format(class_name, audio_object['filename'], start_index, start_index + self.__window_width),
+            'class': class_name
+        }
+
+        return element, additional_obj_info
 
     def _image_plot_preprocessor(self, img):
 
