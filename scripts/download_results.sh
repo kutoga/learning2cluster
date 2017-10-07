@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Use the following command to only download the small files:
+# RSYNC_MAX_SIZE=1m ./download_results.sh
+
 SERVER=srv-lab-t-697
 if [ ! -z "$1" ]; then
     SERVER="$1"
@@ -17,7 +21,12 @@ for exclude_path in $exclude; do
     exclude_args="$exclude_args --exclude MT/$exclude_path"
 done
 
-rsync -avz $exclude_args --delete meierbe8@$SERVER:~/data/MT "$TARGET_DIR"
+additional_args=""
+if [ ! -z "$RSYNC_MAX_SIZE" ]; then
+    additional_args="$additional_args --max-size=$RSYNC_MAX_SIZE"
+fi
+
+rsync -avz $additional_args $exclude_args --delete meierbe8@$SERVER:~/data/MT "$TARGET_DIR"
 
 # TODO:
 # Implement a download loop for rsync. Always use a timeout and the
