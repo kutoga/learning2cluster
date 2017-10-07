@@ -7,18 +7,34 @@ import keras.backend as K
 
 # First define the x vetcors and the softmaxes
 
-# Dummy example: This should be optimal
-x0 = [0.0, 0.0, 1.0, 0.0]
-s0 = [1.0, 0.0, 0.0]
+x0 = [0.2, 0.8]
+s0 = [0.2, 0.6, 0.2]
 
-x1 = [1.0, 0.0, 0.0, 0.0]
-s1 = [0.0, 1.0, 0.0]
+x1 = [0.1, 0.4]
+s1 = [0.1, 0.2, 0.7]
 
-x2 = [0.0, 1.0, 0.0, 0.0]
-s2 = [0.0, 0.0, 1.0]
+x2 = [0.4, 0.1]
+s2 = [0.7, 0.0, 0.3]
 
-x = [x0, x1, x2]
-s = [s0, s1, s2]
+x3 = [0.8, 0.2]
+s3 = [0.0, 0.9, 0.1]
+
+x = [x0, x1, x2, x3]
+s = [s0, s1, s2, s3]
+
+
+# # Dummy example: This should be optimal
+# x0 = [0.0, 0.0, 1.0, 0.0]
+# s0 = [1.0, 0.0, 0.0]
+#
+# x1 = [1.0, 0.0, 0.0, 0.0]
+# s1 = [0.0, 1.0, 0.0]
+#
+# x2 = [0.0, 1.0, 0.0, 0.0]
+# s2 = [0.0, 0.0, 1.0]
+#
+# x = [x0, x1, x2]
+# s = [s0, s1, s2]
 
 # Let us now start with the magic
 import numpy as np
@@ -35,7 +51,7 @@ k = s.shape[1]
 
 # Create the input to test the model:
 inputs = list(map(lambda i: x[i:(i+1)], range(n))) + \
-    list(map(lambda i: s[i:(i+1)], range(k)))
+    list(map(lambda i: s[i:(i+1)], range(n)))
 
 # Build the model
 x_inputs = [Input(x.shape[1:]) for i in range(x.shape[0])]
@@ -54,7 +70,7 @@ def dot(*x):
     for i in range(1, len(x)):
         a = res
         b = x[i]
-        c = np.dot(a, b) # WTF? Why does this work??? # TODO: Find out
+        # c = np.dot(a, b) # WTF? Why does this work??? # TODO: Find out
         c = K.batch_dot(a, b)
         res = c #K.dot(res, x[i])
     res = to_keras_tensor(res)
@@ -110,22 +126,60 @@ for i in range(1, k): # 1..(k-1)
         nominator = Reshape((1,))(nominator)
         denominator = Reshape((1,))(denominator)
         d_a += nominator / denominator
+d_a /= k
 d_a = to_keras_tensor(d_a)
 
-print("d_a=")
-print(d_a)
-print()
+#####################
+# Calculate triu(AA^T)
+#####################
 
+# triuAAt = np.triu(dot(A, t(A)), 1)
+# triuAAt = np.sum(triuAAt)
 
+triuAAt = dot(A, t(A)) * np.triu(np.ones((n, n), dtype=np.float32), 1)
+triuAAt = K.sum(triuAAt, axis=(1, 2))
+triuAAt = to_keras_tensor(triuAAt)
 
+#####################
+# Calculate all m_{q,i} values
+#####################
 
+m_qi = create_py_matrix(n, k) # np.zeros((n, k), dtype=np.float32)
+units_vectors = np.eye(k, k)
+
+for q in range(n):
+    for i in range(k):
+        m_qi[q][i] = K.exp(-K.sum(K.square(A[:, q:(q+1), :] - units_vectors[i:(i+1), :]), axis=(1, 2)))
+        m_qi[q][i] = Reshape((1, 1))(m_qi[q][i])
+m_qi = py_matrix_to_keras_matrix(m_qi)
+
+#####################
+# Calculate d_{\mathram{hid},\alpha}
+#####################
+
+# Calculate d_{\mathram{hid},\alpha}
+d_m = 0.
+for i in range(1, k): # 1..(k-1)
+    for j in range(i + 1, k): # 1..k or 1..(k-1): This is not clear for me?
+        nominator = dot(t(m_qi[:, :, i:(i+1)]), Km, m_qi[:, :, j:(j+1)])
+        denominator = K.sqrt(dot(
+            t(m_qi[:, :, i:(i+1)]), Km, m_qi[:, :, i:(i+1)], t(m_qi[:, :, j:(j+1)]), Km, m_qi[:, :, j:(j+1)]
+        )) + K.epsilon()
+        nominator = Reshape((1,))(nominator)
+        denominator = Reshape((1,))(denominator)
+        d_m += nominator / denominator
+d_m /= k
+d_m = to_keras_tensor(d_m)
+
+loss = to_keras_tensor(d_a + triuAAt + d_m)
 
 
 
 dot(Km, Km)
 print("dbg")
 
-model = Model(x_inputs + s_inputs, [d_a])
+# model = Model(x_inputs + s_inputs, [d_a, triuAAt, d_m, to_keras_tensor(m_qi)])
+model = Model(x_inputs + s_inputs, [loss, d_a, triuAAt, d_m])
 pred = model.predict(inputs)
 
 print(pred)

@@ -22,18 +22,18 @@ x = [x0, x1, x2, x3]
 s = [s0, s1, s2, s3]
 
 
-# Dummy example: This should be optimal
-x0 = [0.0, 0.0, 1.0, 0.0]
-s0 = [1.0, 0.0, 0.0]
-
-x1 = [1.0, 0.0, 0.0, 0.0]
-s1 = [0.0, 1.0, 0.0]
-
-x2 = [0.0, 1.0, 0.0, 0.0]
-s2 = [0.0, 0.0, 1.0]
-
-x = [x0, x1, x2]
-s = [s0, s1, s2]
+# # Dummy example: This should be optimal
+# x0 = [0.0, 0.0, 1.0, 0.0]
+# s0 = [1.0, 0.0, 0.0]
+#
+# x1 = [1.0, 0.0, 0.0, 0.0]
+# s1 = [0.0, 1.0, 0.0]
+#
+# x2 = [0.0, 1.0, 0.0, 0.0]
+# s2 = [0.0, 0.0, 1.0]
+#
+# x = [x0, x1, x2]
+# s = [s0, s1, s2]
 
 # Let us now start with the magic
 import numpy as np
@@ -92,11 +92,12 @@ for i in range(n):
 d_a = 0.
 for i in range(1, k): # 1..(k-1)
     for j in range(i + 1, k): # 1..k or 1..(k-1): This is not clear for me?
-        nominator = dot(t(A[:, i]), K, A[:, j])
+        nominator = dot(t(A[:, i:(i+1)]), K, A[:, j:(j+1)])
         denominator = np.sqrt(dot(
-            t(A[:, i]), K, A[:, i], t(A[:, j]), K, A[:, j]
+            t(A[:, i:(i+1)]), K, A[:, i:(i+1)], t(A[:, j:(j+1)]), K, A[:, j:(j+1)]
         )) + 1e-15
         d_a += nominator / denominator
+d_a /= k
 
 print("d_a=")
 print(d_a)
@@ -133,11 +134,12 @@ for q in range(n):
 d_m = 0.
 for i in range(1, k):  # 1..(k-1)
     for j in range(i + 1, k):  # 1..k or 1..(k-1): This is not clear for me?
-        nominator = dot(t(m_qi[:, i]), K, m_qi[:, j])
+        nominator = dot(t(m_qi[:, i:(i+1)]), K, m_qi[:, j:(j+1)])
         denominator = np.sqrt(dot(
-            t(m_qi[:, i]), K, m_qi[:, i], t(m_qi[:, j]), K, m_qi[:, j]
+            t(m_qi[:, i:(i+1)]), K, m_qi[:, i:(i+1)], t(m_qi[:, j:(j+1)]), K, m_qi[:, j:(j+1)]
         ))
         d_m += nominator / denominator
+d_m /= k
 
 print("d_m=")
 print(d_m)
