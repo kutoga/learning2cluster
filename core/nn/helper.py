@@ -149,6 +149,10 @@ def concat_layer(axis=-1, name=None, input_count=None):
     return Activation('linear', name=name)
 
 
+def concat(inputs, axis=-1, name=None):
+    return concat_layer(axis=axis, name=name, input_count=len(inputs))(inputs)
+
+
 class DynamicGaussianNoise(Layer):
 
     def __init__(self, stddev=1., mean=0., only_execute_for_training=True, **kwargs):

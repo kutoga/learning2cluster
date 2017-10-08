@@ -36,6 +36,28 @@ s = [s0, s1, s2, s3]
 # x = [x0, x1, x2]
 # s = [s0, s1, s2]
 
+###### Generate some x and s values #########
+xn = 3 # number of x values
+xd = 4 # dimensions of x values
+sn = 3 # Softmax classes
+xrange = (-1, 1)
+srange = (-5, 5)
+
+from random import Random
+import numpy as np
+
+rand = Random()
+rand.seed(1729)
+
+# Generate all x values
+x = [[rand.uniform(*xrange) for d in range(xd)] for i in range(xn)]
+
+# Generate all softmax classes
+softmax = lambda x: np.exp(x) / np.sum(np.exp(x))
+s = [softmax([rand.uniform(*srange) for c in range(sn)]) for i in range(xn)]
+###### End: Generate some x and s values #########
+
+
 # Let us now start with the magic
 import numpy as np
 
@@ -89,6 +111,9 @@ def py_matrix_to_keras_matrix(M):
         M
     )))
 
+def epsilon():
+    return 1e-5
+
 #####################
 # Build the K matrix (here we have to call it "Km", because K is already used for the keras backend
 #####################
@@ -122,7 +147,7 @@ for i in range(k - 1): # 1..(k-1)
         nominator = dot(t(A[:, :, i:(i+1)]), Km, A[:, :, j:(j+1)])
         denominator = K.sqrt(dot(
             t(A[:, :, i:(i+1)]), Km, A[:, :, i:(i+1)], t(A[:, :, j:(j+1)]), Km, A[:, :, j:(j+1)]
-        )) + K.epsilon()
+        )) + epsilon()
         nominator = Reshape((1,))(nominator)
         denominator = Reshape((1,))(denominator)
         d_a += nominator / denominator
@@ -164,7 +189,7 @@ for i in range(k - 1): # 1..(k-1)
         nominator = dot(t(m_qi[:, :, i:(i+1)]), Km, m_qi[:, :, j:(j+1)])
         denominator = K.sqrt(dot(
             t(m_qi[:, :, i:(i+1)]), Km, m_qi[:, :, i:(i+1)], t(m_qi[:, :, j:(j+1)]), Km, m_qi[:, :, j:(j+1)]
-        )) + K.epsilon()
+        )) + epsilon()
         nominator = Reshape((1,))(nominator)
         denominator = Reshape((1,))(denominator)
         d_m += nominator / denominator

@@ -4,10 +4,10 @@ from keras.layers import Input, Concatenate, Reshape, Lambda
 from keras.models import Model
 import keras.backend as K
 
-from core.nn.helper import concat_layer
+from core.nn.helper import concat
 
 
-def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., gamma=1.):
+def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., gamma=1., force_to_keras_tensors=True):
     """
     A keras implementation of the loss function of the paper Deep Divergence-Based Clustering.
 
@@ -56,14 +56,22 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
         return [[value] * m for i in range(n)]
 
     def py_matrix_to_keras_matrix(M):
-        return concat_layer(axis=1, input_count=len(M))(list(map(
-            lambda x: concat_layer(axis=2, input_count=len(x))(x),
+        return concat(axis=1, inputs=list(map(
+            lambda x: concat(axis=2, inputs=x),
             M
         )))
+        # return concat_layer(axis=1, input_count=len(M))(list(map(
+        #     lambda x: concat_layer(axis=2, input_count=len(x))(x),
+        #     M
+        # )))
         # return Concatenate(axis=1)(list(map(
         #     lambda x: Concatenate(axis=2)(x),
         #     M
         # )))
+
+    def epsilon():
+        # return K.epsilon()
+        return 1e-5
 
     #####################
     # Build the K matrix (here we have to call it "Km", because K is already used for the keras backend
@@ -98,7 +106,7 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
             nominator = dot(t(A[:, :, i:(i + 1)]), Km, A[:, :, j:(j + 1)])
             denominator = K.sqrt(dot(
                 t(A[:, :, i:(i + 1)]), Km, A[:, :, i:(i + 1)], t(A[:, :, j:(j + 1)]), Km, A[:, :, j:(j + 1)]
-            )) + K.epsilon()
+            )) + epsilon()
             nominator = Reshape((1,))(nominator)
             denominator = Reshape((1,))(denominator)
             d_a += nominator / denominator
@@ -142,7 +150,7 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
             nominator = dot(t(m_qi[:, :, i:(i + 1)]), Km, m_qi[:, :, j:(j + 1)])
             denominator = K.sqrt(dot(
                 t(m_qi[:, :, i:(i + 1)]), Km, m_qi[:, :, i:(i + 1)], t(m_qi[:, :, j:(j + 1)]), Km, m_qi[:, :, j:(j + 1)]
-            )) + K.epsilon()
+            )) + epsilon()
             nominator = Reshape((1,))(nominator)
             denominator = Reshape((1,))(denominator)
             d_m += nominator / denominator
@@ -151,5 +159,9 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
         d_m = to_keras_tensor(d_m)
 
     loss = to_keras_tensor(alpha * d_a + beta * triuAAt + gamma * d_m)
+
+    if force_to_keras_tensors:
+        d_a = to_keras_tensor(0. * loss + d_a)
+        d_m = to_keras_tensor(0. * loss + d_m)
 
     return loss, d_a, triuAAt, d_m

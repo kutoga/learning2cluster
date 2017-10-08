@@ -9,17 +9,34 @@ import numpy as np
 from core.helper import try_makedirs
 
 class DataProvider:
-    def __init__(self, seed=None):
+    def __init__(self, target_min_cluster_count=None, target_max_cluster_count=None, seed=None):
         self.__rand = Random(seed)
+        self.target_min_cluster_count = target_min_cluster_count
+        self.target_max_cluster_count = target_max_cluster_count
 
     def get_min_cluster_count(self):
         pass
 
+    def get_target_min_cluster_count(self):
+        if self.target_min_cluster_count is None:
+            return self.get_min_cluster_count()
+        else:
+            return self.target_min_cluster_count
+
     def get_max_cluster_count(self):
         pass
 
+    def get_target_max_cluster_count(self):
+        if self.target_max_cluster_count is None:
+            return self.get_max_cluster_count()
+        else:
+            return self.target_max_cluster_count
+
     def get_cluster_count_range(self):
         return self.get_min_cluster_count(), self.get_max_cluster_count()
+
+    def get_target_cluster_count_range(self):
+        return self.get_target_min_cluster_count(), self.get_target_max_cluster_count()
 
     def get_cluster_counts(self):
         """
@@ -27,6 +44,13 @@ class DataProvider:
         :return: The possible cluster counts.
         """
         return range(self.get_min_cluster_count(), self.get_max_cluster_count() + 1)
+
+    def get_target_cluster_counts(self):
+        """
+        Return all possible cluster counts in an ascending order. The returned object is iterable.
+        :return: The possible cluster counts.
+        """
+        return range(self.get_target_min_cluster_count(), self.get_target_max_cluster_count() + 1)
 
     def get_cluster_counts_distribution(self):
         """

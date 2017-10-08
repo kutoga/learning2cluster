@@ -1,5 +1,3 @@
-
-
 # This program contains a numpy based version of the loss function for the deep divergence based clustering paper.
 # This code may be used to check a deep learning implementation (value by value).
 
@@ -35,6 +33,29 @@ s = [s0, s1, s2, s3]
 # x = [x0, x1, x2]
 # s = [s0, s1, s2]
 
+
+###### Generate some x and s values #########
+xn = 3 # number of x values
+xd = 4 # dimensions of x values
+sn = 3 # Softmax classes
+xrange = (-1, 1)
+srange = (-5, 5)
+
+from random import Random
+import numpy as np
+
+rand = Random()
+rand.seed(1729)
+
+# Generate all x values
+x = [[rand.uniform(*xrange) for d in range(xd)] for i in range(xn)]
+
+# Generate all softmax classes
+softmax = lambda x: np.exp(x) / np.sum(np.exp(x))
+s = [softmax([rand.uniform(*srange) for c in range(sn)]) for i in range(xn)]
+###### End: Generate some x and s values #########
+
+
 # Let us now start with the magic
 import numpy as np
 
@@ -56,6 +77,9 @@ def dot(*x):
     for i in range(1, len(x)):
         res = np.dot(res, x[i])
     return res
+
+def epsilon():
+    return 1e-5
 
 # Make a short version of the transpose function
 t = np.transpose
@@ -95,7 +119,7 @@ for i in range(k - 1): # 1..(k-1)
         nominator = dot(t(A[:, i:(i+1)]), K, A[:, j:(j+1)])
         denominator = np.sqrt(dot(
             t(A[:, i:(i+1)]), K, A[:, i:(i+1)], t(A[:, j:(j+1)]), K, A[:, j:(j+1)]
-        )) + 1e-15
+        )) + epsilon()
         d_a += nominator / denominator
 d_a /= k
 
@@ -137,7 +161,7 @@ for i in range(k - 1):  # 1..(k-1)
         nominator = dot(t(m_qi[:, i:(i+1)]), K, m_qi[:, j:(j+1)])
         denominator = np.sqrt(dot(
             t(m_qi[:, i:(i+1)]), K, m_qi[:, i:(i+1)], t(m_qi[:, j:(j+1)]), K, m_qi[:, j:(j+1)]
-        ))
+        )) + epsilon()
         d_m += nominator / denominator
 d_m /= k
 

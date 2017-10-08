@@ -11,7 +11,8 @@ from core.nn.helper import filter_None, concat_layer, create_weighted_binary_cro
 
 
 class SimpleLossClusterNN_V02(ClusterNN):
-    def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False, cluster_n_output_loss='categorical_crossentropy'):
+    def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False, cluster_n_output_loss='categorical_crossentropy',
+                 use_cluster_count_loss=True, use_similarities_loss=True):
         super().__init__(data_provider, input_count, embedding_nn)
 
         # For the loss all n outputs are compared with each other. More exactly:
@@ -29,6 +30,25 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
         self._additional_grouping_similarity_losses = []
         self._additional_regularisations = []
+
+        self._use_cluster_count_loss = use_cluster_count_loss
+        self._use_similarities_loss = use_similarities_loss
+
+    @property
+    def use_cluster_count_loss(self):
+        return self._use_cluster_count_loss
+
+    @use_cluster_count_loss.setter
+    def use_cluster_count_loss(self, use_cluster_count_loss):
+        self._use_cluster_count_loss = use_cluster_count_loss
+
+    @property
+    def use_similarities_loss(self):
+        return self._use_similarities_loss
+
+    @use_similarities_loss.setter
+    def use_similarities_loss(self, use_similarities_loss):
+        self._use_similarities_loss = use_similarities_loss
 
     @property
     def include_self_comparison(self):
@@ -219,7 +239,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         return y
 
     def _build_loss_network(self, network_output, loss_output, additional_network_outputs):
-        cluster_counts = self.data_provider.get_cluster_counts()
+        cluster_counts = self._get_cluster_counts()
 
         # Network output is a list of softmax distributions:
         # First in this list are all softmax distributions for the input i with first the softmax for k_min clusters,
@@ -276,7 +296,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         similarities_output = self._s_layer('similarities_output', lambda name: concat_layer(name=name, input_count=len(similarities)), format_name=False)(similarities)
         loss_output.append(similarities_output)
 
-        # Also add the cluster count output, but only if there is more than one possible cluster count
+        # Also add the cluster count output, but only if there is more than one possible cluster count and only if it is not fixed
         if len(cluster_counts) > 1:
             loss_output.append(n_cluster_output)
 
@@ -441,10 +461,10 @@ class SimpleLossClusterNN_V02(ClusterNN):
             similarities_loss = create_weighted_binary_crossentropy(w0, w1)
         else:
             similarities_loss = binary_crossentropy # 'binary_crossentropy'
-        loss = {
-            'similarities_output': similarities_loss
-        }
-        if len(self.data_provider.get_cluster_counts()) > 1:
+        loss = { }
+        if self._use_similarities_loss:
+            loss['similarities_output'] = similarities_loss
+        if self._use_cluster_count_loss and len(self._get_cluster_counts()) > 1:
             loss['cluster_count_output'] = self._cluster_n_output_loss
 
         # Register all additional similarity losses

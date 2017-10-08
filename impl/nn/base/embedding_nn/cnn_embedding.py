@@ -12,7 +12,7 @@ class CnnEmbedding(EmbeddingNN):
                  fc_layer_feature_counts=[512, 512],
                  hidden_activation='relu', final_activation='tanh',
                  batch_norm_for_init_layer=False, batch_norm_for_final_layer=False, dimensionality='2d',
-                 batch_norm_after_activation=True):
+                 batch_norm_after_activation=True, cnn_filter_size=3, max_pooling_size=2, max_pooling_stride=2):
         super().__init__()
         self._output_size = output_size
         self._cnn_layers_per_block = cnn_layers_per_block
@@ -24,6 +24,9 @@ class CnnEmbedding(EmbeddingNN):
         self._batch_norm_for_final_layer = batch_norm_for_final_layer
         self._dimensionality = dimensionality
         self._batch_norm_after_activation = batch_norm_after_activation
+        self._cnn_filter_size = cnn_filter_size
+        self._max_pooling_size = max_pooling_size
+        self._max_pooling_stride = max_pooling_stride
         assert self._dimensionality in ['1d', '2d', 'auto']
 
     def _build_model(self, input_shape):
@@ -51,9 +54,9 @@ class CnnEmbedding(EmbeddingNN):
 
                 # Add a convolutional layer
                 if dimensionality == '1d':
-                    model.add(self._s_layer('cnn1d{}_{}'.format(i, j), lambda name: Convolution1D(block_feature_count, 3, padding='same', name=name)))
+                    model.add(self._s_layer('cnn1d{}_{}'.format(i, j), lambda name: Convolution1D(block_feature_count, self._cnn_filter_size, padding='same', name=name)))
                 elif dimensionality == '2d':
-                    model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, (3, 3), padding='same', name=name)))
+                    model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, (self._cnn_filter_size, self._cnn_filter_size), padding='same', name=name)))
                 else:
                     raise ValueError("Invalid dimensionality: {}".format(dimensionality))
 
@@ -72,9 +75,9 @@ class CnnEmbedding(EmbeddingNN):
 
             # Add max pooling
             if dimensionality == '1d':
-                model.add(self._s_layer('max1{}'.format(i), lambda name: MaxPooling1D(name=name, pool_size=2)))
+                model.add(self._s_layer('max1{}'.format(i), lambda name: MaxPooling1D(name=name, pool_size=self._max_pooling_size, strides=self._max_pooling_stride)))
             elif dimensionality == '2d':
-                model.add(self._s_layer('max2{}'.format(i), lambda name: MaxPooling2D(name=name, pool_size=(2, 2))))
+                model.add(self._s_layer('max2{}'.format(i), lambda name: MaxPooling2D(name=name, pool_size=(self._max_pooling_size, self._max_pooling_size), strides=(self._max_pooling_stride, self._max_pooling_stride))))
             else:
                 raise ValueError("Invalid dimensionality: {}".format(dimensionality))
 

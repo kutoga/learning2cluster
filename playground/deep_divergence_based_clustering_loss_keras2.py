@@ -37,6 +37,28 @@ s = [s0, s1, s2, s3]
 # x = [x0, x1, x2]
 # s = [s0, s1, s2]
 
+###### Generate some x and s values #########
+xn = 3 # number of x values
+xd = 4 # dimensions of x values
+sn = 3 # Softmax classes
+xrange = (-1, 1)
+srange = (-5, 5)
+
+from random import Random
+import numpy as np
+
+rand = Random()
+rand.seed(1729)
+
+# Generate all x values
+x = [[rand.uniform(*xrange) for d in range(xd)] for i in range(xn)]
+
+# Generate all softmax classes
+softmax = lambda x: np.exp(x) / np.sum(np.exp(x))
+s = [softmax([rand.uniform(*srange) for c in range(sn)]) for i in range(xn)]
+###### End: Generate some x and s values #########
+
+
 # Let us now start with the magic
 import numpy as np
 

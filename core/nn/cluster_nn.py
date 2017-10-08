@@ -315,10 +315,13 @@ class ClusterNN(BaseNN):
         else:
             return clusters
 
+    def _get_cluster_counts(self):
+        return list(self._data_provider.get_target_cluster_counts())
+
     def __train_iteration(self, dummy_train=False):
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
         do_validation = (self.__get_last_epoch() + 1) % self._validate_every_nth_epoch == 0
-        cluster_counts = list(self._data_provider.get_cluster_counts())
+        cluster_counts = self._get_cluster_counts()  #list(self._data_provider.get_cluster_counts())
 
         # Generate training data
         t_start_data_gen_time = time()
@@ -546,7 +549,7 @@ class ClusterNN(BaseNN):
         #   }
         # }
         metrics = {metric: {} for metric in self._evaluation_metrics.keys()}
-        cluster_counts = list(self._data_provider.get_cluster_counts())
+        cluster_counts = self._get_cluster_counts()  # list(self._data_provider.get_cluster_counts())
         for cluster_count in cluster_counts:
 
             # Build the cluster indices structure for the prediction for "cluster_count" clusters
@@ -663,7 +666,7 @@ class ClusterNN(BaseNN):
         #    ...
         # ]
 
-        cluster_counts = list(self._data_provider.get_cluster_counts())
+        cluster_counts = self._get_cluster_counts()
         k_min = cluster_counts[0]
 
         result = []
