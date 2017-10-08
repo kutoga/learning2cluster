@@ -90,9 +90,10 @@ class SimpleLossClusterNN_V02(ClusterNN):
             'loss_f': loss_f
         })
 
-    def _register_additional_regularisation(self, layer):
+    def _register_additional_regularisation(self, layer, name):
         self._additional_regularisations.append({
-            'layer': layer
+            'layer': Activation('linear', name=name)(layer),
+            'name': name
         })
 
     def _get_cluster_count_possibilities(self):
@@ -208,7 +209,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
         # If required: Add regularisations. They are also losses, but they do not use a "true" value; it is ignored
         for additional_regularisation in self._additional_regularisations:
-            y[additional_regularisation['layer'].get_name()] = np.zeros((len(inputs), 1), dtype=np.float32)
+            y[additional_regularisation['name']] = np.zeros((len(inputs), 1), dtype=np.float32)
 
         # # DEBUG output
         # c0 = np.    sum(similarities_output == 0)
@@ -286,7 +287,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
         # Are there any additional regularisations defined? If yes: add them ass loss
         for additional_regularisation in self._additional_regularisations:
-            loss_output.append(additional_regularisation)
+            loss_output.append(additional_regularisation['layer'])
 
         return True
 
@@ -455,7 +456,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         if len(self._additional_regularisations) > 0:
             regularisation_loss = lambda y_true, y_pred: y_pred
             for additional_regularisation in self._additional_regularisations:
-                loss[additional_regularisation.get_name()] = regularisation_loss
+                loss[additional_regularisation['name']] = regularisation_loss
 
         return loss
 

@@ -596,11 +596,15 @@ class ClusterNN(BaseNN):
 
         # Split the output: "Normal output", debug and additional outputs
         if (prediction_debug_output_count + additional_prediction_output_count) > 0:
-            prediction_outpus = prediction[:-(prediction_debug_output_count + additional_prediction_output_count)]
+            prediction_outputs = prediction[:-(prediction_debug_output_count + additional_prediction_output_count)]
         else:
-            prediction_outpus = prediction
-        debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):-additional_prediction_output_count]
-        additional_prediction_outputs = prediction[-additional_prediction_output_count:]
+            prediction_outputs = prediction
+        if additional_prediction_output_count > 0:
+            debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):-additional_prediction_output_count]
+            additional_prediction_outputs = prediction[-additional_prediction_output_count:]
+        else:
+            debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):]
+            additional_prediction_outputs = []
 
         # Check debug outputs.
         if prediction_debug_output_count > 0:
@@ -668,7 +672,7 @@ class ClusterNN(BaseNN):
         for r in range(X_preprocessed[0].shape[0]):
 
             # Get the cluster distribution
-            cluster_count = prediction_outpus[-1][r] # The latest element contains the cluster distribution
+            cluster_count = prediction_outputs[-1][r] # The latest element contains the cluster distribution
             elements = []
 
             # Go through each input element
@@ -680,7 +684,7 @@ class ClusterNN(BaseNN):
                     # Index:
                     # len(cluster_count) * i +  # For each element we get len(cluster_count) distributions
                     # (k - k_min)               # The index for the cluster k
-                    distribution = prediction_outpus[len(cluster_counts) * i + (k - k_min)][r, 0]
+                    distribution = prediction_outputs[len(cluster_counts) * i + (k - k_min)][r, 0]
                     clusters[k] = distribution
 
                 elements.append(clusters)

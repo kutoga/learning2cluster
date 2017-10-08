@@ -4,6 +4,8 @@ from keras.layers import Input, Concatenate, Reshape, Lambda
 from keras.models import Model
 import keras.backend as K
 
+from core.nn.helper import concat_layer
+
 
 def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., gamma=1.):
     """
@@ -54,10 +56,14 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
         return [[value] * m for i in range(n)]
 
     def py_matrix_to_keras_matrix(M):
-        return Concatenate(axis=1)(list(map(
-            lambda x: Concatenate(axis=2)(x),
+        return concat_layer(axis=1, input_count=len(M))(list(map(
+            lambda x: concat_layer(axis=2, input_count=len(x))(x),
             M
         )))
+        # return Concatenate(axis=1)(list(map(
+        #     lambda x: Concatenate(axis=2)(x),
+        #     M
+        # )))
 
     #####################
     # Build the K matrix (here we have to call it "Km", because K is already used for the keras backend
@@ -87,7 +93,7 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
 
     # Calculate d_{\mathram{hid},\alpha}
     d_a = 0.
-    for i in range(1, k):  # 1..(k-1)
+    for i in range(k - 1):  # 1..(k-1)
         for j in range(i + 1, k):  # 1..k or 1..(k-1): This is not clear for me?
             nominator = dot(t(A[:, :, i:(i + 1)]), Km, A[:, :, j:(j + 1)])
             denominator = K.sqrt(dot(
@@ -97,7 +103,8 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
             denominator = Reshape((1,))(denominator)
             d_a += nominator / denominator
     d_a /= k
-    d_a = to_keras_tensor(d_a)
+    if d_a != 0.:
+        d_a = to_keras_tensor(d_a)
 
     #####################
     # Calculate triu(AA^T)
@@ -109,6 +116,7 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
     triuAAt = dot(A, t(A)) * np.triu(np.ones((n, n), dtype=np.float32), 1)
     triuAAt = K.sum(triuAAt, axis=(1, 2))
     triuAAt = to_keras_tensor(triuAAt)
+    triuAAt = Reshape((1,))(triuAAt)
 
     #####################
     # Calculate all m_{q,i} values
@@ -129,7 +137,7 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
 
     # Calculate d_{\mathram{hid},\alpha}
     d_m = 0.
-    for i in range(1, k):  # 1..(k-1)
+    for i in range(k - 1):  # 1..(k-1)
         for j in range(i + 1, k):  # 1..k or 1..(k-1): This is not clear for me?
             nominator = dot(t(m_qi[:, :, i:(i + 1)]), Km, m_qi[:, :, j:(j + 1)])
             denominator = K.sqrt(dot(
@@ -139,7 +147,8 @@ def get_ddbc_loss_function(x_inputs, classification_inputs, alpha=1., beta=1., g
             denominator = Reshape((1,))(denominator)
             d_m += nominator / denominator
     d_m /= k
-    d_m = to_keras_tensor(d_m)
+    if d_m != 0.:
+        d_m = to_keras_tensor(d_m)
 
     loss = to_keras_tensor(alpha * d_a + beta * triuAAt + gamma * d_m)
 

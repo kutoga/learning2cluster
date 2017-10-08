@@ -90,7 +90,7 @@ for i in range(n):
 
 # Calculate d_{\mathram{hid},\alpha}
 d_a = 0.
-for i in range(1, k): # 1..(k-1)
+for i in range(k - 1): # 1..(k-1)
     for j in range(i + 1, k): # 1..k or 1..(k-1): This is not clear for me?
         nominator = dot(t(A[:, i:(i+1)]), K, A[:, j:(j+1)])
         denominator = np.sqrt(dot(
@@ -132,7 +132,7 @@ for q in range(n):
 
 # Calculate d_{\mathram{hid},m}
 d_m = 0.
-for i in range(1, k):  # 1..(k-1)
+for i in range(k - 1):  # 1..(k-1)
     for j in range(i + 1, k):  # 1..k or 1..(k-1): This is not clear for me?
         nominator = dot(t(m_qi[:, i:(i+1)]), K, m_qi[:, j:(j+1)])
         denominator = np.sqrt(dot(
