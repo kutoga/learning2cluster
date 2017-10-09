@@ -100,7 +100,10 @@ class CnnEmbedding(EmbeddingNN):
         batch_norm = self._s_layer('output_batch', lambda name: BatchNormalization(name=name))
         if self._batch_norm_for_final_layer and not self._batch_norm_after_activation:
             model.add(batch_norm)
-        model.add(self._s_layer('output_activation', lambda name: Activation(self._final_activation, name=name)))
+        if isinstance(self._final_activation, Layer):
+            model.add(self._final_activation)
+        else:
+            model.add(self._s_layer('output_activation'.format(i, j), lambda name: Activation(self._final_activation, name=name)))
         if self._batch_norm_for_final_layer and self._batch_norm_after_activation:
             model.add(batch_norm)
 
