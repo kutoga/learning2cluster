@@ -2,6 +2,8 @@ from os import path
 from keras.datasets import mnist
 import random
 
+from itertools import chain
+
 from core.helper import try_makedirs
 import shutil
 
@@ -420,13 +422,14 @@ class ImageDataProvider(DataProvider):
                 })
 
         # Generate the title
+        all_images = list(chain(*img_clusters))
         empty_clusters = len(list(filter(lambda c: len(c) == 0, clusters)))
         if additional_title is None:
             additional_title = ''
         else:
             additional_title = additional_title if not use_auto_generated_title else ': {}'.format(additional_title)
         if use_auto_generated_title:
-            auto_title = 'Cluster count: {} (empty clusters: {})'.format(len(clusters), empty_clusters)
+            auto_title = 'Cluster count: {} (empty clusters: {}, object count: {})'.format(len(clusters), empty_clusters, len(all_images))
         else:
             auto_title = ''
         title = '{}{}'.format(auto_title, additional_title)
@@ -441,6 +444,31 @@ class ImageDataProvider(DataProvider):
             with tag('body'):
                 with tag('h1'):
                     text(title)
+
+                if all(map(lambda img: img['additional_info'] is not None, all_images)):
+                    with tag('h2'):
+                        text('Correct clusters')
+                    with tag('table', border='1'):
+                        with tag('tr'):
+                            with tag('th'):
+                                text('Cluster Index')
+                            with tag('th'):
+                                text('Object Count')
+                            with tag('th'):
+                                text('Class')
+                        ci = 0
+                        for class_name in sorted(colors.keys()):
+                            with tag('tr'):
+                                with tag('td'):
+                                    text(ci)
+                                with tag('td'):
+                                    text(len(list(filter(lambda img: img['additional_info']['class'] == class_name, all_images))))
+                                with tag('td', bgcolor=colors[class_name]):
+                                    text(class_name)
+                            ci += 1
+                    with tag('h2'):
+                        text('Predicted Clusters')
+
                 with tag('table', border='1'):
                     with tag('tr'):
                         with tag('th'):
@@ -462,8 +490,6 @@ class ImageDataProvider(DataProvider):
                             with tag('td'):
                                 text('{}'.format(len(img_cluster)))
                             with tag('td'):
-
-                                # Create a table with all images for the current cluster
                                 with tag('table'):
                                     with tag('tr'):
                                         for img in img_cluster:
