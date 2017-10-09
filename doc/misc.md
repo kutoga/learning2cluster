@@ -50,3 +50,5 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try04_ddbc.py /tmp/test/test_cluster_nn_try04_ddbc.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v18.py /tmp/test/test_cluster_nn_try00_v18.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try04_ddbc_v02.py /tmp/test/test_cluster_nn_try04_ddbc_v02.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v19.py /tmp/test/test_cluster_nn_try00_v19.py.log
+

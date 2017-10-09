@@ -4,12 +4,11 @@ matplotlib.use('Agg')
 import numpy as np
 
 from keras.layers.advanced_activations import LeakyReLU
-from keras.optimizers import Adadelta
 
 from random import randint
 from time import time
 
-from impl.nn.try04_ddbc.cluster_nn_try04_ddbc import ClusterNNTry04_Ddbc
+from impl.nn.try00.cluster_nn_try00_v19 import ClusterNNTry00_V19
 
 if __name__ == '__main__':
 
@@ -18,7 +17,6 @@ if __name__ == '__main__':
 
     from sys import platform
 
-    from impl.data.image.mnist_data_provider import MNISTDataProvider
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
@@ -26,36 +24,32 @@ if __name__ == '__main__':
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    speaker_list = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_20.txt')[:10]
+    TIMIT20_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_20.txt')[:10]
     dp = TIMITDataProvider(
         # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
         data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
-        min_cluster_count=10,
-        max_cluster_count=10,
+        min_cluster_count=1,
+        max_cluster_count=5,
         return_1d_audio_data=False,
-
-        train_classes=speaker_list,
-        test_classes=speaker_list,
-        validate_classes=speaker_list,
-
+        test_classes=TIMIT20_lst,
+        validate_classes=TIMIT20_lst,
         concat_audio_files_of_speaker=True
     )
-
     en = CnnEmbedding(
-        output_size=100, cnn_layers_per_block=1, block_feature_counts=[32, 64],
-        fc_layer_feature_counts=[100], hidden_activation='relu', final_activation='relu',
-        batch_norm_for_init_layer=True, cnn_filter_size=5
+        output_size=128, cnn_layers_per_block=1, block_feature_counts=[32, 64],
+        fc_layer_feature_counts=[], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=False
     )
 
-    c_nn = ClusterNNTry04_Ddbc(dp, 20, en, lstm_layers=0, lstm_units=1, cluster_count_dense_layers=0, cluster_count_dense_units=1,
-                              output_dense_layers=0, output_dense_units=1, cluster_count_lstm_layers=0, cluster_count_lstm_units=1)
+    c_nn = ClusterNNTry00_V19(dp, 20, en, lstm_block_size=4, lstm_block_state_sizes=[128, 64, 32],
+                              cluster_count_dense_layers=1, cluster_count_dense_units=256,
+                              output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=2, cluster_count_lstm_units=96)
+    c_nn.include_self_comparison = False
+    c_nn.weighted_classes = True
+    c_nn.class_weights_approximation = 'stochastic'
     c_nn.minibatch_size = 40
+    c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
     c_nn.validate_every_nth_epoch = 10
-    c_nn.optimizer = Adadelta(clipnorm=0.5)
-
-    c_nn.use_cluster_count_loss = False
-    c_nn.use_similarities_loss = False
-    c_nn.fixed_cluster_count_output = dp.get_max_cluster_count()
 
     # c_nn.f_cluster_count = lambda: 10
     # c_nn.minibatch_size = 200
@@ -78,8 +72,8 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry04_ddbc_v02'
-    c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500)
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V19'
+    c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=250)
     c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
