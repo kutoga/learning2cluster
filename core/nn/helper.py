@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer, RepeatVector
 from keras.models import Sequential
+from keras.objectives import kullback_leibler_divergence
 import keras.backend as K
 
 from core.nn.history import History
@@ -698,6 +699,11 @@ def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, di
 
 # An implementation of the KL-divergence proposed by Lukic et al. (Learning embeddings for speaker clustering based on voice equality)
 # TODO
+def lukic_kl_divergence(x, y, similar, margin=2.):
+    def cost(p, q):
+        kl = kullback_leibler_divergence(p, q)
+        return similar * kl + (1 - similar) * K.relu(margin - kl)
+    return cost(x, y) + cost(y, x)
 
 
 if __name__ == '__main__':

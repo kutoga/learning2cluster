@@ -61,7 +61,7 @@ class ImageDataProvider(DataProvider):
             data = (data - 0.5) * 2
         return data
 
-    def _unscale_data(self, data, target_min_value=0, target_max_value=255, target_type=np.unit8):
+    def _unscale_data(self, data, target_min_value=0, target_max_value=255, target_type=np.uint8):
         if self._center_data:
             data = (data / 2) + 0.5
         data *= (target_max_value - target_min_value)
@@ -492,7 +492,7 @@ class ImageDataProvider(DataProvider):
         html_colors = list(self.__get_html_colors())
         random.shuffle(html_colors)
         mapping = {k: '#FFFFFF' for k in keys}
-        keys = list(keys)
+        keys = list(set(keys))
         for i in range(min(len(keys), len(html_colors))):
             mapping[keys[i]] = html_colors[i]
         return mapping

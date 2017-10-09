@@ -24,3 +24,20 @@ class TIMITDataProvider(AudioDataProvider):
         with open(list_files_file, 'r') as fh:
             data = fh.read()
         return literal_eval(data)
+
+    @staticmethod
+    def load_speaker_list(path):
+
+        # Load all lines
+        with open(path, 'r') as fh:
+            lines = [line.strip() for line in fh]
+
+        # Filter the empty lines
+        lines = list(filter(lambda line: line != "", lines))
+
+        # Sort the lines
+        lines = sorted(lines)
+
+        # Thats it:)
+        return lines
+
