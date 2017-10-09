@@ -197,13 +197,13 @@ class DataProvider:
             train_data = []
             additional_obj_info = []
             for i in range(cluster_colletion_count):
-                data, obj_info = self.get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
+                data, obj_info = self._get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
                 train_data.append(data)
                 additional_obj_info.append(obj_info)
 
         return train_data, additional_obj_info
 
-    def get_clusters(self, element_count, cluster_count=None, data_type='train'):
+    def _get_clusters(self, element_count, cluster_count=None, data_type='train'):
         """
         Generate some clusters and return them. Format [[obj1cluster1, obj2cluster1, ...], [obj1cluster2, ...]]
         :param element_count:

@@ -20,6 +20,7 @@ class ImageDataProvider(DataProvider):
                  return_1d_images=False):
         super().__init__()
         self.__return_1d_images = return_1d_images
+        self._center_data = False
 
         self._data_classes = {
             'train': train_classes,
@@ -43,6 +44,30 @@ class ImageDataProvider(DataProvider):
         if auto_load_data:
             # Load the data
             self.load_data()
+
+    @property
+    def center_data(self):
+        return self._center_data
+
+    @center_data.setter
+    def center_data(self, center_data):
+        self._center_data = center_data
+
+    def _scale_data(self, data, min_value=0, max_value=255):
+        data = data.astype(np.float32)
+        data -= min_value
+        data /= (max_value - min_value)
+        if self._center_data:
+            data = (data - 0.5) * 2
+        return data
+
+    def _unscale_data(self, data, target_min_value=0, target_max_value=255, target_type=np.unit8):
+        if self._center_data:
+            data = (data / 2) + 0.5
+        data *= (target_max_value - target_min_value)
+        data += target_min_value
+        data = data.astype(target_type)
+        return data
 
     def _get_img_data_shape(self):
         pass
@@ -88,7 +113,7 @@ class ImageDataProvider(DataProvider):
         img = np.reshape(img, img.shape + (1,))
         return img
 
-    def get_clusters(self, element_count, cluster_count=None, data_type='train'):
+    def _get_clusters(self, element_count, cluster_count=None, data_type='train'):
         if cluster_count is not None and cluster_count > self.get_max_cluster_count():
             cluster_count = self.get_max_cluster_count()
         if cluster_count is None:
@@ -375,7 +400,7 @@ class ImageDataProvider(DataProvider):
                 img = self._image_plot_preprocessor(img)
 
                 # The image is normalized to [0, 1], denormalize it to [0, 255]
-                img = (img * 255).astype(np.uint8)
+                img = self._unscale_data (img) #img * 255).astype(np.uint8)
 
                 if len(img.shape) > 3:
                     img = img.reshape(img.shape[-3:])

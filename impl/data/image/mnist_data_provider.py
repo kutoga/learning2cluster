@@ -24,7 +24,7 @@ class MNISTDataProvider(ImageDataProvider):
         x = x.reshape((x.shape[0],) + self.get_data_shape())
 
         # Normalize x to [0, 1]
-        x = x.astype(np.float32) / 255
+        x = self._scale_data(x)
 
         # Split the records by classes and store it
         return {i: x[y == i] for i in np.unique(y)}

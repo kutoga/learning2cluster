@@ -14,6 +14,7 @@ from impl.data.misc.extended_data_gen_2d import ExtendedDataGen2d
 class Simple2DPointDataProvider(DataProvider):
     def __init__(self, min_cluster_count=2, max_cluster_count=10, allow_less_clusters=False, use_extended_data_gen=False):
         super().__init__()
+        self.normalize_values = False
         self._dg = DataGen2dv02()
         self._edg = ExtendedDataGen2d(self._dg)
         self._min_cluster_count = min_cluster_count
@@ -30,7 +31,7 @@ class Simple2DPointDataProvider(DataProvider):
     def get_data_shape(self):
         return (2,)
 
-    def get_clusters(self, element_count, cluster_count=None, data_type='train'):
+    def _get_clusters(self, element_count, cluster_count=None, data_type='train'):
         if cluster_count is not None and cluster_count > self.get_max_cluster_count():
             cluster_count = self.get_max_cluster_count()
         if self._use_extended_data_gen:

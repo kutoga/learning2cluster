@@ -62,6 +62,17 @@ class ClusterNN(BaseNN):
         if self._create_metrics_plot:
             self.__register_evalution_metrics_plots()
 
+        # Normalize network input
+        self._normalize_network_input = False # Compatibility
+
+    @property
+    def normalize_network_input(self):
+        return self._normalize_network_input
+
+    @normalize_network_input.setter
+    def normalize_network_input(self, normalize_network_input):
+        self._normalize_network_input = normalize_network_input
+
     @property
     def validate_every_nth_epoch(self):
         return self._validate_every_nth_epoch
@@ -81,6 +92,10 @@ class ClusterNN(BaseNN):
     @property
     def optimizer(self):
         return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, optimizer):
+        self._optimizer = optimizer
 
     @property
     def minibatch_size(self):
@@ -249,7 +264,7 @@ class ClusterNN(BaseNN):
         for c in range(len(inputs)):
             current_inputs = inputs[c]['data']
             for i in range(len(current_inputs)):
-                X[i][c] = current_inputs[i][0]
+                X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
         return X
 
     def _build_Xy_data(self, data):
@@ -317,6 +332,16 @@ class ClusterNN(BaseNN):
 
     def _get_cluster_counts(self):
         return list(self._data_provider.get_target_cluster_counts())
+
+    def _normalize_array(self, arr):
+        arr = arr - np.mean(arr)
+        arr = arr / (np.std(arr) + 1e-8)
+        return arr
+
+    def _normalize_array_if_required(self, arr):
+        if self._normalize_network_input:
+            arr = self._normalize_array(arr)
+        return arr
 
     def __train_iteration(self, dummy_train=False):
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
@@ -589,7 +614,7 @@ class ClusterNN(BaseNN):
             if len(ci) != self._input_count:
                 print("len(ci)={}, but self._input_count={}: Unwanted behaviour may occur!".format(len(ci), self._input_count))
             for i in range(min(len(ci), self._input_count)):
-                X_preprocessed[i][c] = X[c][i]
+                X_preprocessed[i][c] = self._normalize_array_if_required(X[c][i])
 
         # TODO: Prepare X (use it directory from the data provider)
         prediction = self._model_prediction.predict(X_preprocessed, batch_size=self._minibatch_size)

@@ -4,6 +4,8 @@ matplotlib.use('Agg')
 import numpy as np
 
 from keras.layers.advanced_activations import LeakyReLU
+from keras.regularizers import l2
+from keras.optimizers import Adadelta
 
 from random import randint
 from time import time
@@ -40,9 +42,12 @@ if __name__ == '__main__':
         fc_layer_feature_counts=[], hidden_activation='relu', final_activation='tanh',
         batch_norm_for_init_layer=True
     )
+    en.regularizer = l2(0.001)
 
     c_nn = ClusterNNTry00_V17(dp, 20, en, lstm_layers=7, lstm_units=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                               output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=2, cluster_count_lstm_units=96)
+    c_nn.normalize_network_input = False
+    c_nn.optimizer = Adadelta(clipnorm=0.5)
     c_nn.include_self_comparison = False
     c_nn.weighted_classes = True
     c_nn.class_weights_approximation = 'stochastic'

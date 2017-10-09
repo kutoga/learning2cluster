@@ -44,7 +44,7 @@ class SimpleFCEmbedding(EmbeddingNN):
             dimensions = [input_points * 32] * self._hidden_layers
 
         for i in range(len(dimensions)):
-            model.add(self._s_layer('dense{}'.format(i), lambda name: Dense(dimensions[i], name=name)))
+            model.add(self._s_layer('dense{}'.format(i), lambda name: Dense(dimensions[i], name=name, kernel_regularizer=self.regularizer)))
             batch_norm = self._s_layer('batch{}'.format(i), lambda name: BatchNormalization(name=name))
             if not self._batch_norm_after_activation:
                 model.add(batch_norm)
@@ -56,7 +56,7 @@ class SimpleFCEmbedding(EmbeddingNN):
                 model.add(batch_norm)
 
         # TODO: change name (currently unchanged, because of compatibility issues; if the name is changed, old weights no longer can be loaded)
-        model.add(self._s_layer('output', lambda name: Dense(self._output_size, name=name)))
+        model.add(self._s_layer('output', lambda name: Dense(self._output_size, name=name, kernel_regularizer=self.regularizer)))
 
         batch_norm = self._s_layer('output_batch', lambda name: BatchNormalization(name=name))
         if self._batch_norm_for_final_layer and not self._batch_norm_after_activation:

@@ -54,9 +54,9 @@ class CnnEmbedding(EmbeddingNN):
 
                 # Add a convolutional layer
                 if dimensionality == '1d':
-                    model.add(self._s_layer('cnn1d{}_{}'.format(i, j), lambda name: Convolution1D(block_feature_count, self._cnn_filter_size, padding='same', name=name)))
+                    model.add(self._s_layer('cnn1d{}_{}'.format(i, j), lambda name: Convolution1D(block_feature_count, self._cnn_filter_size, padding='same', name=name, kernel_regularizer=self.regularizer)))
                 elif dimensionality == '2d':
-                    model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, (self._cnn_filter_size, self._cnn_filter_size), padding='same', name=name)))
+                    model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, (self._cnn_filter_size, self._cnn_filter_size), padding='same', name=name, kernel_regularizer=self.regularizer)))
                 else:
                     raise ValueError("Invalid dimensionality: {}".format(dimensionality))
 
@@ -87,7 +87,7 @@ class CnnEmbedding(EmbeddingNN):
         # Add all fully connected layers
         for i in range(len(self._fc_layer_feature_counts)):
             fc_layer_feature_count = self._fc_layer_feature_counts[i]
-            model.add(self._s_layer('fcl{}'.format(i), lambda name: Dense(fc_layer_feature_count, name=name)))
+            model.add(self._s_layer('fcl{}'.format(i), lambda name: Dense(fc_layer_feature_count, name=name, kernel_regularizer=self.regularizer)))
             batch_norm = self._s_layer('fcl{}_batch'.format(i), lambda name: BatchNormalization(name=name))
             if not self._batch_norm_after_activation:
                 model.add(batch_norm)
@@ -96,7 +96,7 @@ class CnnEmbedding(EmbeddingNN):
                 model.add(batch_norm)
 
         # Add the output
-        model.add(self._s_layer('output_dense', lambda name: Dense(self._output_size, name=name)))
+        model.add(self._s_layer('output_dense', lambda name: Dense(self._output_size, name=name, kernel_regularizer=self.regularizer)))
         batch_norm = self._s_layer('output_batch', lambda name: BatchNormalization(name=name))
         if self._batch_norm_for_final_layer and not self._batch_norm_after_activation:
             model.add(batch_norm)
