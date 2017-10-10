@@ -157,7 +157,7 @@ class ImageDataProvider(DataProvider):
 
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
-        cluster_counts = list(self.get_cluster_counts())
+        cluster_counts = list(self.get_target_cluster_counts())
 
         def get_filename(name):
             global fi
@@ -569,7 +569,7 @@ class ImageDataProvider(DataProvider):
         # }
         fig, ax = plt.subplots()
 
-        x = list(self.get_cluster_counts())
+        x = list(self.get_target_cluster_counts())
         y = list(map(lambda xi: distribution[xi], x))
 
         # print("X: {}".format(x))
