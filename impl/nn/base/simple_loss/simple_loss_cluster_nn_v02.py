@@ -274,7 +274,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         for additional_regularisation in self._additional_regularisations:
             y[additional_regularisation['name']] = np.zeros((len(inputs), 1), dtype=np.float32)
 
-        # If required add additional embedding comparison regularisations. They require the similarities ouput
+        # If required add additional embedding comparison regularisations. They require the similarities output
         for additional_embeding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
             y[additional_embeding_comparison_regularisation['name']] = similarities_output
 
@@ -355,6 +355,13 @@ class SimpleLossClusterNN_V02(ClusterNN):
         # Are there any additional regularisations defined? If yes: add them ass loss
         for additional_regularisation in self._additional_regularisations:
             loss_output.append(additional_regularisation['layer'])
+
+        # If required add additional embedding comparison regularisations
+        for additional_embeding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
+            loss_output.append(Activation(
+                'linear',
+                name=additional_embeding_comparison_regularisation['name']
+            )(additional_embeding_comparison_regularisation['comparisons']))
 
         return True
 
@@ -524,6 +531,13 @@ class SimpleLossClusterNN_V02(ClusterNN):
             regularisation_loss = lambda y_true, y_pred: y_pred
             for additional_regularisation in self._additional_regularisations:
                 loss[additional_regularisation['name']] = regularisation_loss
+
+        # Register all comparison regularisations
+        if len(self._additional_embedding_comparison_regularisations):
+            def embedding_comparison_regularisation_loss(y_true, y_pred):
+                return y_true * y_pred[:, 0, :] * (1 - y_true) * y_pred[:, 1, :]
+            for additional_embedding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
+                loss[additional_embedding_comparison_regularisation['name']] = embedding_comparison_regularisation_loss
 
         return loss
 
