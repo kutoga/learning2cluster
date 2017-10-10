@@ -18,6 +18,7 @@ from core.nn.helper import filter_None, AlignedTextTable, np_show_complete_array
 from core.event import Event
 from core.helper import try_makedirs
 
+from core.nn.external.purity import purity_score
 
 class ClusterNN(BaseNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True):
@@ -128,6 +129,7 @@ class ClusterNN(BaseNN):
             ('completeness_score', metrics.completeness_score),
             ('v_measure_score', metrics.v_measure_score),
             ('fowlkes_mallows_score', metrics.fowlkes_mallows_score),
+            ('purity_score', purity_score)
         ]:
             self.register_evaluation_metric(name, f_metric)
 
