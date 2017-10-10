@@ -99,11 +99,12 @@ class ClusterNNTry00_V22(SimpleLossClusterNN_V02):
 
         # Calculate the real cluster count
         assert self.__cluster_count_lstm_layers >= 1
+        cluster_count = embeddings_merged
         for i in range(self.__cluster_count_lstm_layers - 1):
-            cluster_count = self._s_layer('cluster_count_LSTM{}'.format(i), lambda name: Bidirectional(LSTM(self.__cluster_count_lstm_units, return_sequences=True), name=name)(embeddings_merged))
+            cluster_count = self._s_layer('cluster_count_LSTM{}'.format(i), lambda name: Bidirectional(LSTM(self.__cluster_count_lstm_units, return_sequences=True), name=name)(cluster_count))
             cluster_count = self._s_layer('cluster_count_LSTM{}_batch'.format(i), lambda name: TimeDistributed(BatchNormalization(name=name)))(cluster_count)
         cluster_count = self._s_layer('cluster_count_LSTM_merge', lambda name: Bidirectional(LSTM(self.__cluster_count_lstm_units), name=name)(cluster_count))
-        cluster_count = self._s_layer('cluster_count_LSTM_merge_batch', lambda name: TimeDistributed(BatchNormalization(name=name)))(cluster_count)
+        cluster_count = self._s_layer('cluster_count_LSTM_merge_batch', lambda name: BatchNormalization(name=name))(cluster_count)
         for i in range(self.__cluster_count_dense_layers):
             cluster_count = self._s_layer('cluster_count_dense{}'.format(i), lambda name: Dense(self.__cluster_count_dense_units, name=name))(cluster_count)
             cluster_count = self._s_layer('cluster_count_batch{}'.format(i), lambda name: BatchNormalization(name=name))(cluster_count)
