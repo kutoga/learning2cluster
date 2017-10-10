@@ -7,7 +7,7 @@ from keras.layers import Dot, Reshape, Activation
 from keras.losses import binary_crossentropy
 
 from core.nn.cluster_nn import ClusterNN
-from core.nn.helper import filter_None, concat_layer, create_weighted_binary_crossentropy, mean_confidence_interval
+from core.nn.helper import filter_None, concat, concat_layer, create_weighted_binary_crossentropy, mean_confidence_interval
 
 
 class SimpleLossClusterNN_V02(ClusterNN):
@@ -30,6 +30,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
         self._additional_grouping_similarity_losses = []
         self._additional_regularisations = []
+        self._additional_embedding_comparison_regularisations = []
 
         self._use_cluster_count_loss = use_cluster_count_loss
         self._use_similarities_loss = use_similarities_loss
@@ -115,6 +116,48 @@ class SimpleLossClusterNN_V02(ClusterNN):
             'layer': Activation('linear', name=name)(layer),
             'name': name
         })
+
+    def _register_additional_embedding_comparison_regularisation(self, comparator_f, name, embeddings):
+        self._additional_embedding_comparison_regularisations.append({
+            'comparator_f': comparator_f, # comparator_f(e_i, e_j, cluster_i == cluster_j)
+            'name': name,
+            'embeddings': embeddings, # The ymust be ordered!
+            'comparisons': self.__build_comparisons_arrays(embeddings, comparator_f)
+        })
+
+    def __build_comparisons_arrays(self, embeddings, comparator_f):
+        assert self.input_count == len(embeddings)
+
+        cmp_eq = [] # All comparisons assuming the elements do equal
+        cmp_ne = [] # All comparisons assuming the elements do not equal
+
+        for i_source in range(self.input_count):
+            e_source = embeddings[i_source]
+
+            # Should i_source be compared with itself?
+            if self._include_self_comparison:
+                target_range = range(i_source, self.input_count)
+            else:
+                target_range = range(i_source + 1, self.input_count)
+
+            for i_target in target_range:
+                e_target = embeddings[i_target]
+
+                cmp_eq.append(comparator_f(e_source, e_target, 1.))
+                cmp_ne.append(comparator_f(e_source, e_target, 0.))
+
+        # Create two long vectors for cmp_eq and cmp_ne
+        cmp_eq = concat(cmp_eq, axis=1)
+        cmp_ne = concat(cmp_ne, axis=1)
+
+        # Reshape and merge them
+        cmp_eq = Reshape((1, len(embeddings)))(cmp_eq)
+        cmp_ne = Reshape((1, len(embeddings)))(cmp_ne)
+
+        # Concat both
+        cmp = concat([cmp_eq, cmp_ne], axis=1)
+
+        return cmp
 
     def _get_cluster_count_possibilities(self):
         return self.data_provider.get_max_cluster_count() - self.data_provider.get_min_cluster_count() + 1
@@ -230,6 +273,10 @@ class SimpleLossClusterNN_V02(ClusterNN):
         # If required: Add regularisations. They are also losses, but they do not use a "true" value; it is ignored
         for additional_regularisation in self._additional_regularisations:
             y[additional_regularisation['name']] = np.zeros((len(inputs), 1), dtype=np.float32)
+
+        # If required add additional embedding comparison regularisations. They require the similarities ouput
+        for additional_embeding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
+            y[additional_embeding_comparison_regularisation['name']] = similarities_output
 
         # # DEBUG output
         # c0 = np.    sum(similarities_output == 0)
