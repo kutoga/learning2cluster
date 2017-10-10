@@ -25,7 +25,7 @@ class ClusterNNTry00_V22(SimpleLossClusterNN_V02):
         self.__output_dense_layers = output_dense_layers
 
     def _build_network(self, network_input, network_output, additional_network_outputs):
-        cluster_counts = list(self.data_provider.get_cluster_counts())
+        cluster_counts = self._get_cluster_counts()
 
         # The simple loss cluster NN requires a specific output: a list of softmax distributions
         # First in this list are all softmax distributions for k=k_min for each object, then for k=k_min+1 for each
