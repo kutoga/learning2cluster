@@ -110,7 +110,7 @@ class DataProvider:
         if isinstance(prediction, list):
             return list(map(lambda i: self.convert_data_to_prediction_X(X[i], prediction[i]), range(len(prediction))))
 
-        cluster_counts = list(self.get_cluster_counts())
+        cluster_counts = list(self.get_target_cluster_counts())
 
         # TODO: The following code was first created as a loop and modified -> cleanup
         current_inputs = X
