@@ -3,8 +3,9 @@ from time import time
 
 import numpy as np
 
-from keras.layers import Dot, Reshape, Activation
+from keras.layers import Dot, Reshape, Activation, Lambda
 from keras.losses import binary_crossentropy
+import keras.backend as K
 
 from core.nn.cluster_nn import ClusterNN
 from core.nn.helper import filter_None, concat, concat_layer, create_weighted_binary_crossentropy, mean_confidence_interval
@@ -117,12 +118,11 @@ class SimpleLossClusterNN_V02(ClusterNN):
             'name': name
         })
 
-    def _register_additional_embedding_comparison_regularisation(self, comparator_f, name, embeddings):
+    def _register_additional_embedding_comparison_regularisation(self, name, comparator_f, embeddings):
         self._additional_embedding_comparison_regularisations.append({
             'comparator_f': comparator_f, # comparator_f(e_i, e_j, cluster_i == cluster_j)
             'name': name,
             'embeddings': embeddings, # The ymust be ordered!
-            'comparisons': self.__build_comparisons_arrays(embeddings, comparator_f)
         })
 
     def __build_comparisons_arrays(self, embeddings, comparator_f):
@@ -131,6 +131,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         cmp_eq = [] # All comparisons assuming the elements do equal
         cmp_ne = [] # All comparisons assuming the elements do not equal
 
+        comparisons = 0
         for i_source in range(self.input_count):
             e_source = embeddings[i_source]
 
@@ -145,17 +146,21 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
                 cmp_eq.append(comparator_f(e_source, e_target, 1.))
                 cmp_ne.append(comparator_f(e_source, e_target, 0.))
+                comparisons += 1
 
         # Create two long vectors for cmp_eq and cmp_ne
         cmp_eq = concat(cmp_eq, axis=1)
         cmp_ne = concat(cmp_ne, axis=1)
 
         # Reshape and merge them
-        cmp_eq = Reshape((1, len(embeddings)))(cmp_eq)
-        cmp_ne = Reshape((1, len(embeddings)))(cmp_ne)
+        cmp_eq = Reshape((1, comparisons))(cmp_eq)
+        cmp_ne = Reshape((1, comparisons))(cmp_ne)
 
         # Concat both
         cmp = concat([cmp_eq, cmp_ne], axis=1)
+
+        # If this is not already the case: Convert the 'cmp' obj to a keras tensor (this command is a bit "dummy")
+        cmp = Lambda(lambda x: cmp)(embeddings[0])
 
         return cmp
 
@@ -275,8 +280,8 @@ class SimpleLossClusterNN_V02(ClusterNN):
             y[additional_regularisation['name']] = np.zeros((len(inputs), 1), dtype=np.float32)
 
         # If required add additional embedding comparison regularisations. They require the similarities output
-        for additional_embeding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
-            y[additional_embeding_comparison_regularisation['name']] = similarities_output
+        for additional_embedding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
+            y[additional_embedding_comparison_regularisation['name']] = similarities_output
 
         # # DEBUG output
         # c0 = np.    sum(similarities_output == 0)
@@ -357,11 +362,15 @@ class SimpleLossClusterNN_V02(ClusterNN):
             loss_output.append(additional_regularisation['layer'])
 
         # If required add additional embedding comparison regularisations
-        for additional_embeding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
+        for additional_embedding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
+            comparisons = self.__build_comparisons_arrays(
+                additional_embedding_comparison_regularisation['embeddings'],
+                additional_embedding_comparison_regularisation['comparator_f']
+            )
             loss_output.append(Activation(
                 'linear',
-                name=additional_embeding_comparison_regularisation['name']
-            )(additional_embeding_comparison_regularisation['comparisons']))
+                name=additional_embedding_comparison_regularisation['name']
+            )(comparisons))
 
         return True
 
@@ -535,7 +544,8 @@ class SimpleLossClusterNN_V02(ClusterNN):
         # Register all comparison regularisations
         if len(self._additional_embedding_comparison_regularisations):
             def embedding_comparison_regularisation_loss(y_true, y_pred):
-                return y_true * y_pred[:, 0, :] * (1 - y_true) * y_pred[:, 1, :]
+                y_true = y_true[:, :, 0]
+                return K.mean(y_true * y_pred[:, 0, :] + (1 - y_true) * y_pred[:, 1, :], axis=1)
             for additional_embedding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
                 loss[additional_embedding_comparison_regularisation['name']] = embedding_comparison_regularisation_loss
 

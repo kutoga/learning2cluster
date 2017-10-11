@@ -20,6 +20,17 @@ class History:
             return None
         return arr.index(v)
 
+    def get_latest_values(self, key, include_none_values=False, n=1):
+        if key not in self.__data:
+            return []
+        values = []
+        for x in reversed(self.__data[key]):
+            if (not include_none_values) or (x is not None):
+                values.insert(0, x)
+                if len(values) >= n:
+                    break
+        return values
+
     def keys(self):
         return self.__data.keys()
 

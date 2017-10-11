@@ -442,6 +442,8 @@ class ClusterNN(BaseNN):
         # TODO: Put this code in a function
         tbl = AlignedTextTable(add_initial_row=False)
         tbl_metrics = AlignedTextTable(add_initial_row=True)
+        tbl_metrics_avg = AlignedTextTable(add_initial_row=True)
+        metrics_avg_n = 20
         train = {}
         valid = {}
         others = {}
@@ -454,8 +456,14 @@ class ClusterNN(BaseNN):
             elif key.startswith("val_"):
                 valid[key] = value
             elif key.startswith("metric_"):
+
+                # Add the metrics value
                 tbl_metrics.add_cell(key)
                 tbl_metrics.add_cell(colored("{:0.6}".format(value), attrs=['bold']))
+
+                # Add the average over the last metrics_avg_n values
+                tbl_metrics_avg.add_cell("{}_avg{}".format(key, metrics_avg_n))
+                tbl_metrics_avg.add_cell(colored("{:0.6}".format(np.mean(history.get_latest_values(key, n=metrics_avg_n))), attrs=['bold']))
             else:
                 train[key] = value
         for row in filter(lambda d: len(d) > 0, [train, valid, others]):
@@ -483,6 +491,7 @@ class ClusterNN(BaseNN):
                 try_add(k, bold=True)
         tbl.print_str()
         tbl_metrics.print_str()
+        tbl_metrics_avg.print_str()
 
         # Old print code:
         # for hist_key in sorted(history.keys()):

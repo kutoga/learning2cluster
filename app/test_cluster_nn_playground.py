@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 from impl.nn.base.cluster_nn.minimal_cluster_nn import MinimalClusterNN
+from impl.nn.playground.cluster_nn_kl_divergence import ClusterNNKlDivergence
 
 if __name__ == '__main__':
 
@@ -39,10 +40,11 @@ if __name__ == '__main__':
 
     en = SimpleFCEmbedding()
     # en = None
-    en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[], output_size=3, dimensionality='auto')
+    en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
 
-    cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
-    cnn.class_weights_approximation = 'stochastic'
+    # cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
+    cnn = ClusterNNKlDivergence(dp, 5, en, weighted_classes=True)
+    # cnn.class_weights_approximation = 'stochastic'
     # cnn.build_networks(print_summaries=True)
     cnn.build_networks(print_summaries=False)
     cnn.minibatch_size = 2
