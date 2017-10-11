@@ -84,7 +84,7 @@ class AudioDataProvider(ImageDataProvider):
                 snippets = map(
                     lambda file: {
                         'content': self.__load_audio_file(path.join(self.__data_dir, file)),
-                        'filename': path.splitext(path.basename(path.join(self.__data_dir, file)))
+                        'filename': path.splitext(path.basename(path.join(self.__data_dir, file)))[0]
                     },
                     sorted(clusters[k])
                 )
