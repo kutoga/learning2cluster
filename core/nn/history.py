@@ -25,7 +25,7 @@ class History:
             return []
         values = []
         for x in reversed(self.__data[key]):
-            if (not include_none_values) or (x is not None):
+            if include_none_values or (x is not None):
                 values.insert(0, x)
                 if len(values) >= n:
                     break

@@ -13,8 +13,8 @@ from core.nn.helper import filter_None, concat, concat_layer, create_weighted_bi
 
 class SimpleLossClusterNN_V02(ClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False, cluster_n_output_loss='categorical_crossentropy',
-                 use_cluster_count_loss=True, use_similarities_loss=True):
-        super().__init__(data_provider, input_count, embedding_nn)
+                 use_cluster_count_loss=True, use_similarities_loss=True, include_input_count_in_name=True):
+        super().__init__(data_provider, input_count, embedding_nn, include_input_count_in_name=include_input_count_in_name)
 
         # For the loss all n outputs are compared with each other. More exactly:
         # n(n-1)/2 comparisons are required. If the following setting is True, then
@@ -152,11 +152,13 @@ class SimpleLossClusterNN_V02(ClusterNN):
         cmp_eq = concat(cmp_eq, axis=1)
         cmp_ne = concat(cmp_ne, axis=1)
 
-        # Reshape and merge them
-        cmp_eq = Reshape((1, comparisons))(cmp_eq)
-        cmp_ne = Reshape((1, comparisons))(cmp_ne)
+        # # Reshape and merge them
+        # cmp_eq = Reshape((1, comparisons))(cmp_eq)
+        # cmp_ne = Reshape((1, comparisons))(cmp_ne)
+        #
+        # # Concat both
+        # cmp = concat([cmp_eq, cmp_ne], axis=1)
 
-        # Concat both
         cmp = concat([cmp_eq, cmp_ne], axis=1)
 
         # If this is not already the case: Convert the 'cmp' obj to a keras tensor (this command is a bit "dummy")
@@ -543,9 +545,22 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
         # Register all comparison regularisations
         if len(self._additional_embedding_comparison_regularisations):
+
+            # The encoding of the values is a bit hacky:
+            # y_pred contains all "true" comparisons and then all "false" comparisons.
+            # We have to calculate the size of cmp_eq and cmp_ne
+            if self.include_self_comparison:
+                n = self.input_count * (self.input_count + 1) // 2
+            else:
+                n = self.input_count * (self.input_count - 1) // 2
+
             def embedding_comparison_regularisation_loss(y_true, y_pred):
-                y_true = y_true[:, :, 0]
-                return K.mean(y_true * y_pred[:, 0, :] + (1 - y_true) * y_pred[:, 1, :], axis=1)
+                cmp_eq = y_pred[:, :n]
+                cmp_ne = y_pred[:, n:]
+                return K.mean(
+                    y_true * cmp_eq + (1 - y_true) * cmp_ne,
+                    axis=-1
+                )
             for additional_embedding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
                 loss[additional_embedding_comparison_regularisation['name']] = embedding_comparison_regularisation_loss
 

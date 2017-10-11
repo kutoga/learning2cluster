@@ -19,10 +19,14 @@ from core.event import Event
 from core.helper import try_makedirs
 
 from core.nn.external.purity import purity_score
+from core.nn.misc.MR import misclassification_rate_BETA
 
 class ClusterNN(BaseNN):
-    def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True):
-        super().__init__(name='NN_[CLASS]_I{}'.format(input_count))
+    def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True,
+                 include_input_count_in_name=True):
+        super().__init__(
+            name='NN_[CLASS]_I{}'.format(input_count) if include_input_count_in_name else 'NN_[CLASS]'
+        )
         self._rand = Random(seed)
         self._data_provider = data_provider
         self._input_count = input_count
@@ -129,7 +133,8 @@ class ClusterNN(BaseNN):
             ('completeness_score', metrics.completeness_score),
             ('v_measure_score', metrics.v_measure_score),
             ('fowlkes_mallows_score', metrics.fowlkes_mallows_score),
-            ('purity_score', purity_score)
+            ('purity_score', purity_score),
+            ('misclassification_rate_BETA', misclassification_rate_BETA)
         ]:
             self.register_evaluation_metric(name, f_metric)
 
@@ -447,7 +452,7 @@ class ClusterNN(BaseNN):
         train = {}
         valid = {}
         others = {}
-        for key in history.keys():
+        for key in sorted(history.keys()):
             value = history[key][-1]
             if value is None:
                 continue
