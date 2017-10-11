@@ -204,6 +204,11 @@ class ImageDataProvider(DataProvider):
 
             cluster_probabilities = prediction['cluster_count']
 
+            def try_get_metrics(cluster_count):
+                if metrics is None:
+                    return None
+                return {k:metrics[k][cluster_count] for k in metrics.keys()}
+
             # Generate an image for the result
             most_probable_cluster_count = np.argmax(cluster_probabilities) + cluster_counts[0]
 
@@ -217,7 +222,8 @@ class ImageDataProvider(DataProvider):
                 predicted_clusters[most_probable_cluster_count],  # - cluster_counts[0]],
                 path.join(output_directory, get_filename('prediction')),
                 'Prediction',
-                reformatted_additional_obj_infos=(None if reformatted_additional_obj_infos is None else reformatted_additional_obj_infos[most_probable_cluster_count])
+                reformatted_additional_obj_infos=(None if reformatted_additional_obj_infos is None else reformatted_additional_obj_infos[most_probable_cluster_count]),
+                metrics=try_get_metrics(most_probable_cluster_count)
             )
 
             def get_point_infos(input_index, cluster_count):
@@ -287,7 +293,8 @@ class ImageDataProvider(DataProvider):
                 self.__plot_image_clusters(
                     clusters, path.join(output_directory, get_filename(filename)),
                     additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count_index]),
-                    reformatted_additional_obj_infos=(None if reformatted_additional_obj_infos is None else reformatted_additional_obj_infos[cluster_count])
+                    reformatted_additional_obj_infos=(None if reformatted_additional_obj_infos is None else reformatted_additional_obj_infos[cluster_count]),
+                    metrics=try_get_metrics(cluster_count)
                 )
 
                 # Generate the csv file
@@ -374,7 +381,7 @@ class ImageDataProvider(DataProvider):
         return img
 
     def __plot_image_clusters(self, clusters, output_directory, additional_title=None, use_auto_generated_title=True,
-                              reformatted_additional_obj_infos=None):
+                              reformatted_additional_obj_infos=None, metrics=None):
 
         # Create the required directories
         shutil.rmtree(output_directory, ignore_errors=True)
@@ -466,9 +473,25 @@ class ImageDataProvider(DataProvider):
                                 with tag('td', bgcolor=colors[class_name]):
                                     text(class_name)
                             ci += 1
-                    with tag('h2'):
-                        text('Predicted Clusters')
 
+                if metrics is not None:
+                    with tag('h2'):
+                        text('Metrics')
+                    with tag('table', border='1'):
+                        with tag('tr'):
+                            with tag('th'):
+                                text('Name')
+                            with tag('th'):
+                                text('Value')
+                        for metric in sorted(metrics.keys()):
+                            with tag('tr'):
+                                with tag('td'):
+                                    text(metric)
+                                with tag('td'):
+                                    text("{:.10f}".format(metrics[metric]))
+
+                with tag('h2'):
+                    text('Predicted Clusters')
                 with tag('table', border='1'):
                     with tag('tr'):
                         with tag('th'):

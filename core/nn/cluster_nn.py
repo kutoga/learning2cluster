@@ -19,7 +19,7 @@ from core.event import Event
 from core.helper import try_makedirs
 
 from core.nn.external.purity import purity_score
-from core.nn.misc.MR import misclassification_rate_BETA
+from core.nn.misc.MR import misclassification_rate_BV01
 
 class ClusterNN(BaseNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True,
@@ -134,7 +134,11 @@ class ClusterNN(BaseNN):
             ('v_measure_score', metrics.v_measure_score),
             ('fowlkes_mallows_score', metrics.fowlkes_mallows_score),
             ('purity_score', purity_score),
-            ('misclassification_rate_BETA', misclassification_rate_BETA)
+
+            # BV01 = Beta Version 01
+            # The reason for this version number is that this metric may change
+            # in future (currently it is (probably) not optiomal and just an upper bound).
+            ('misclassification_rate_BV01', misclassification_rate_BV01)
         ]:
             self.register_evaluation_metric(name, f_metric)
 
