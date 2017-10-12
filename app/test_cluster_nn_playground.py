@@ -34,7 +34,7 @@ if __name__ == '__main__':
         return_1d_audio_data=False,
         # test_classes=TIMIT20_lst,
         # validate_classes=TIMIT20_lst,
-        concat_audio_files_of_speaker=True
+        concat_audio_files_of_speaker=False
     )
     # dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
 

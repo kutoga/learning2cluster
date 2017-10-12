@@ -1,0 +1,52 @@
+<html>
+    <head>
+        <style>
+        button {
+            width: 150px;
+            height: 50px;
+        }
+        .wbutton {
+            width: 450px;
+        }
+        </style>
+    </head>
+    <body>
+        <h1>Test collection</h1>
+        <div width="100%" style="background-color:#999999">
+            <table>
+                <tr style="background-color:#999999">
+                    <td>
+                        <button type="button">Test01</button>
+                    </td>
+                    <td>
+                        <button type="button">Test02</button>
+                    </td>
+                    <td>
+                        <button type="button">Test03</button>
+                    </td>
+                    <td>
+                        <button type="button">Test04</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <table width="100%" height="80%">
+            <tr>
+                <td width="500px" style="vertical-align: top;">
+                    <h2>Cluster probabilities</h2>
+                    <img src="./02_cluster_probabilities.png" width="450px"/>
+                    <button class="wbutton" type="button">Most probable (Cluster Count=4)</button>
+                    <button class="wbutton" type="button">Cluster Count = 1 (p=0.12)</button>
+                    <button class="wbutton" type="button">Cluster Count = 2 (p=0.12)</button>
+                    <button class="wbutton" type="button">Cluster Count = 3 (p=0.12)</button>
+                    <button class="wbutton" type="button">Cluster Count = 4 (p=0.12)</button>
+                    <button class="wbutton" type="button">Cluster Count = 5 (p=0.12)</button>
+                </td>
+                <td style="vertical-align: top;">
+                    <h2>Most probable clustering</h2>
+                    <iframe frameborder="0px" src="01_prediction/index.html" width="100%" height="100%"/>
+                </td>
+            </tr>
+        </table>
+    </body>
+</body>

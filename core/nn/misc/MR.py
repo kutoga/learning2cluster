@@ -29,7 +29,8 @@ from scipy.stats import entropy
 def misclassification_rate_BV01(y_true, y_pred):
     """
     The current implementation is just a beta version: It is not sure if it works correct!
-    It it works, it is just an approximation (the real MR is always smaller or equal to the returned number).
+    It it works, it is just an approximation (the real MR is always smaller or equal to the returned number, which means
+    this implementation is in general pessimistic).
 
     :param y_true:
     :param y_pred:
@@ -186,6 +187,7 @@ def misclassification_rate_BV01(y_true, y_pred):
     MR = sum_e_j / y_true.shape[0]
     return MR
 
+misclassification_rate = misclassification_rate_BV01
 
 if __name__ == '__main__':
     def flt_eq(x, y):
@@ -193,23 +195,23 @@ if __name__ == '__main__':
 
     y_true = [0, 0, 1, 1]
     y_pred = [1, 1, 2, 2]
-    assert flt_eq(misclassification_rate_BV01(y_true, y_pred), 0.0)
+    assert flt_eq(misclassification_rate(y_true, y_pred), 0.0)
 
     y_true = [1, 1, 1, 1]
     y_pred = [2, 2, 1, 1]
-    assert flt_eq(misclassification_rate_BV01(y_true, y_pred), 0.5)
+    assert flt_eq(misclassification_rate(y_true, y_pred), 0.5)
 
     y_true = [1, 1, 1, 1]
     y_pred = [1, 2, 3, 4]
-    assert flt_eq(misclassification_rate_BV01(y_true, y_pred), 0.75)
+    assert flt_eq(misclassification_rate(y_true, y_pred), 0.75)
 
     y_true = [1, 2, 3, 4]
     y_pred = [1, 1, 1, 1]
-    assert flt_eq(misclassification_rate_BV01(y_true, y_pred), 0.75)
+    assert flt_eq(misclassification_rate(y_true, y_pred), 0.75)
 
     y_true = [1, 2, 2, 4]
     y_pred = [1, 1, 1, 1]
-    assert flt_eq(misclassification_rate_BV01(y_true, y_pred), 0.5)
+    assert flt_eq(misclassification_rate(y_true, y_pred), 0.5)
 
     y_true = [0, 0, 0, 1, 1, 1, 1, 2, 2]
     y_pred = [7, 7, 3, 3, 2, 2, 1, 0, 0]
@@ -218,6 +220,11 @@ if __name__ == '__main__':
     y_true = [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1]
     y_pred = [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
     assert flt_eq(misclassification_rate_BV01(y_true, y_pred), 5 / 13)
+
+    # # This test-case shows that the implementation could be improved
+    # y_true = [0, 0, 0, 0, 1, 2, 2, 2, 3, 3, 4, 2, 2, 2, 2, 3, 1, 1, 1, 1]
+    # y_pred = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+    # print(misclassification_rate_BV01(y_true, y_pred))
 
 
 
