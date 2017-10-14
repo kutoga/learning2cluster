@@ -36,11 +36,11 @@ if __name__ == '__main__':
         # validate_classes=TIMIT20_lst,
         concat_audio_files_of_speaker=False
     )
-    # dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
+    dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
 
-    # en = SimpleFCEmbedding()
-    en = None
-    en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
+    en = SimpleFCEmbedding()
+    # en = None
+    # en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
 
     # cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
     cnn = ClusterNNKlDivergence(dp, 3, en, weighted_classes=True)

@@ -158,6 +158,7 @@ class ImageDataProvider(DataProvider):
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
         cluster_counts = list(self.get_target_cluster_counts())
+        result = None
 
         def get_filename(name):
             global fi
@@ -193,6 +194,7 @@ class ImageDataProvider(DataProvider):
             f.close()
 
         if prediction is not None:
+            result = {}
             if self.__return_1d_images:
                 image_post_processor = lambda x: self.__image_1d_to_2d(x)
             else:
@@ -211,6 +213,7 @@ class ImageDataProvider(DataProvider):
 
             # Generate an image for the result
             most_probable_cluster_count = np.argmax(cluster_probabilities) + cluster_counts[0]
+            result['most_probable_cluster_count'] = int(most_probable_cluster_count)
 
             # TODO: Implement this for images
             # self.__plot_cluster_image(
@@ -244,10 +247,12 @@ class ImageDataProvider(DataProvider):
                 )
 
             # Generate the cluster distribution image
+            cluster_probability_plot_file = path.join(output_directory, get_filename('cluster_probabilities.png'))
             self.__plot_cluster_distribution(
                 {c: cluster_probabilities[c - cluster_counts[0]] for c in cluster_counts},
-                path.join(output_directory, get_filename('cluster_probabilities.png'))
+                cluster_probability_plot_file
             )
+            result['cluster_probability_plot'] = cluster_probability_plot_file
 
             # Generate the cluster distribution csv file
             with open(path.join(output_directory, get_filename('cluster_probabilities.csv')), 'wt') as f:
@@ -277,9 +282,13 @@ class ImageDataProvider(DataProvider):
                 f.close()
 
             # Generate an image and a csv file for each cluster possibility
+            result['results'] = {}
             for cluster_count in sorted(list(predicted_clusters.keys())):
+                current_results = result['results'][int(cluster_count)] = {}
                 clusters = predicted_clusters[cluster_count]
                 filename = 'prediction_{:0>4}'.format(len(clusters))
+                cluster_count_index = cluster_count - cluster_counts[0]
+                current_results['probability'] = float(cluster_probabilities[cluster_count_index]) # convert from np.float32 to float (required for json serialization)
 
                 # TODO: Implement this for images
                 # # Generate the image
@@ -289,8 +298,8 @@ class ImageDataProvider(DataProvider):
                 # )
 
                 # Generate the image
-                cluster_count_index = cluster_count - cluster_counts[0]
-                self.__plot_image_clusters(
+
+                current_results['file'] = self.__plot_image_clusters(
                     clusters, path.join(output_directory, get_filename(filename)),
                     additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count_index]),
                     reformatted_additional_obj_infos=(None if reformatted_additional_obj_infos is None else reformatted_additional_obj_infos[cluster_count]),
@@ -376,6 +385,8 @@ class ImageDataProvider(DataProvider):
                         )
 
                     a_i += 1
+        return result
+
 
     def _image_plot_preprocessor(self, img):
         return img
@@ -452,43 +463,49 @@ class ImageDataProvider(DataProvider):
                 with tag('h1'):
                     text(title)
 
-                if all(map(lambda img: img['additional_info'] is not None, all_images)):
-                    with tag('h2'):
-                        text('Correct clusters')
-                    with tag('table', border='1'):
-                        with tag('tr'):
-                            with tag('th'):
-                                text('Cluster Index')
-                            with tag('th'):
-                                text('Object Count')
-                            with tag('th'):
-                                text('Class')
-                        ci = 0
-                        for class_name in sorted(colors.keys()):
-                            with tag('tr'):
-                                with tag('td'):
-                                    text(ci)
-                                with tag('td'):
-                                    text(len(list(filter(lambda img: img['additional_info']['class'] == class_name, all_images))))
-                                with tag('td', bgcolor=colors[class_name]):
-                                    text(class_name)
-                            ci += 1
+                with tag('table', border="0"):
+                    with tag('tr'):
+                        if all(map(lambda img: img['additional_info'] is not None, all_images)):
+                            with tag('td', style="vertical-align: top;"):
+                                with tag('h2'):
+                                    text('Correct Clusters')
+                                with tag('table', border='1'):
+                                    with tag('tr'):
+                                        with tag('th'):
+                                            text('Cluster Index')
+                                        with tag('th'):
+                                            text('Object Count')
+                                        with tag('th'):
+                                            text('Class')
+                                    ci = 0
+                                    for class_name in sorted(colors.keys()):
+                                        with tag('tr'):
+                                            with tag('td'):
+                                                text(ci)
+                                            with tag('td'):
+                                                text(len(list(filter(lambda img: img['additional_info']['class'] == class_name, all_images))))
+                                            with tag('td', bgcolor=colors[class_name]):
+                                                text(class_name)
+                                        ci += 1
 
-                if metrics is not None:
-                    with tag('h2'):
-                        text('Metrics')
-                    with tag('table', border='1'):
-                        with tag('tr'):
-                            with tag('th'):
-                                text('Name')
-                            with tag('th'):
-                                text('Value')
-                        for metric in sorted(metrics.keys()):
-                            with tag('tr'):
-                                with tag('td'):
-                                    text(metric)
-                                with tag('td'):
-                                    text("{:.10f}".format(metrics[metric]))
+                        if metrics is not None:
+                            with tag('td', width="10px"):
+                                pass
+                            with tag('td', style="vertical-align: top;"):
+                                with tag('h2'):
+                                    text('Metrics')
+                                with tag('table', border='1'):
+                                    with tag('tr'):
+                                        with tag('th'):
+                                            text('Name')
+                                        with tag('th'):
+                                            text('Value')
+                                    for metric in sorted(metrics.keys()):
+                                        with tag('tr'):
+                                            with tag('td'):
+                                                text(metric)
+                                            with tag('td'):
+                                                text("{:.10f}".format(metrics[metric]))
 
                 with tag('h2'):
                     text('Predicted Clusters')
@@ -534,8 +551,10 @@ class ImageDataProvider(DataProvider):
         html = doc.getvalue()
 
         # Save the html file
-        with open(path.join(output_directory, 'index.html'), "w") as fh:
+        output_file = path.join(output_directory, 'index.html')
+        with open(output_file, "w") as fh:
             fh.write(html)
+        return output_file
 
     def __get_html_color_pairs(self, keys):
         html_colors = list(self.__get_html_colors())

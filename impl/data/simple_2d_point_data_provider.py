@@ -58,6 +58,7 @@ class Simple2DPointDataProvider(DataProvider):
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
         cluster_counts = list(self.get_target_cluster_counts())
+        result = None
 
         def get_filename(name):
             global fi
@@ -111,11 +112,13 @@ class Simple2DPointDataProvider(DataProvider):
             f.close()
 
         if prediction is not None:
+            result = {}
             predicted_clusters = self.convert_prediction_to_clusters(X, prediction)
             cluster_probabilities = prediction['cluster_count']
 
             # Generate an image for the result
             most_probable_cluster_count = np.argmax(cluster_probabilities) + cluster_counts[0]
+            result['most_probable_cluster_count'] = int(most_probable_cluster_count)
             self.__plot_cluster_image(
                 predicted_clusters[most_probable_cluster_count], # - cluster_counts[0]],
                 path.join(output_directory, get_filename('prediction.png')),
@@ -145,10 +148,12 @@ class Simple2DPointDataProvider(DataProvider):
                 )
 
             # Generate the cluster distribution image
+            cluster_probability_plot_file = path.join(output_directory, get_filename('cluster_probabilities.png'))
             self.__plot_cluster_distribution(
                 {c: cluster_probabilities[c - cluster_counts[0]] for c in cluster_counts},
-                path.join(output_directory, get_filename('cluster_probabilities.png'))
+                cluster_probability_plot_file
             )
+            result['cluster_probability_plot'] = cluster_probability_plot_file
 
             # Generate the cluster distribution csv file
             with open(path.join(output_directory, get_filename('cluster_probabilities.csv')), 'wt') as f:
@@ -178,15 +183,21 @@ class Simple2DPointDataProvider(DataProvider):
                 f.close()
 
             # Generate an image and a csv file for each cluster possibility
+            result['results'] = {}
             for cluster_count in sorted(list(predicted_clusters.keys())):
+                current_results = result['results'][int(cluster_count)] = {}
                 clusters = predicted_clusters[cluster_count]
                 filename = 'prediction_{:0>4}'.format(len(clusters))
+                cluster_count_index = cluster_count - cluster_counts[0]
+                current_results['probability'] = float(cluster_probabilities[cluster_count_index]) # convert from np.float32 to float (required for json serialization)
 
                 # Generate the image
+                cluster_image_file = path.join(output_directory, get_filename(filename + '.png'))
                 self.__plot_cluster_image(
-                    clusters, path.join(output_directory, get_filename(filename + '.png')),
+                    clusters, cluster_image_file,
                     additional_title='p={:0.6}'.format(cluster_probabilities[cluster_count - cluster_counts[0]])
                 )
+                current_results['file'] = cluster_image_file
 
                 # Generate the csv file
                 with open(path.join(output_directory, get_filename(filename + '.csv')), 'wt') as f:
@@ -264,6 +275,7 @@ class Simple2DPointDataProvider(DataProvider):
                         )
 
                     a_i += 1
+        return result
 
     def __plot_cluster_image(self, clusters, output_file, additional_title=None, use_auto_generated_title=True, xlim=(-.2, 1.2), ylim=(-.2, 1.2)):
         # Input format:

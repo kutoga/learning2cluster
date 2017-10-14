@@ -6,6 +6,10 @@ from math import log10, ceil
 
 import numpy as np
 
+import json
+
+from yattag import Doc
+
 from core.helper import try_makedirs
 
 class DataProvider:
@@ -237,11 +241,13 @@ class DataProvider:
         if input_records > 0:
             digits = int(ceil(log10(input_records) + 0.1))
         output_directory_name = 'test{:0' + str(digits) + 'd}'
+        results = {}
         for i in range(len(clusters)):
 
             current_X = X[i] #list(map(lambda X_i: X_i[i], X))
             current_clusters = clusters[i]
-            current_output_directory = path.join(output_directory, output_directory_name.format(i))
+            current_output_directory_name = output_directory_name.format(i)
+            current_output_directory = path.join(output_directory, current_output_directory_name)
             current_prediction = None
             if prediction is not None:
                 current_prediction = prediction[i]
@@ -252,12 +258,24 @@ class DataProvider:
             if additional_obj_info is not None:
                 current_additional_obj_info = additional_obj_info[i]
 
-            self.summarize_single_result(
+            current_result = self.summarize_single_result(
                 current_X, current_clusters, current_output_directory, current_prediction, current_metrics, current_additional_obj_info
             )
+            if current_result is not None:
+
+                def fix_path(path):
+                    if path.startswith(current_output_directory):
+                        path = './{}/'.format(current_output_directory_name) + path[len(current_output_directory):]
+                    return path
+                current_result['cluster_probability_plot'] = fix_path(current_result['cluster_probability_plot'])
+                for cluster_count in current_result['results'].keys():
+                    current_result['results'][cluster_count]['file'] = fix_path(current_result['results'][cluster_count]['file'])
+
+                results[current_output_directory_name] = current_result
 
         # Create a summary over everything
-        # TBD
+        if len(results) > 0:
+            self._write_test_results_html_file(path.join(output_directory, 'index.html'), results)
 
     def summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
 
@@ -265,10 +283,128 @@ class DataProvider:
         try_makedirs(output_directory)
 
         # Call the implementation
-        self._summarize_single_result(X, clusters, output_directory, prediction, metrics, additional_obj_info)
+        return self._summarize_single_result(X, clusters, output_directory, prediction, metrics, additional_obj_info)
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
+        # Return none or a data structure like:
+        # {
+        #     'cluster_probability_plot': 'input.png',
+        #     'most_probable_cluster_count': 1,
+        #     'results': {
+        #         1: {
+        #             'probability': 0.12,
+        #             'file': 'xyz.html'
+        #         },
+        #         ...
+        #     }
+        # }
         pass
 
+    def _write_test_results_html_file(self, output_file, test_results):
+        """
+        test_results = {
+            test00: {
+                'cluster_probability_plot': 'input.png',
+                'most_probable_cluster_count': 1,
+                'results': {
+                    1: {
+                        'probability': 0.12,
+                        'file': 'xyz.html'
+                    },
+                    ...
+                }
+                ...
+            }
+        }
+        :param output_file:
+        :param test_results:
+        :return:
+        """
+        doc, tag, text = Doc().tagtext()
+        with tag('html'):
+            with tag('head'):
+                with tag('style', type="text/css"):
+                    text("""
+button {
+    width: 150px;
+    height: 50px;
+}
+.wbutton {
+    width: 450px;
+}
+                    """)
+                with tag('script', src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"):
+                    pass
+                with tag('script'):
+                    text('data={};'.format(json.dumps(test_results)))
+                    doc._append("""
+                    $(function(){
+                        var selected_test = null;
+
+                        // Select all test cases
+                        var tests = Object.keys(data);
+                        tests.sort();
+
+                        function select_result(title, cluster_count) {
+                            $('.current_view_title').text(title);
+                            $('.current_view_content').attr('src', selected_test['results'][cluster_count]['file']);
+                        }
+
+                        function select_test(test) {
+                            selected_test = data[test];
+                            $('.test_button').css('background-color', '');
+                            selected_test['button'].css('background-color', '#BBBBBB');
+                            var target = $('.cluster_count_buttons')
+                            target.empty();
+                            target.append('<h2>Cluster probabilities</h2>');
+                            target.append('<img src="' + selected_test['cluster_probability_plot'] + '" width="450px" />');
+                            var cluster_counts = Object.keys(selected_test['results'])
+                            cluster_counts.sort()
+                            var mpcc = selected_test['most_probable_cluster_count'];
+                            function add_btn(text, cluster_count) {
+                                var btn = $('<button class="wbutton" type="button">' + text + '</button>');
+                                btn.click(function(){select_result(text, cluster_count);});
+                                target.append(btn);
+                                return btn;
+                            }
+                            mpcc_btn = add_btn("Prediction (cluster count = " + mpcc + ")", mpcc);
+                            cluster_counts.map(function(cluster_count) {
+                                add_btn('Cluster count = ' + cluster_count + ", p = " + selected_test['results'][cluster_count]['probability'], cluster_count);
+                            });
+                            mpcc_btn.click();
+                        }
+
+                        // Create some buttons
+                        tests.map(function(test){
+                            var btn = $('<button class="test_button" type="button" id="' + test +'">' + test + '</button>');
+                            data[test]['button'] = btn;
+                            btn.click(function(){select_test(test);});
+                            $('.test_buttons').append(btn);
+                        });
+                        select_test(tests[0]);
+                    });
+                    """)
+            with tag('body'):
+                with tag('h1'):
+                    text('Test collection')
+                with tag('div', width="100%", style="background-color:#999999"):
+                    with tag('table'):
+                        with tag('tr', klass='test_buttons'):
+                            pass
+                with tag('table', width="100%", height="80%"):
+                    with tag('tr'):
+                        with tag('td', style="vertical-align: top;", width="500px"):
+                            with tag('div', klass='cluster_count_buttons'):
+                                pass
+                        with tag('td', style="vertical-align: top;"):
+                            with tag('h2', klass="current_view_title"):
+                                pass
+                            with tag('iframe', klass="current_view_content", frameborder="0px", width="100%", height="100%"):
+                                pass
+        html = doc.getvalue()
+
+        # Save the html file
+        with open(output_file, "w") as fh:
+            fh.write(html)
 
 
