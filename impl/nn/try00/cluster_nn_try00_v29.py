@@ -75,6 +75,10 @@ class ClusterNNTry00_V29(SimpleLossClusterNN_V02):
             # processed = Add()([processed, tmp])
             processed = tmp
 
+            processed = self._s_layer(
+                'LSTM_proc_{}_batch'.format(i), lambda name: BatchNormalization(name=name)
+            )(processed)
+
         # Split the tensor to seperate layers
         embeddings_processed = [self._s_layer('slice_{}'.format(i), lambda name: slice_layer(processed, i, name)) for i in range(len(network_input))]
 

@@ -42,7 +42,7 @@ if __name__ == '__main__':
     c_nn.include_self_comparison = False
     c_nn.weighted_classes = True
     c_nn.class_weights_approximation = 'stochastic'
-    c_nn.minibatch_size = 35
+    c_nn.minibatch_size = 100
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
     c_nn.validate_every_nth_epoch = 10
 
