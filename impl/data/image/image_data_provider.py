@@ -485,7 +485,7 @@ class ImageDataProvider(DataProvider):
                                             with tag('td'):
                                                 text(len(list(filter(lambda img: img['additional_info']['class'] == class_name, all_images))))
                                             with tag('td', bgcolor=colors[class_name]):
-                                                text(class_name)
+                                                text(str(class_name))
                                         ci += 1
 
                         if metrics is not None:
