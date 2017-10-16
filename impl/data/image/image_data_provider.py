@@ -19,10 +19,10 @@ from core.data.data_provider import DataProvider
 class ImageDataProvider(DataProvider):
     def __init__(self, train_classes, validate_classes, test_classes,
                  min_cluster_count=None, max_cluster_count=None, auto_load_data=True,
-                 return_1d_images=False):
+                 return_1d_images=False, center_data=False):
         super().__init__()
         self.__return_1d_images = return_1d_images
-        self._center_data = False
+        self._center_data = center_data
 
         self._data_classes = {
             'train': train_classes,

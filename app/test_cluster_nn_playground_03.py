@@ -38,9 +38,10 @@ if __name__ == '__main__':
     dp.target_max_cluster_count = 2
 
     en = CnnEmbedding(
-        output_size=2, cnn_layers_per_block=1, block_feature_counts=[1],
-        fc_layer_feature_counts=[], hidden_activation='relu', final_activation='relu',
-        batch_norm_for_init_layer=True, cnn_filter_size=5
+        output_size=2, cnn_layers_per_block=1, block_feature_counts=[1, 1],
+        fc_layer_feature_counts=[1, 1, 1], hidden_activation='relu', final_activation='relu',
+        batch_norm_for_init_layer=True, cnn_filter_size=5,
+        dropout_init=.5, dropout_after_max_pooling=.5, dropout_after_fc=[.2, .3, .4, .5]
     )
 
     c_nn = ClusterNNTry04_Ddbc(dp, 2, en, lstm_layers=0, lstm_units=1, cluster_count_dense_layers=0, cluster_count_dense_units=1,

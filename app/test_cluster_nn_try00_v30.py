@@ -32,7 +32,8 @@ if __name__ == '__main__':
         output_size=160,
         cnn_layers_per_block=2, block_feature_counts=[64, 128, 256, 512],
         fc_layer_feature_counts=[512], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
-        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
+        dropout_init=.5, dropout_after_max_pooling=[.5, .4, .2]
     )
 
     c_nn = ClusterNNTry00_V30(dp, 20, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
