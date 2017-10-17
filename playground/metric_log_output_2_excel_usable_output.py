@@ -1,7 +1,7 @@
 
 
 log = """
-metric_adjusted_mutual_info_score_avg20 0.762305 metric_adjusted_rand_score_avg20 0.760983 metric_completeness_score_avg20 0.862636 metric_fowlkes_mallows_score_avg20 0.847438 metric_homogeneity_score_avg20 0.833588 metric_misclassification_rate_BV01_avg20 0.1305 metric_mutual_info_score_avg20 0.706429 metric_normalized_mutual_info_score_avg20 0.828951 metric_purity_score_avg20 0.891188 metric_v_measure_score_avg20 0.826131
+metric_adjusted_mutual_info_score_avg20 0.637027 metric_adjusted_rand_score_avg20 0.631397 metric_completeness_score_avg20 0.776891 metric_fowlkes_mallows_score_avg20 0.760822 metric_homogeneity_score_avg20 0.717288 metric_misclassification_rate_BV01_avg20 0.200714 metric_mutual_info_score_avg20 0.572526 metric_normalized_mutual_info_score_avg20 0.725112 metric_purity_score_avg20 0.8285 metric_v_measure_score_avg20 0.721815
 
 """
 

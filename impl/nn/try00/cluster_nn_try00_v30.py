@@ -45,16 +45,17 @@ class ClusterNNTry00_V30(SimpleLossClusterNN_V02):
         embeddings_reshaped = [embedding_reshaper(embedding) for embedding in embeddings]
 
         # Implement the KL-divergence on this layer. First, like lukic et al., do another fully connedted layer
-        kl_embeddings = embeddings_reshaped
-        kl_dense0 = self._s_layer('kl_dense0', lambda name: Dense(self.__kl_embedding_size, name=name, activation='relu'))
-        kl_embeddings = [kl_dense0(kl_embedding) for kl_embedding in kl_embeddings]
-        kl_softmax = self._s_layer('kl_softmax', lambda name: Dense(self.__kl_embedding_size, name=name, activation='softmax'))
-        kl_embeddings = [kl_softmax(kl_embedding) for kl_embedding in kl_embeddings]
-        self._register_additional_embedding_comparison_regularisation(
-            'KL_divergence',
-            lukic_kl_divergence,
-            kl_embeddings
-        )
+        if self.__kl_embedding_size is not None:
+            kl_embeddings = embeddings_reshaped
+            kl_dense0 = self._s_layer('kl_dense0', lambda name: Dense(self.__kl_embedding_size, name=name, activation='relu'))
+            kl_embeddings = [kl_dense0(kl_embedding) for kl_embedding in kl_embeddings]
+            kl_softmax = self._s_layer('kl_softmax', lambda name: Dense(self.__kl_embedding_size, name=name, activation='softmax'))
+            kl_embeddings = [kl_softmax(kl_embedding) for kl_embedding in kl_embeddings]
+            self._register_additional_embedding_comparison_regularisation(
+                'KL_divergence',
+                lukic_kl_divergence,
+                kl_embeddings
+            )
 
         # We need now the internal representation of the embeddings. This means we have to resize them.
         internal_embedding_size = self.__internal_embedding_size // 2 * 2

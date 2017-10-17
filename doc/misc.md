@@ -62,4 +62,6 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v28.py /tmp/test/test_cluster_nn_try00_v28.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v29.py /tmp/test/test_cluster_nn_try00_v29.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v30.py /tmp/test/test_cluster_nn_try00_v30.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v31.py /tmp/test/test_cluster_nn_try00_v31.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v32.py /tmp/test/test_cluster_nn_try00_v32.py.log
 

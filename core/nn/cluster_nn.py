@@ -881,19 +881,21 @@ class ClusterNN(BaseNN):
 
     def register_autosave(self, output_directory, base_filename=None, nth_iteration=100, always_save_best_config=True,
                           create_examples=True, example_count=4, overwrite_examples=True, include_history=True,
-                          print_loss_plot_every_nth_itr=10):
+                          print_loss_plot_every_nth_itr=10, train_examples_nth_iteration=None):
         if base_filename is None:
             base_filename = self._get_name('autosave')
 
         # Create a function that saves everything thats required
-        def f_autosave(suffix):
+        def f_autosave(suffix, save_weights=True, create_plots=True, test_network_data_type='test'):
             try_makedirs(output_directory)
             base_path = path.join(output_directory, base_filename + '_' + suffix)
-            self.save_weights(base_path, include_history)
-            self.save_plots(base_path + '_plot')
+            if save_weights:
+                self.save_weights(base_path, include_history)
+            if create_plots:
+                self.save_plots(base_path + '_plot')
             if create_examples:
                 example_path = path.join(output_directory, 'examples_' + suffix)
-                self.test_network(example_count, example_path, create_date_dir=not overwrite_examples)
+                self.test_network(example_count, example_path, create_date_dir=not overwrite_examples, data_type=test_network_data_type)
 
         # Should the best configuration always be saved?
         if always_save_best_config:
@@ -902,6 +904,13 @@ class ClusterNN(BaseNN):
         # Should the configuration anyway be saved from time to time?
         if nth_iteration is not None:
             self.event_training_iteration_after.add(lambda history: f_autosave('itr'), nth=nth_iteration)
+
+        # Should some examples with the train data be created from time to time?
+        if train_examples_nth_iteration is not None:
+            self.event_training_iteration_after.add(
+                lambda history: f_autosave('itr_train', save_weights=False, create_plots=True, test_network_data_type='train'),
+                nth=train_examples_nth_iteration
+            )
 
         # If defined: How often should the loss plot be created?
         if print_loss_plot_every_nth_itr is not None:
