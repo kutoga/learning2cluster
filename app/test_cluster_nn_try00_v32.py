@@ -17,14 +17,15 @@ if __name__ == '__main__':
 
     from sys import platform
 
-    from impl.data.image.fashion_mnist_data_provider import FashionMNISTDataProvider
+    from impl.data.image.devanagari_characters_data_provider import DevangariCharactersDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    dp = FashionMNISTDataProvider(
+    dp = DevangariCharactersDataProvider(
+        data_csv_path=top_dir + "/test/devanagari-character-set.csv",
         min_cluster_count=1,
         max_cluster_count=5,
     )

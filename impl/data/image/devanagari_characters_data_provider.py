@@ -62,9 +62,9 @@ class DevangariCharactersDataProvider(ImageDataProvider):
                     record = line.split(',')
                     assert len(record) == 1025
                     img = np.zeros((1, 32, 32, 1), dtype=np.float32)
-                    for y in range(img.shape[0]):
-                        for x in range(img.shape[1]):
-                            img[0, y, x, 0] = float(record[img.shape[0] * y + x])
+                    for y in range(img.shape[1]):
+                        for x in range(img.shape[2]):
+                            img[0, y, x, 0] = float(record[img.shape[2] * y + x])
                     cls = record[-1]
                     if cls not in data:
                         data[cls] = []
