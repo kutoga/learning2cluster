@@ -17,7 +17,8 @@ class Cifar100DataProvider(ImageDataProvider):
             train_classes = classes[:train_classes_count]
             validate_classes = classes[train_classes_count:]
             test_classes = classes[train_classes_count:]
-        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count, center_data=True)
+        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count,
+                         center_data=True, random_mirror_images=True)
 
     def _get_img_data_shape(self):
         return (32, 32, 3)

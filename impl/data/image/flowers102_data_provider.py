@@ -8,7 +8,7 @@ from impl.data.image.image_data_provider import ImageDataProvider
 
 class Flowers102DataProvider(ImageDataProvider):
     def __init__(self, train_classes=None, validate_classes=None, test_classes=None,
-                 min_cluster_count=None, max_cluster_count=None, target_img_size=(48, 48)):
+                 min_cluster_count=None, max_cluster_count=None, target_img_size=(48, 48),):
         self._target_img_size = target_img_size
         if train_classes is None and validate_classes is None and test_classes is None:
             rand = Random()
@@ -19,7 +19,8 @@ class Flowers102DataProvider(ImageDataProvider):
             train_classes = classes[:train_classes_count]
             validate_classes = classes[train_classes_count:]
             test_classes = classes[train_classes_count:]
-        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count, center_data=True)
+        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count,
+                         center_data=True, random_mirror_images=True)
 
     def _get_img_data_shape(self):
         return self._target_img_size + (3,)

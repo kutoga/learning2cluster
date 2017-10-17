@@ -19,10 +19,11 @@ from core.data.data_provider import DataProvider
 class ImageDataProvider(DataProvider):
     def __init__(self, train_classes, validate_classes, test_classes,
                  min_cluster_count=None, max_cluster_count=None, auto_load_data=True,
-                 return_1d_images=False, center_data=False):
+                 return_1d_images=False, center_data=False, random_mirror_images=False):
         super().__init__()
         self.__return_1d_images = return_1d_images
         self._center_data = center_data
+        self._random_mirror_images = random_mirror_images
 
         self._data_classes = {
             'train': train_classes,
@@ -98,6 +99,8 @@ class ImageDataProvider(DataProvider):
     def _get_random_element(self, class_name):
         data = self.__data[class_name]
         element = np.reshape(data[random.randint(0, data.shape[0] - 1)], (1,) + data.shape[1:])
+        if self._random_mirror_images and bool(random.getrandbits(1)):
+            element = np.fliplr(element)
         additional_obj_info = {
             'description': class_name,
             'class': class_name
