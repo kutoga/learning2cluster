@@ -1,6 +1,6 @@
 from random import Random
 from itertools import chain
-from os import path
+from os import path, remove
 from datetime import datetime
 from math import log10, ceil
 
@@ -243,6 +243,9 @@ class DataProvider:
         if input_records > 0:
             digits = int(ceil(log10(input_records) + 0.1))
         output_directory_name = 'test{:0' + str(digits) + 'd}'
+        output_html_file = path.join(output_directory, 'index.html')
+        if path.exists(output_html_file):
+            remove(output_html_file)
         results = {}
         for i in range(len(clusters)):
 
@@ -277,7 +280,7 @@ class DataProvider:
 
         # Create a summary over everything
         if len(results) > 0:
-            self._write_test_results_html_file(path.join(output_directory, 'index.html'), results)
+            self._write_test_results_html_file(output_html_file, results)
 
     def summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
 
@@ -410,5 +413,6 @@ button {
         # Save the html file
         with open(output_file, "w") as fh:
             fh.write(html)
+            fh.flush() # It should be useless, but sometimes we had problems...
 
 

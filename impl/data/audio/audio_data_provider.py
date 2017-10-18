@@ -18,7 +18,8 @@ from impl.misc.simple_file_cache import SimpleFileCache
 class AudioDataProvider(ImageDataProvider):
     def __init__(self, data_dir=None, audio_helper=None, cache_directory=None, train_classes=None, validate_classes=None,
                  test_classes=None, window_width=100, return_1d_audio_data=False,
-                 min_cluster_count=None, max_cluster_count=None, concat_audio_files_of_speaker=False):
+                 min_cluster_count=None, max_cluster_count=None, concat_audio_files_of_speaker=False,
+                 minimum_snippets_per_cluster=1):
         if audio_helper is None:
             audio_helper = AudioHelper()
 
@@ -27,9 +28,20 @@ class AudioDataProvider(ImageDataProvider):
         self.__data_dir = data_dir
         self.__audio_helper = audio_helper
         self.__cache = None if cache_directory is None else SimpleFileCache(cache_directory, compression=True)
-        self.__window_width = window_width
-        self.__concat_audio_files_of_speaker = concat_audio_files_of_speaker
 
+        # Window width may be a scalar or an array of possible intervals for the sizes, e.g.:
+        # [(180, 200), (400, 420), ...]
+        # The output shape will be the maximum possible window width
+        self.__window_width = window_width
+
+        # The minimum amount of snippets per cluster. For the "default" behaviour just 1 can be chosen.
+        # In general it is possible to use a natural number. It is also possible to use a list with windows
+        # widths where each cluster at least contains snippets with windows in the given interval. E.g.:
+        # [(100, 200), (500, 550), ...]
+        # This feature may be used to force a cluster to conatin at least e.g. one small and one large element
+        self.__minimum_snippets_per_cluster = minimum_snippets_per_cluster
+
+        self.__concat_audio_files_of_speaker = concat_audio_files_of_speaker
         self._load_data()
 
         if train_classes is None and validate_classes is None and test_classes is None:

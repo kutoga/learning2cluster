@@ -4,6 +4,7 @@ matplotlib.use('Agg')
 import numpy as np
 
 from keras.layers.advanced_activations import LeakyReLU
+from keras.optimizers import Adadelta
 
 from random import randint
 from time import time
@@ -24,7 +25,7 @@ if __name__ == '__main__':
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
+    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_20.txt')
     dp = TIMITDataProvider(
         # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
         data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
@@ -50,6 +51,7 @@ if __name__ == '__main__':
     c_nn.minibatch_size = 35
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
     c_nn.validate_every_nth_epoch = 10
+    c_nn.optimizer = Adadelta(lr=10.0)
 
     # c_nn.f_cluster_count = lambda: 10
     # c_nn.minibatch_size = 200
@@ -72,7 +74,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V34'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V35'
     c_nn.register_autosave(autosave_dir, example_count=15, nth_iteration=250, train_examples_nth_iteration=1000)
     c_nn.try_load_from_autosave(autosave_dir)
 
