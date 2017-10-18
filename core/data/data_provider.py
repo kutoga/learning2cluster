@@ -4,6 +4,8 @@ from os import path
 from datetime import datetime
 from math import log10, ceil
 
+from shutil import rmtree
+
 import numpy as np
 
 import json
@@ -279,7 +281,9 @@ class DataProvider:
 
     def summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
 
-        # Create the output directory
+        # Create the output directory; If it already exists, remove it
+        if path.exists(output_directory):
+            rmtree(output_directory, ignore_errors=True)
         try_makedirs(output_directory)
 
         # Call the implementation

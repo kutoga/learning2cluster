@@ -26,7 +26,8 @@ if [ ! -z "$RSYNC_MAX_SIZE" ]; then
     additional_args="$additional_args --max-size=$RSYNC_MAX_SIZE"
 fi
 
-rsync -avz $additional_args $exclude_args --delete meierbe8@$SERVER:~/data/MT "$TARGET_DIR"
+# See: https://unix.stackexchange.com/a/165417/246665
+rsync -avz $additional_args $exclude_args --delete meierbe8@$SERVER:~/data/MT --progress --partial --append-verify "$TARGET_DIR"
 
 # TODO:
 # Implement a download loop for rsync. Always use a timeout and the
