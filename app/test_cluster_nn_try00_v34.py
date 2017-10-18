@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     # Enable autosave and try to load the latest configuration
     autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V34'
-    c_nn.register_autosave(autosave_dir, example_count=15, nth_iteration=250, train_examples_nth_iteration=1000)
+    c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000)
     c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time

@@ -33,7 +33,7 @@ class AudioDataProvider(ImageDataProvider):
         # Window width may be a scalar or an array of possible intervals for the sizes, e.g.:
         # [(180, 200), (400, 420), ...]
         # The output shape will be the maximum possible window width
-        self.__window_width = [(window_width, window_width)] if isinstance(window_width, int) else window_width
+        self.__window_width = window_width #[(window_width, window_width)] if isinstance(window_width, int) else window_width
 
         # The minimum amount of snippets per cluster. For the "default" behaviour just 1 can be chosen.
         # In general it is possible to use a natural number. It is also possible to use a list with windows
@@ -145,7 +145,7 @@ class AudioDataProvider(ImageDataProvider):
             pass
 
         if window_width is None:
-            possible_window_widths = list(filter(lambda w: (w[1] - w[0]) <= audio_width, self.__window_width))
+            pass #possible_window_widths = list(filter(lambda w: (w[1] - w[0]) <= audio_width, self.__window_width))
 
         # Select a random snippet
         start_index_range = (0, audio_content.shape[0] - self.__window_width)
