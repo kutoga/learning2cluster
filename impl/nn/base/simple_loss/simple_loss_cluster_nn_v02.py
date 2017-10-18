@@ -118,14 +118,15 @@ class SimpleLossClusterNN_V02(ClusterNN):
             'name': name
         })
 
-    def _register_additional_embedding_comparison_regularisation(self, name, comparator_f, embeddings):
+    def _register_additional_embedding_comparison_regularisation(self, name, comparator_f, embeddings, weight=1.):
         self._additional_embedding_comparison_regularisations.append({
             'comparator_f': comparator_f, # comparator_f(e_i, e_j, cluster_i == cluster_j)
             'name': name,
             'embeddings': embeddings, # The ymust be ordered!
+            'weight': weight,
         })
 
-    def __build_comparisons_arrays(self, embeddings, comparator_f):
+    def __build_comparisons_arrays(self, embeddings, comparator_f, weight):
         assert self.input_count == len(embeddings)
 
         cmp_eq = [] # All comparisons assuming the elements do equal
@@ -160,6 +161,9 @@ class SimpleLossClusterNN_V02(ClusterNN):
         # cmp = concat([cmp_eq, cmp_ne], axis=1)
 
         cmp = concat([cmp_eq, cmp_ne], axis=1)
+
+        # Weight the result
+        cmp = cmp * weight
 
         # If this is not already the case: Convert the 'cmp' obj to a keras tensor (this command is a bit "dummy")
         cmp = Lambda(lambda x: cmp)(embeddings[0])
@@ -367,7 +371,8 @@ class SimpleLossClusterNN_V02(ClusterNN):
         for additional_embedding_comparison_regularisation in self._additional_embedding_comparison_regularisations:
             comparisons = self.__build_comparisons_arrays(
                 additional_embedding_comparison_regularisation['embeddings'],
-                additional_embedding_comparison_regularisation['comparator_f']
+                additional_embedding_comparison_regularisation['comparator_f'],
+                additional_embedding_comparison_regularisation['weight']
             )
             loss_output.append(Activation(
                 'linear',
