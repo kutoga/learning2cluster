@@ -11,7 +11,7 @@ class ClusterNNTry00_V23(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False, cluster_count_lstm_layers=2, cluster_count_lstm_units=64, internal_embedding_size=96,
-                 kl_embedding_size=128):
+                 kl_embedding_size=128, kl_divergence_factor=1.):
         super().__init__(data_provider, input_count, embedding_nn, weighted_classes)
 
         self.__internal_embedding_size = internal_embedding_size
@@ -25,6 +25,7 @@ class ClusterNNTry00_V23(SimpleLossClusterNN_V02):
         self.__cluster_count_dense_units = cluster_count_dense_units
         self.__output_dense_layers = output_dense_layers
         self.__kl_embedding_size = kl_embedding_size
+        self.__kl_divergence_factor = kl_divergence_factor
 
     def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
@@ -53,7 +54,8 @@ class ClusterNNTry00_V23(SimpleLossClusterNN_V02):
         self._register_additional_embedding_comparison_regularisation(
             'KL_divergence',
             lukic_kl_divergence,
-            kl_embeddings
+            kl_embeddings,
+            weight=self.__kl_divergence_factor
         )
 
         # We need now the internal representation of the embeddings. This means we have to resize them.

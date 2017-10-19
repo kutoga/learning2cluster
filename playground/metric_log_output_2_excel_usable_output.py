@@ -1,7 +1,7 @@
 
 
 log = """
-metric_adjusted_mutual_info_score_avg20 0.73957 metric_adjusted_rand_score_avg20 0.735231 metric_completeness_score_avg20 0.837835 metric_fowlkes_mallows_score_avg20 0.824322 metric_homogeneity_score_avg20 0.815902 metric_misclassification_rate_BV01_avg20 0.148571 metric_mutual_info_score_avg20 0.670186 metric_normalized_mutual_info_score_avg20 0.812734 metric_purity_score_avg20 0.879286 metric_v_measure_score_avg20 0.810111
+ metric_adjusted_mutual_info_score_avg20 0.740793 metric_adjusted_rand_score_avg20 0.739336 metric_completeness_score_avg20 0.82877 metric_fowlkes_mallows_score_avg20 0.836114 metric_homogeneity_score_avg20 0.82728 metric_misclassification_rate_BV01_avg20 0.135786 metric_mutual_info_score_avg20 0.669878 metric_normalized_mutual_info_score_avg20 0.806617 metric_purity_score_avg20 0.8935 metric_v_measure_score_avg20 0.804545
 
 """
 log = input('Log line: ')
