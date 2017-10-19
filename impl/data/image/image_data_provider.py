@@ -19,11 +19,13 @@ from core.data.data_provider import DataProvider
 class ImageDataProvider(DataProvider):
     def __init__(self, train_classes, validate_classes, test_classes,
                  min_cluster_count=None, max_cluster_count=None, auto_load_data=True,
-                 return_1d_images=False, center_data=False, random_mirror_images=False):
+                 return_1d_images=False, center_data=False, random_mirror_images=False,
+                 min_element_count_per_cluster=1):
         super().__init__()
         self.__return_1d_images = return_1d_images
         self._center_data = center_data
         self._random_mirror_images = random_mirror_images
+        self._min_element_count_per_cluster = min_element_count_per_cluster
 
         self._data_classes = {
             'train': train_classes,
@@ -96,11 +98,11 @@ class ImageDataProvider(DataProvider):
     def _load_data(self):
         pass
 
-    def _get_random_element(self, class_name):
+    def _get_random_element(self, class_name, element_index=None):
         data = self.__data[class_name]
         element = np.reshape(data[random.randint(0, data.shape[0] - 1)], (1,) + data.shape[1:])
         if self._random_mirror_images and bool(random.getrandbits(1)):
-            element = np.fliplr(element)
+            element[0] = np.fliplr(element[0])
         additional_obj_info = {
             'description': class_name,
             'class': class_name
@@ -135,13 +137,15 @@ class ImageDataProvider(DataProvider):
             post_process = lambda element, additional_obj_info: (self.__image_2d_to_1d(element), additional_obj_info)
         else:
             post_process = lambda element, additional_obj_info: (element, additional_obj_info)
-        clusters = {class_name: [post_process(*self._get_random_element(class_name))] for class_name in classes}
-        element_count -= cluster_count
+        clusters = {class_name: [
+            post_process(*self._get_random_element(class_name, i)) for i in range(self._min_element_count_per_cluster)
+        ] for class_name in classes}
+        element_count -= cluster_count * self._min_element_count_per_cluster
 
         # Fill now all elements to the data structure
         for i in range(element_count):
             class_name = random.choice(classes)
-            clusters[class_name].append(post_process(*self._get_random_element(class_name)))
+            clusters[class_name].append(post_process(*self._get_random_element(class_name, len(clusters[class_name]))))
 
         # Create the resulting clusters and the additional_obj_info
         res_clusters = []

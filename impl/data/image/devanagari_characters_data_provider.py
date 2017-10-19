@@ -13,7 +13,7 @@ from impl.data.image.image_data_provider import ImageDataProvider
 
 class DevangariCharactersDataProvider(ImageDataProvider):
     def __init__(self, data_csv_path, train_classes=None, validate_classes=None, test_classes=None,
-                 min_cluster_count=None, max_cluster_count=None):
+                 min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1):
         self._data_csv_path = data_csv_path
         if train_classes is None and validate_classes is None and test_classes is None:
             rand = Random()
@@ -24,7 +24,8 @@ class DevangariCharactersDataProvider(ImageDataProvider):
             train_classes = classes[:train_classes_count]
             validate_classes = classes[train_classes_count:]
             test_classes = classes[train_classes_count:]
-        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count, center_data=True)
+        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count, center_data=True,
+                         min_element_count_per_cluster=min_element_count_per_cluster)
 
     def _get_img_data_shape(self):
         return (32, 32, 1)

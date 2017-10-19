@@ -41,7 +41,7 @@ def load_data(target_img_size=(48, 48)):
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
 
-        print("Extract all flowers images...")
+        print("Extract all flower images...")
         tarfile.open(paths[0]).extractall(tmp_dir)
 
         print("Load index definitions...")
@@ -58,7 +58,9 @@ def load_data(target_img_size=(48, 48)):
         x = np.zeros((len(img_files),) + target_img_size + (3,), dtype=np.uint8)
         y = np.zeros((len(img_files)))
         for i in range(len(img_files)):
-            img = imread(img_files[i])
+            img_file = img_files[i]
+            print("Read and pre-process image file: {}".format(img_file))
+            img = imread(img_file)
             img = imresize(img, target_img_size + (3,))
             x[i] = img
             y[i] = img_labels[i]

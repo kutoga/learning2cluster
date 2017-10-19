@@ -1,12 +1,12 @@
 import numpy as np
 from random import Random
 
-from impl.data.misc import flowers102
+from impl.data.misc import birds200
 
 from impl.data.image.image_data_provider import ImageDataProvider
 
 
-class Flowers102DataProvider(ImageDataProvider):
+class Birds200DataProvider(ImageDataProvider):
     def __init__(self, train_classes=None, validate_classes=None, test_classes=None,
                  min_cluster_count=None, max_cluster_count=None, target_img_size=(48, 48),
                  min_element_count_per_cluster=1):
@@ -14,7 +14,7 @@ class Flowers102DataProvider(ImageDataProvider):
         if train_classes is None and validate_classes is None and test_classes is None:
             rand = Random()
             rand.seed(1337)
-            classes = list(range(102))
+            classes = list(range(200))
             rand.shuffle(classes)
             train_classes_count = int(0.8 * len(classes))
             train_classes = classes[:train_classes_count]
@@ -29,11 +29,11 @@ class Flowers102DataProvider(ImageDataProvider):
     def _load_data(self):
 
         # Load all records
-        (x_train, y_train), (x_valid, y_valid), (x_test, y_test) = flowers102.load_data(self._target_img_size)
+        (x_train, y_train), (x_test, y_test) = birds200.load_data(self._target_img_size)
 
         # Merge them (we split them by classes)
-        x = np.concatenate((x_train, x_valid, x_test))
-        y = np.concatenate((y_train, y_valid, y_test))
+        x = np.concatenate((x_train, x_test))
+        y = np.concatenate((y_train, y_test))
 
         # Reshape x for tensorflow
         x = x.reshape((x.shape[0],) + self.get_data_shape())
@@ -45,5 +45,5 @@ class Flowers102DataProvider(ImageDataProvider):
         return {i: x[y == i] for i in np.unique(y)}
 
 if __name__ == '__main__':
-    dp = Flowers102DataProvider()
+    dp = Birds200DataProvider()
 

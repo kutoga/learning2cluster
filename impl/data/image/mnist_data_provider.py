@@ -5,8 +5,9 @@ from impl.data.image.image_data_provider import ImageDataProvider
 
 class MNISTDataProvider(ImageDataProvider):
     def __init__(self, train_classes=[0, 2, 3, 4, 6, 7], validate_classes=[1, 5, 8, 9], test_classes=[1, 5, 8, 9],
-                 min_cluster_count=None, max_cluster_count=None):
-        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count)
+                 min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1):
+        super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count,
+                         min_element_count_per_cluster=min_element_count_per_cluster)
 
     def _get_img_data_shape(self):
         return (28, 28, 1)

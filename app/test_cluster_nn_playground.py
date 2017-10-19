@@ -15,6 +15,7 @@ if __name__ == '__main__':
     from impl.data.image.mnist_data_provider import MNISTDataProvider
     from impl.data.image.cifar10_data_provider import Cifar10DataProvider
     from impl.data.image.cifar100_data_provider import Cifar100DataProvider
+    from impl.data.image.birds200_data_provider import Birds200DataProvider
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
     from impl.nn.base.embedding_nn.simple_fc_embedding import SimpleFCEmbedding
@@ -34,16 +35,21 @@ if __name__ == '__main__':
         return_1d_audio_data=False,
         # test_classes=TIMIT20_lst,
         # validate_classes=TIMIT20_lst,
-        concat_audio_files_of_speaker=False
+        concat_audio_files_of_speaker=True,
+        window_width=[(20, 40), (60, 80)]
     )
-    dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
+    dp = Birds200DataProvider(
+        min_cluster_count=1,
+        max_cluster_count=3,
+    )
+    # dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
 
-    en = SimpleFCEmbedding()
+    en = SimpleFCEmbedding(hidden_layers=[10])
     # en = None
     # en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
 
     # cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
-    cnn = ClusterNNKlDivergence(dp, 3, en, weighted_classes=True)
+    cnn = ClusterNNKlDivergence(dp, 10, en, weighted_classes=True)
     # cnn.class_weights_approximation = 'stochastic'
     # cnn.build_networks(print_summaries=True)
     cnn.build_networks(print_summaries=False)
@@ -53,9 +59,11 @@ if __name__ == '__main__':
     # clusters = dp.get_data(50, 200)
 
     autosave_dir = top_dir + 'test/autosave_ClusterNN_playground'
-    cnn.register_autosave(autosave_dir)  # , nth_iteration=1)
 
-    cnn.train(1)
+    cnn.test_network(20, autosave_dir + '/test')
+
+    cnn.register_autosave(autosave_dir, nth_iteration=1)
+    cnn.train(100)
 
     # # clusters = dp.get_data(50, 200)
     #

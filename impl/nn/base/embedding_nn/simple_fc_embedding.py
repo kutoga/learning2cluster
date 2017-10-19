@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras.models import Sequential
-from keras.layers import BatchNormalization, Dense, Activation, Layer
+from keras.layers import BatchNormalization, Dense, Activation, Layer, Flatten
 
 from core.nn.embedding_nn import EmbeddingNN
 
@@ -32,11 +32,15 @@ class SimpleFCEmbedding(EmbeddingNN):
         input_points = np.product(input_shape)
 
         model = Sequential(name=self._get_name('Model'))
-        if self._batch_norm_for_init_layer:
-            model.add(self._s_layer('batch_init', lambda name: BatchNormalization(name=name, input_shape=input_shape)))
+        if len(input_shape) > 1:
+            model.add(self._s_layer('flatten_init', lambda name: Flatten(name=name, input_shape=input_shape)))
         else:
             # The first layer always requires the networks input shape. Create a dummy layer (its the easiest way)
             model.add(self._s_layer('dummy_init', lambda name: Activation('linear', name=name, input_shape=input_shape)))
+
+        # Add BatchNorm if required
+        if self._batch_norm_for_init_layer:
+            model.add(self._s_layer('batch_init', lambda name: BatchNormalization(name=name)))
 
         if isinstance(self._hidden_layers, list):
             dimensions = self._hidden_layers
