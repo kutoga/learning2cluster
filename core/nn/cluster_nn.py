@@ -20,6 +20,7 @@ from core.helper import try_makedirs
 
 from core.nn.external.purity import purity_score
 from core.nn.misc.MR import misclassification_rate_BV01
+from core.nn.misc.BBN import BBN
 
 class ClusterNN(BaseNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True,
@@ -138,7 +139,11 @@ class ClusterNN(BaseNN):
             # BV01 = Beta Version 01
             # The reason for this version number is that this metric may change
             # in future (currently it is (probably) not optiomal and just an upper bound).
-            ('misclassification_rate_BV01', misclassification_rate_BV01)
+            ('misclassification_rate_BV01', misclassification_rate_BV01),
+
+            # Register the un-normalized and the normalized BBN metric. For both Q=0 is used.
+            ('bbn_q0', lambda y_true, y_pred: BBN(y_true, y_pred, Q=0, normalize=False)),
+            ('bbn_q0_normalized', lambda y_true, y_pred: BBN(y_true, y_pred, Q=0, normalize=True))
         ]:
             self.register_evaluation_metric(name, f_metric)
 
