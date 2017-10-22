@@ -839,7 +839,7 @@ class ClusterNN(BaseNN):
         # Compile the training model
         self._model_training.compile(
             optimizer=self._optimizer,
-            loss=self._get_keras_loss(),
+            loss=self._get_weighted_keras_loss(),
             metrics=self._get_keras_metrics()
         )
 
