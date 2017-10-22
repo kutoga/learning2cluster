@@ -70,4 +70,8 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v36.py /tmp/test/test_cluster_nn_try00_v36.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v37.py /tmp/test/test_cluster_nn_try00_v37.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v38.py /tmp/test/test_cluster_nn_try00_v38.py.log
+	# From now a keras upgrade may be required (>=2.0.8): pip install https://github.com/fchollet/keras/archive/master.zip
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v39.py /tmp/test/test_cluster_nn_try00_v39.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v40.py /tmp/test/test_cluster_nn_try00_v40.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v41.py /tmp/test/test_cluster_nn_try00_v41.py.log
 

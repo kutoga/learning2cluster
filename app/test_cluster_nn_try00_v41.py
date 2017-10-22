@@ -17,28 +17,23 @@ if __name__ == '__main__':
 
     from sys import platform
 
-    from impl.data.audio.timit_data_provider import TIMITDataProvider
+    from impl.data.image.birds200_data_provider import Birds200DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
-    dp = TIMITDataProvider(
-        # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
-        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
+    dp = Birds200DataProvider(
         min_cluster_count=1,
-        max_cluster_count=5,
-        return_1d_audio_data=False,
-        test_classes=TIMIT_lst,
-        validate_classes=TIMIT_lst,
-        concat_audio_files_of_speaker=True
+        max_cluster_count=5
     )
     en = CnnEmbedding(
-        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64],
-        fc_layer_feature_counts=[], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
-        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
+        output_size=96,
+        cnn_layers_per_block=2, block_feature_counts=[64, 128, 256],
+        fc_layer_feature_counts=[512], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
+        dropout_init=.5, dropout_after_max_pooling=[.5, .5], dropout_after_fc=[.5]
     )
 
     c_nn = ClusterNNTry00_V23(dp, 20, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
@@ -47,7 +42,7 @@ if __name__ == '__main__':
     c_nn.include_self_comparison = False
     c_nn.weighted_classes = True
     c_nn.class_weights_approximation = 'stochastic'
-    c_nn.minibatch_size = 35
+    c_nn.minibatch_size = 40
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
     c_nn.validate_every_nth_epoch = 10
 
@@ -72,7 +67,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V38'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V41'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000)
     c_nn.try_load_from_autosave(autosave_dir)
 

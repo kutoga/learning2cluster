@@ -66,14 +66,15 @@ nw = MaxPool2D()(nw)
 nw = Flatten()(nw)
 nw = Dense(64, activation='relu')(nw)
 nw = BatchNormalization()(nw)
-nw = Dense(64, activation='relu')(nw)
+nw = Dense(2, activation='tanh')(nw)
 nw = BatchNormalization()(nw)
 
 # Output 1: softmax
 nw_sm = Dense(10, activation='softmax', name='sm')(nw)
 
-# Output 2: Center-Loss
-nw_cl = Dense(2, activation='tanh', name='cl')(nw)
+# # Output 2: Center-Loss
+# nw_cl = Dense(2, activation='tanh', name='cl')(nw)
+nw_cl = Activation('linear', name='cl')(nw)
 
 model = Model([nw_input], [nw_sm, nw_cl])
 model.summary()

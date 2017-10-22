@@ -71,6 +71,9 @@ class ClusterNN(BaseNN):
         # Normalize network input
         self._normalize_network_input = False # Compatibility
 
+        # Different losses may be weighted differently: Default weights are just 1
+        self._loss_weights = {}
+
     @property
     def normalize_network_input(self):
         return self._normalize_network_input
@@ -118,6 +121,16 @@ class ClusterNN(BaseNN):
     @f_cluster_count.setter
     def f_cluster_count(self, f_cluster_count):
         self._f_cluster_count = f_cluster_count
+
+    def set_loss_weight(self, loss_name, weight=None):
+        self._loss_weights[loss_name] = weight
+
+    def reset_loss_weight(self, loss_name):
+        if loss_name in self._loss_weights:
+            del self._loss_weights[loss_name]
+
+    def reset_loss_weights(self):
+        self._loss_weights = {}
 
     def register_evaluation_metric(self, name, f_metric):
         self._evaluation_metrics[name] = f_metric
@@ -253,6 +266,18 @@ class ClusterNN(BaseNN):
 
     def _build_loss_network(self, network_output, loss_output, additional_network_outputs):
         return None
+
+    def _reweight_loss(self, loss, weight):
+        return lambda y_true, y_pred: weight * loss(y_true, y_pred)
+
+    def _get_weighted_keras_loss(self):
+        losses = self._get_keras_loss()
+        loss_weigths = self._loss_weights
+        for loss_name in sorted(losses.keys()):
+            if loss_name in loss_weigths and loss_weigths[loss_name] is not None:
+                weight = loss_weigths[loss_name]
+                print("Reweight the loss {} with the factor {}".format(loss_name, weight))
+                losses[loss_name] = self._reweight_loss(losses[loss_name], weight)
 
     def _get_keras_loss(self):
         return None
