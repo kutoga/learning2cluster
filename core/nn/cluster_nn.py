@@ -278,6 +278,7 @@ class ClusterNN(BaseNN):
                 weight = loss_weigths[loss_name]
                 print("Reweight the loss {} with the factor {}".format(loss_name, weight))
                 losses[loss_name] = self._reweight_loss(losses[loss_name], weight)
+        return losses
 
     def _get_keras_loss(self):
         return None
