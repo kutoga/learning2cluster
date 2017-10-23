@@ -24,7 +24,7 @@ from core.nn.misc.BBN import BBN
 
 class ClusterNN(BaseNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True,
-                 include_input_count_in_name=True):
+                 include_input_count_in_name=True, validation_data_count=None, early_stopping_itrs=None):
         super().__init__(
             name='NN_[CLASS]_I{}'.format(input_count) if include_input_count_in_name else 'NN_[CLASS]'
         )
@@ -37,8 +37,11 @@ class ClusterNN(BaseNN):
         self._optimizer = 'adadelta'
         self._minibatch_size = 100
 
+        self._early_stopping_itrs = early_stopping_itrs # None => no early stopping is used
+
         self._train_history = History()
         self._validate_every_nth_epoch = 10
+        self._validation_data_count = validation_data_count # None => use the batch size
 
         self._model_prediction = None
         self._model_training = None
@@ -121,6 +124,14 @@ class ClusterNN(BaseNN):
     @f_cluster_count.setter
     def f_cluster_count(self, f_cluster_count):
         self._f_cluster_count = f_cluster_count
+
+    @property
+    def validation_data_count(self):
+        return self._validation_data_count
+
+    @validation_data_count.setter
+    def validation_data_count(self, validation_data_count):
+        self._validation_data_count = validation_data_count
 
     def set_loss_weight(self, loss_name, weight=None):
         self._loss_weights[loss_name] = weight
@@ -392,12 +403,12 @@ class ClusterNN(BaseNN):
 
         # Generate training data
         t_start_data_gen_time = time()
-        train_data = self._get_data('train', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='train', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
+        train_data = self._get_data('train', dummy_data=dummy_train)
         X_train, y_train = self._build_Xy_data(train_data)
 
         # If required: Generate validation data
         if do_validation:
-            valid_data = self._get_data('valid', dummy_data=dummy_train) # self._data_provider.get_data(self._input_count, self._minibatch_size, data_type='valid', dummy_data=dummy_train, max_cluster_count_f=self._f_cluster_count)
+            valid_data = self._get_data('valid', dummy_data=dummy_train, cluster_collection_count=self._validation_data_count)
             validation_data = self._build_Xy_data(valid_data)
         else:
             valid_data = None
@@ -483,6 +494,8 @@ class ClusterNN(BaseNN):
         tbl = AlignedTextTable(add_initial_row=False)
         tbl_metrics = AlignedTextTable(add_initial_row=True)
         tbl_metrics_avg = AlignedTextTable(add_initial_row=True)
+        tbl_metrics_best = AlignedTextTable(add_initial_row=True)
+        tbl_metrics_best_itr = self.__get_last_epoch() if latest_is_minimum_value("val_loss") else best_valid_loss_itr
         metrics_avg_n = 20
         train = {}
         valid = {}
@@ -503,7 +516,12 @@ class ClusterNN(BaseNN):
 
                 # Add the average over the last metrics_avg_n values
                 tbl_metrics_avg.add_cell("{}_avg{}".format(key, metrics_avg_n))
-                tbl_metrics_avg.add_cell(colored("{:0.6}".format(np.mean(history.get_latest_values(key, n=metrics_avg_n))), attrs=['bold']))
+                tbl_metrics_avg.add_cell(colored("{:0.6}".format(history.aggregate_over_latest_values(key, f_aggregate=np.mean, n=metrics_avg_n)), attrs=['bold']))
+
+                # Add the metrics for the best run
+                tbl_metrics_best.add_cell("{}_best".format(key))
+                tbl_metrics_best.add_cell(colored("{:0.6}".format(history[key][tbl_metrics_best_itr]), attrs=['bold']))
+
             else:
                 train[key] = value
         for row in filter(lambda d: len(d) > 0, [train, valid, others]):
@@ -532,6 +550,7 @@ class ClusterNN(BaseNN):
         tbl.print_str()
         tbl_metrics.print_str()
         tbl_metrics_avg.print_str()
+        tbl_metrics_best.print_str()
 
         # Old print code:
         # for hist_key in sorted(history.keys()):
@@ -549,6 +568,13 @@ class ClusterNN(BaseNN):
 
     def train(self, iterations=1):
         for i in range(iterations):
+            if self._early_stopping_itrs is not None:
+                history = self._get_history(self._model_training)
+                best_valid_loss_itr = history.get_min_index('val_loss')
+                latest_itr = self.__get_last_epoch()
+                if latest_itr - best_valid_loss_itr >= self._early_stopping_itrs:
+                    print("Early stopping (after {} iterations without any improvement on the validation data)".format(self._early_stopping_itrs))
+
             self.__train_iteration()
 
     def data_to_cluster_indices(self, data, shuffle_indices=None):

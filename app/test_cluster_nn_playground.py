@@ -40,7 +40,7 @@ if __name__ == '__main__':
     )
     dp = Birds200DataProvider(
         min_cluster_count=1,
-        max_cluster_count=3,
+        max_cluster_count=1,
     )
     # dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
 

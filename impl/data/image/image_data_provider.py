@@ -99,13 +99,24 @@ class ImageDataProvider(DataProvider):
         pass
 
     def _get_random_element(self, class_name, element_index=None):
+        # data = self.__data[class_name][:1] # Just for debugging
+
         data = self.__data[class_name]
-        element = np.reshape(data[random.randint(0, data.shape[0] - 1)], (1,) + data.shape[1:])
+        random_element_index = random.randint(0, data.shape[0] - 1)
+
+        # We need to copy the element, because it may be modified (and we do not want to modify it globally)
+        element = np.copy(np.reshape(data[random_element_index], (1,) + data.shape[1:]))
+
         if self._random_mirror_images and bool(random.getrandbits(1)):
             element[0] = np.fliplr(element[0])
+
+        max_element_index_len = len(str(data.shape[0] - 1))
         additional_obj_info = {
-            'description': class_name,
-            'class': class_name
+            'description': ('{}/{:0' + str(max_element_index_len) + 'd}').format(class_name, random_element_index),
+            'class': class_name,
+
+            # The sort_key may be None, then the class is used to sort the elements for the visualization
+            'sort_key': ('{}/{:0' + str(max_element_index_len) + 'd}').format(class_name, random_element_index)
         }
         return element, additional_obj_info
 
@@ -529,7 +540,13 @@ class ImageDataProvider(DataProvider):
 
                         # Try to sort the cluster
                         if not any(map(lambda img: img['additional_info'] is None, img_cluster)):
-                            img_cluster = sorted(img_cluster, key=lambda img: img['additional_info']['class'])
+                            def sort_key(obj):
+                                add_info = obj['additional_info']
+                                if 'sort_key' in add_info:
+                                    return add_info['sort_key']
+                                else:
+                                    return add_info['class']
+                            img_cluster = sorted(img_cluster, key=sort_key)
 
                         with tag('tr'):
                             with tag('td'):

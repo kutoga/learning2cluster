@@ -20,16 +20,23 @@ class History:
             return None
         return arr.index(v)
 
-    def get_latest_values(self, key, include_none_values=False, n=1):
+    def get_latest_values(self, key, include_none_values=False, n=1, latest_index=None):
         if key not in self.__data:
             return []
         values = []
-        for x in reversed(self.__data[key]):
+        source_data = self.__data[key]
+        if latest_index is not None:
+            source_data = source_data[:latest_index]
+        for x in reversed(source_data):
             if include_none_values or (x is not None):
                 values.insert(0, x)
                 if len(values) >= n:
                     break
         return values
+
+    def aggregate_over_latest_values(self, key, f_aggregate, include_none_values=False, n=1, latest_index=None):
+        values = self.get_latest_values(key, include_none_values=include_none_values, n=n, latest_index=latest_index)
+        return f_aggregate(values)
 
     def keys(self):
         return self.__data.keys()

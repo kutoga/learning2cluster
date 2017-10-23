@@ -10,9 +10,10 @@ from core.nn.history import History
 from core.event import Event
 
 class BaseNN:
-    def __init__(self, name="NN_[CLASS]", debug_mode=False, additional_debug_array_printer=None):
+    def __init__(self, name="NN_[CLASS]", debug_mode=False, additional_debug_array_printer=None, prepend_base_name_to_layer_name=True):
         self._name = name
         self._formatted_name = self._generate_formatted_name()
+        self._prepend_base_name_to_layer_name = prepend_base_name_to_layer_name
         self._debug_mode = None
         self._shared_layers = {}
 
@@ -44,6 +45,14 @@ class BaseNN:
 
         self._debug_mode = debug_mode
         self._additional_debug_array_printer = additional_debug_array_printer
+
+    @property
+    def prepend_base_name_to_layer_name(self):
+        return self._prepend_base_name_to_layer_name
+
+    @prepend_base_name_to_layer_name.setter
+    def prepend_base_name_to_layer_name(self, prepend_base_name_to_layer_name):
+        self._prepend_base_name_to_layer_name = prepend_base_name_to_layer_name
 
     @property
     def additional_debug_array_printer(self):
@@ -167,7 +176,10 @@ class BaseNN:
         return name
 
     def _get_name(self, name):
-        return self._formatted_name + "_" + name
+        if self._prepend_base_name_to_layer_name:
+            return self._formatted_name + "_" + name
+        else:
+            return name
 
     def _s_layer(self, base_name, builder, format_name=True):
         """

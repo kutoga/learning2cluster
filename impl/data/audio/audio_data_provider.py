@@ -174,7 +174,8 @@ class AudioDataProvider(ImageDataProvider):
         element = audio_content[start_index:(start_index + window_width)]
         additional_obj_info = {
             'description': '{} [{}] [{}-{}]'.format(class_name, audio_object['filename'], start_index, start_index + window_width),
-            'class': class_name
+            'class': class_name,
+            'sort_key': '{}/{}'.format(class_name, start_index)
         }
 
         # It may be required to put the element to a larger array (if uniform length elements are required)
