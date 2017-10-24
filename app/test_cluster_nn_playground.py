@@ -40,31 +40,41 @@ if __name__ == '__main__':
     )
     dp = Birds200DataProvider(
         min_cluster_count=1,
-        max_cluster_count=1,
+        max_cluster_count=2,
     )
-    # dp = Simple2DPointDataProvider(min_cluster_count=2, max_cluster_count=3, allow_less_clusters=False)
+    dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=2, allow_less_clusters=False)
 
-    en = SimpleFCEmbedding(hidden_layers=[10])
+    en = SimpleFCEmbedding(hidden_layers=[3])
     # en = None
     # en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
 
     # cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
-    cnn = ClusterNNKlDivergence(dp, 10, en, weighted_classes=True)
+    cnn = ClusterNNKlDivergence(dp, 3, en, weighted_classes=True, lstm_layers=1, cluster_count_lstm_units=2, cluster_count_lstm_layers=1, cluster_count_dense_layers=1,
+                                cluster_count_dense_units=1, output_dense_layers=1, output_dense_units=1)
     # cnn.class_weights_approximation = 'stochastic'
     # cnn.build_networks(print_summaries=True)
     cnn.build_networks(print_summaries=False)
     cnn.minibatch_size = 2
     cnn.validate_every_nth_epoch = 1
 
+    # New properties:
+    cnn.early_stopping_iterations = 5
+    cnn.validation_data_count = cnn.minibatch_size * 5
+    cnn.prepend_base_name_to_layer_name = False
+
     # clusters = dp.get_data(50, 200)
 
     autosave_dir = top_dir + 'test/autosave_ClusterNN_playground'
 
-    cnn.test_network(20, autosave_dir + '/test')
+    # cnn.test_network(20, autosave_dir + '/test')
 
-    cnn.register_autosave(autosave_dir, nth_iteration=1)
+    # Register autosave, try to load the latest weights and then start / continue the training
+    cnn.register_autosave(autosave_dir, nth_iteration=1, example_count=1)
+    cnn.try_load_from_autosave(autosave_dir)
+
     cnn.train(100)
 
+    cnn.test_network(count=30, output_directory=autosave_dir + '/examples_final', data_type='test', create_date_dir=False)
     # # clusters = dp.get_data(50, 200)
     #
     # c_nn = ClusterNNTry00(dp, 3, en, weighted_classes=True)

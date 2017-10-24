@@ -69,6 +69,16 @@ class AlignedTextTable:
         for line in self.get_lines():
             f_print(line)
 
+    @staticmethod
+    def merge(*tables):
+        res = AlignedTextTable(add_initial_row=False)
+        for table in tables:
+            res.__rows += table.__rows
+        if len(res.__rows) == None:
+            res.__rows.append([])
+        res.__current_row = res.__rows[-1]
+        return res
+
 
 class FileWriterHelper:
     def __init__(self, filepath):

@@ -55,6 +55,7 @@ class ClusterNN(BaseNN):
         self.event_training_iteration_after = Event()
         self.event_new_best_validation_loss = Event()
         self.event_new_best_training_loss = Event()
+        self.event_early_stopped = Event()
 
         # The cluster count function. It may be overwritten (default=random)
         self._f_cluster_count = None
@@ -132,6 +133,14 @@ class ClusterNN(BaseNN):
     @validation_data_count.setter
     def validation_data_count(self, validation_data_count):
         self._validation_data_count = validation_data_count
+
+    @property
+    def early_stopping_iterations(self):
+        return self._early_stopping_itrs
+
+    @early_stopping_iterations.setter
+    def early_stopping_iterations(self, early_stopping_itrs):
+        self._early_stopping_itrs = early_stopping_itrs
 
     def set_loss_weight(self, loss_name, weight=None):
         self._loss_weights[loss_name] = weight
@@ -496,10 +505,13 @@ class ClusterNN(BaseNN):
         tbl_metrics_avg = AlignedTextTable(add_initial_row=True)
         tbl_metrics_best = AlignedTextTable(add_initial_row=True)
         tbl_metrics_best_itr = self.__get_last_epoch() if latest_is_minimum_value("val_loss") else best_valid_loss_itr
+        if tbl_metrics_best_itr is not None:
+            tbl_metrics_best_itr -= 1
         metrics_avg_n = 20
         train = {}
         valid = {}
         others = {}
+        float_value_format = '{0:.6}'
         for key in sorted(history.keys()):
             value = history[key][-1]
             if value is None:
@@ -512,15 +524,15 @@ class ClusterNN(BaseNN):
 
                 # Add the metrics value
                 tbl_metrics.add_cell(key)
-                tbl_metrics.add_cell(colored("{:0.6}".format(value), attrs=['bold']))
+                tbl_metrics.add_cell(colored(float_value_format.format(value), attrs=['bold']))
 
                 # Add the average over the last metrics_avg_n values
                 tbl_metrics_avg.add_cell("{}_avg{}".format(key, metrics_avg_n))
-                tbl_metrics_avg.add_cell(colored("{:0.6}".format(history.aggregate_over_latest_values(key, f_aggregate=np.mean, n=metrics_avg_n)), attrs=['bold']))
+                tbl_metrics_avg.add_cell(colored(float_value_format.format(history.aggregate_over_latest_values(key, f_aggregate=np.mean, n=metrics_avg_n)), attrs=['bold']))
 
                 # Add the metrics for the best run
                 tbl_metrics_best.add_cell("{}_best".format(key))
-                tbl_metrics_best.add_cell(colored("{:0.6}".format(history[key][tbl_metrics_best_itr]), attrs=['bold']))
+                tbl_metrics_best.add_cell(colored(float_value_format.format(history[key][tbl_metrics_best_itr]), attrs=['bold']))
 
             else:
                 train[key] = value
@@ -536,7 +548,7 @@ class ClusterNN(BaseNN):
                     value = row[key]
                     if value is not None:
                         tbl.add_cell("{}:".format(key))
-                        tbl.add_cell(colored("{:0.6}".format(value), color=color, attrs=attrs))
+                        tbl.add_cell(colored(float_value_format.format(value), color=color, attrs=attrs))
                     del row[key]
             def try_add_all(key_contains, color=None, bold=False):
                 for key in sorted(list(filter(lambda k: key_contains in k, row.keys()))):
@@ -548,9 +560,9 @@ class ClusterNN(BaseNN):
             for k in list(sorted(row.keys())):
                 try_add(k, bold=True)
         tbl.print_str()
+
+        tbl_metrics = AlignedTextTable.merge(tbl_metrics, tbl_metrics_avg, tbl_metrics_best)
         tbl_metrics.print_str()
-        tbl_metrics_avg.print_str()
-        tbl_metrics_best.print_str()
 
         # Old print code:
         # for hist_key in sorted(history.keys()):
@@ -567,15 +579,30 @@ class ClusterNN(BaseNN):
         self.event_training_iteration_after.fire(history, nth=self.__get_last_epoch())
 
     def train(self, iterations=1):
+        early_stopped = False
+        iterations_done = 0
         for i in range(iterations):
+
+            # Is early stopping enabled?
             if self._early_stopping_itrs is not None:
                 history = self._get_history(self._model_training)
                 best_valid_loss_itr = history.get_min_index('val_loss')
                 latest_itr = self.__get_last_epoch()
-                if latest_itr - best_valid_loss_itr >= self._early_stopping_itrs:
-                    print("Early stopping (after {} iterations without any improvement on the validation data)".format(self._early_stopping_itrs))
+                if not (latest_itr is None or best_valid_loss_itr is None):
+                    if latest_itr - best_valid_loss_itr >= self._early_stopping_itrs:
+                        print("Early stopping (after {} iterations without any improvement on the validation data)".format(self._early_stopping_itrs))
+                        early_stopped = True
+                        break
 
+            # Do a training iteration
             self.__train_iteration()
+            iterations_done += 1
+
+        # If required: Fire the early stopped event
+        if early_stopped:
+            self.event_early_stopped.fire(iterations_done)
+
+        return early_stopped
 
     def data_to_cluster_indices(self, data, shuffle_indices=None):
         if isinstance(data[0][0], list):
@@ -938,7 +965,8 @@ class ClusterNN(BaseNN):
 
     def register_autosave(self, output_directory, base_filename=None, nth_iteration=100, always_save_best_config=True,
                           create_examples=True, example_count=4, overwrite_examples=True, include_history=True,
-                          print_loss_plot_every_nth_itr=10, train_examples_nth_iteration=None):
+                          print_loss_plot_every_nth_itr=10, train_examples_nth_iteration=None, save_weights_on_early_stop=True,
+                          force_saveing_weights_on_early_stop_after_zero_iters=False):
         if base_filename is None:
             base_filename = self._get_name('autosave')
 
@@ -961,6 +989,10 @@ class ClusterNN(BaseNN):
         # Should the configuration anyway be saved from time to time?
         if nth_iteration is not None:
             self.event_training_iteration_after.add(lambda history: f_autosave('itr'), nth=nth_iteration)
+
+        # If an early stop is executed: Should the weights be stored (with the iteration suffix)?
+        if save_weights_on_early_stop:
+            self.event_early_stopped.add(lambda iterations_done: f_autosave('itr') if (iterations_done > 0) or force_saveing_weights_on_early_stop_after_zero_iters else None)
 
         # Should some examples with the train data be created from time to time?
         if train_examples_nth_iteration is not None:

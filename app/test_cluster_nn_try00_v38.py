@@ -49,7 +49,16 @@ if __name__ == '__main__':
     c_nn.class_weights_approximation = 'stochastic'
     c_nn.minibatch_size = 35
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
-    c_nn.validate_every_nth_epoch = 10
+    # c_nn.validate_every_nth_epoch = 10
+
+    # <modified_20171023>
+    validation_factor = 10
+    c_nn.early_stopping_iterations = 10000
+    c_nn.validate_every_nth_epoch = 10 * validation_factor
+    c_nn.validation_data_count = c_nn.minibatch_size * validation_factor
+    # c_nn.prepend_base_name_to_layer_name = False
+    print_loss_plot_every_nth_itr = 100
+    # </modified_20171023>
 
     # c_nn.f_cluster_count = lambda: 10
     # c_nn.minibatch_size = 200
@@ -78,5 +87,9 @@ if __name__ == '__main__':
 
     # Train a loooong time
     c_nn.train(1000000)
+
+    # Load the best weights and create some examples
+    c_nn.try_load_from_autosave(autosave_dir, config='best')
+    c_nn.test_network(count=30, output_directory=autosave_dir + '/examples_final', data_type='test', create_date_dir=False)
 
 
