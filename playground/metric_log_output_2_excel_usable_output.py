@@ -8,7 +8,7 @@ log = input('Log line: ')
 
 # Split the log
 log = log.replace('.', ',') # This is just for german configured excels
-log = log.strip().split(' ')
+log = list(filter(lambda l: len(l) > 0, log.strip().split(' ')))
 assert len(log) % 2 == 0
 
 # Print it (the output just may be copy pasted to excel)

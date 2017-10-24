@@ -60,7 +60,7 @@ while True:
     # snippet_spec = 'FGMB0 [CONCAT] [1555-1655]'
 
     # Parse the specification
-    m = re.search('([^ ]+) \[([^\]]+)\] \[(\d+)-(\d+)]', snippet_spec)
+    m = re.search('^([^ ]+) \[([^\]]+)\] \[(\d+)-(\d+)].*$', snippet_spec)
     if m is None:
         print("Invalid snippet specification. Abort.")
         break

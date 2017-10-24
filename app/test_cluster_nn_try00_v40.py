@@ -86,6 +86,8 @@ if __name__ == '__main__':
     # Train a loooong time
     c_nn.train(1000000)
 
+    # Load the best weights and create some examples
+    c_nn.try_load_from_autosave(autosave_dir, config='best')
     c_nn.test_network(count=30, output_directory=autosave_dir + '/examples_final', data_type='test', create_date_dir=False)
 
 

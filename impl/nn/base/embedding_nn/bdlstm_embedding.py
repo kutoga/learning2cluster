@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras.models import Sequential
-from keras.layers import BatchNormalization, Dense, Activation, Layer, Bidirectional, LSTM
+from keras.layers import BatchNormalization, Dense, Activation, Layer, Bidirectional, LSTM, Flatten, TimeDistributed
 
 from core.nn.embedding_nn import EmbeddingNN
 
@@ -26,6 +26,9 @@ class BDLSTMEmbedding(EmbeddingNN):
 
     def _build_model(self, input_shape):
 
+        # We requires a time and a feature dimension (if you only have (n,)-shaped data, you have to reshape it)
+        assert len(input_shape) >= 2
+
         model = Sequential(name=self._get_name('Model'))
         if self._batch_norm_for_init_layer:
             model.add(self._s_layer('batch_init', lambda name: BatchNormalization(name=name, input_shape=input_shape)))
@@ -33,8 +36,13 @@ class BDLSTMEmbedding(EmbeddingNN):
             # The first layer always requires the networks input shape. Create a dummy layer (its the easiest way)
             model.add(self._s_layer('dummy_init', lambda name: Activation('linear', name=name, input_shape=input_shape)))
 
-        # It is just assumed that the input is 1D with N features; No flattening is done
-        # (this is done to prevent undesired / unexpected behaviour)
+        # If there are more than 2 dimensions (e.g. the input shape 48x48x3 for RGB images of the size 48x48), we have
+        # to flatten all dimensions after the first dimension (=time-dimension)
+        if len(input_shape) > 2:
+            model.add(self._s_layer(
+                'flatten_init',
+                lambda name: TimeDistributed(Flatten(), name=name)
+            ))
 
         # Add all BDLSTM layers
         bdlstm_layer_count = len(self._bdlstm_layers_units)

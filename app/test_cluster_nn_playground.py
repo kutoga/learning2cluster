@@ -19,6 +19,7 @@ if __name__ == '__main__':
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
     from impl.nn.base.embedding_nn.simple_fc_embedding import SimpleFCEmbedding
+    from impl.nn.base.embedding_nn.bdlstm_embedding import BDLSTMEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
@@ -36,20 +37,27 @@ if __name__ == '__main__':
         # test_classes=TIMIT20_lst,
         # validate_classes=TIMIT20_lst,
         concat_audio_files_of_speaker=True,
-        window_width=[(20, 40), (60, 80)]
-    )
-    dp = Birds200DataProvider(
-        min_cluster_count=1,
-        max_cluster_count=2,
-    )
-    dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=2, allow_less_clusters=False)
 
-    en = SimpleFCEmbedding(hidden_layers=[3])
+        # Sample from these given window widths
+        window_width=[(80, 150)],
+        # window_width=[(40, 50), (70, 80)],
+
+        # For each cluster we want at least one large snippet and one short snippet
+        minimum_snippets_per_cluster=[(200, 200), (50, 50)]
+    )
+    # dp = Birds200DataProvider(
+    #     min_cluster_count=1,
+    #     max_cluster_count=2,
+    # )
+    # dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=2, allow_less_clusters=False)
+
+    # en = SimpleFCEmbedding(hidden_layers=[3])
+    en = BDLSTMEmbedding()
     # en = None
     # en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
 
     # cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
-    cnn = ClusterNNKlDivergence(dp, 3, en, weighted_classes=True, lstm_layers=1, cluster_count_lstm_units=2, cluster_count_lstm_layers=1, cluster_count_dense_layers=1,
+    cnn = ClusterNNKlDivergence(dp, 6, en, weighted_classes=True, lstm_layers=1, cluster_count_lstm_units=2, cluster_count_lstm_layers=1, cluster_count_dense_layers=1,
                                 cluster_count_dense_units=1, output_dense_layers=1, output_dense_units=1)
     # cnn.class_weights_approximation = 'stochastic'
     # cnn.build_networks(print_summaries=True)

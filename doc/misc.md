@@ -74,4 +74,9 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v39.py /tmp/test/test_cluster_nn_try00_v39.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v40.py /tmp/test/test_cluster_nn_try00_v40.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v41.py /tmp/test/test_cluster_nn_try00_v41.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v42.py /tmp/test/test_cluster_nn_try00_v42.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v43.py /tmp/test/test_cluster_nn_try00_v43.py.log
+
+    # Copy the modified cudnn layer (see https://github.com/fchollet/keras/issues/8164)
+	cp /tmp/test/cudnn_recurrent.py /tmp/test/wrappers.py /opt/conda/lib/python3.5/site-packages/keras/layers/
 

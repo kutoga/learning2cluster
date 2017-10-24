@@ -47,7 +47,7 @@ class AudioDataProvider(ImageDataProvider):
         self.__allow_minimum_snippets_overlap = False
 
         # The output length is the maximum possible snippet length
-        self.__output_length = max(map(lambda r: r[1], self.__window_width))
+        self.__output_length = max(map(lambda r: r[1], self.__window_width + ([] if isinstance(self.__minimum_snippets_per_cluster, int) else self.__minimum_snippets_per_cluster)))
 
         # If "return_equal_snippet_size" is False different snippets may have different lengths
         self.__return_equal_snippet_size = return_equal_snippet_size
@@ -156,7 +156,7 @@ class AudioDataProvider(ImageDataProvider):
 
         # Choose a possible window width
         # if window_range is None:
-        if not isinstance(self.__minimum_snippets_per_cluster, int):
+        if (not isinstance(self.__minimum_snippets_per_cluster, int)) and element_index < len(self.__minimum_snippets_per_cluster):
             window_range = self.__minimum_snippets_per_cluster[element_index]
         else:
             possible_window_ranges = list(filter(lambda w: (w[1] - w[0]) <= audio_width, self.__window_width))

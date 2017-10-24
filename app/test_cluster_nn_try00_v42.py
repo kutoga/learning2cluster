@@ -4,11 +4,12 @@ matplotlib.use('Agg')
 import numpy as np
 
 from keras.layers.advanced_activations import LeakyReLU
+from keras.optimizers import Adadelta
 
 from random import randint
 from time import time
 
-from impl.nn.try00.cluster_nn_try00_v23 import ClusterNNTry00_V23
+from impl.nn.try00.cluster_nn_try00_v39 import ClusterNNTry00_V39
 
 if __name__ == '__main__':
 
@@ -17,33 +18,40 @@ if __name__ == '__main__':
 
     from sys import platform
 
-    from impl.data.image.birds200_data_provider import Birds200DataProvider
+    from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    dp = Birds200DataProvider(
+    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
+    dp = TIMITDataProvider(
+        # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
         min_cluster_count=1,
-        max_cluster_count=5
+        max_cluster_count=5,
+        return_1d_audio_data=False,
+        test_classes=TIMIT_lst,
+        validate_classes=TIMIT_lst,
+        concat_audio_files_of_speaker=True
     )
     en = CnnEmbedding(
-        output_size=96,
-        cnn_layers_per_block=2, block_feature_counts=[64, 128, 256],
-        fc_layer_feature_counts=[512], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
-        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
-        dropout_init=.5, dropout_after_max_pooling=[.5, .5], dropout_after_fc=[.5]
+        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64],
+        fc_layer_feature_counts=[], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
     )
 
-    c_nn = ClusterNNTry00_V23(dp, 20, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+    c_nn = ClusterNNTry00_V39(dp, 20, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                               output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                               kl_embedding_size=128, kl_divergence_factor=0.1)
     c_nn.include_self_comparison = False
     c_nn.weighted_classes = True
     c_nn.class_weights_approximation = 'stochastic'
-    c_nn.minibatch_size = 40
+    c_nn.minibatch_size = 35
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
+    c_nn.set_loss_weight('similarities_output', 5.0)
+    c_nn.optimizer = Adadelta(lr=5.0)
 
     validation_factor = 10
     c_nn.early_stopping_iterations = 10000
@@ -73,7 +81,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V41'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V42'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
