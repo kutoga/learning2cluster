@@ -11,6 +11,7 @@ from time import time
 from impl.nn.try04_ddbc.cluster_nn_try04_ddbc import ClusterNNTry04_Ddbc
 from impl.nn.try00.cluster_nn_try00_v12 import ClusterNNTry00_V12
 from impl.nn.try00.cluster_nn_try00_v16 import ClusterNNTry00_V16
+from impl.nn.playground.cluster_nn_cohesion_test import ClusterNNCohesionTest
 
 if __name__ == '__main__':
 
@@ -44,14 +45,14 @@ if __name__ == '__main__':
         dropout_init=.5, dropout_after_max_pooling=.5, dropout_after_fc=[.2, .3, .4, .5]
     )
 
-    c_nn = ClusterNNTry04_Ddbc(dp, 2, en, lstm_layers=0, lstm_units=1, cluster_count_dense_layers=0, cluster_count_dense_units=1,
-                              output_dense_layers=0, output_dense_units=1, cluster_count_lstm_layers=0, cluster_count_lstm_units=1)
-    c_nn.minibatch_size = 1
+    c_nn = ClusterNNCohesionTest(dp, 2, en, lstm_layers=0, cluster_count_dense_layers=0, cluster_count_dense_units=1,
+                              output_dense_layers=0, output_dense_units=1, cluster_count_lstm_layers=1, cluster_count_lstm_units=1)
+    c_nn.minibatch_size = 2
     c_nn.validate_every_nth_epoch = 1
 
-    c_nn.use_cluster_count_loss = False
-    c_nn.use_similarities_loss = False
-    c_nn.fixed_cluster_count_output = dp.get_max_cluster_count()
+    # c_nn.use_cluster_count_loss = False
+    # c_nn.use_similarities_loss = False
+    # c_nn.fixed_cluster_count_output = dp.get_max_cluster_count()
 
     # c_nn.f_cluster_count = lambda: 10
     # c_nn.minibatch_size = 200

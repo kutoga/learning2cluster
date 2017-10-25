@@ -708,13 +708,27 @@ def get_cluster_cohesion(cluster_centers, embeddings, cluster_classification, di
 
 
 # An implementation of the KL-divergence proposed by Lukic et al. (Learning embeddings for speaker clustering based on voice equality)
-# TODO
 def lukic_kl_divergence(x, y, similar, margin=2.):
     def cost(p, q):
         kl = kullback_leibler_divergence(p, q)
         return similar * kl + (1 - similar) * K.relu(margin - kl)
     return cost(x, y) + cost(y, x)
 
+
+def euclidean_distance(x, y, squared=False, axis=2):
+    d = K.square(x - y)
+    d = K.sum(d, axis=axis)
+    if not squared:
+        d = K.sqrt(d)
+    return d
+
+def meier_cluster_cohesion(x, y, similar, similar_distance_weight=1., dissimilar_distance_weight=0.,
+                           distance_f=lambda x, y: euclidean_distance(x, y, squared=True)):
+    d = distance_f(x, y)
+    cost = 0.
+    cost += similar * similar_distance_weight * d
+    cost += (1 - similar) * dissimilar_distance_weight * d
+    return cost
 
 if __name__ == '__main__':
     from random import random

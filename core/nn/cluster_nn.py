@@ -194,6 +194,8 @@ class ClusterNN(BaseNN):
             def metric_plot(history, plt, metric=metric):
                 x = list(history.get_epoch_indices())
                 y = history['metric_{}'.format(metric)]
+                y_min = min(y)
+                y_max = max(y)
                 plt.plot(
                     *filter_None(x, y),
                     *filter_None(x, self.plot_sliding_window_average(y)),
@@ -205,6 +207,10 @@ class ClusterNN(BaseNN):
                     '{}: validation'.format(metric),
                     '{}: validation AVG'.format(metric)
                 ])
+                if y_max <= 1 and y_min >= -1:
+                    lower_limit = -1 if y_min < 0 else 0
+                    upper_limit = 1
+                    plt.ylim((lower_limit, upper_limit))
                 plt.xlabel('iteration')
                 plt.ylabel('score')
                 plt.grid(True)
