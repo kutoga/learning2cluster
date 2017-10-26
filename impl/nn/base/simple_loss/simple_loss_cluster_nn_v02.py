@@ -100,16 +100,22 @@ class SimpleLossClusterNN_V02(ClusterNN):
     def cluster_n_output_loss(self, cluster_n_output_loss):
         self._cluster_n_output_loss = cluster_n_output_loss
 
-    def _register_additional_grouping_similarity_loss(self, name, loss_f):
+    def _register_additional_grouping_similarity_loss(self, name, loss_f, calculate_org_similarity_loss=True):
         """
         This losses give the possibility to add custom losses based on the similarity_loss (that still has to be defined)
         :param name:
         :param loss_f: lambda similarity_loss: return similarity_loss * my_special_layer
+        :param calculate_org_similarity_loss Should the already calculated original similarity loss be passed (=True) to the loss function of y_true and y_pred?
+
+        if calculate_org_similarity_loss: loss_f has the parameter "similarities_loss"
+        if not calculate_org_similarity_loss: loss_f has the parameters "y_true", "y_pred"
+
         :return:
         """
         self._additional_grouping_similarity_losses.append({
             'name': name,
-            'loss_f': loss_f
+            'loss_f': loss_f,
+            'calculate_org_similarity_loss': calculate_org_similarity_loss
         })
 
     def _register_additional_regularisation(self, layer, name):
@@ -531,7 +537,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
             similarities_loss = create_weighted_binary_crossentropy(w0, w1)
         else:
             similarities_loss = binary_crossentropy # 'binary_crossentropy'
-        loss = { }
+        loss = {}
         if self._use_similarities_loss:
             loss['similarities_output'] = similarities_loss
         if self._use_cluster_count_loss and len(self._get_cluster_counts()) > 1:
@@ -539,8 +545,12 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
         # Register all additional similarity losses
         for additional_grouping_similarity_loss in self._additional_grouping_similarity_losses:
-            loss[additional_grouping_similarity_loss['name']] =\
-                lambda y_true, y_pred, loss_f=additional_grouping_similarity_loss['loss_f']: loss_f(similarities_loss(y_true, y_pred))
+            name = additional_grouping_similarity_loss['name']
+            loss_f = additional_grouping_similarity_loss['loss_f']
+            if additional_grouping_similarity_loss['calculate_org_similarity_loss']:
+                loss[name] = lambda y_true, y_pred, loss_f=loss_f: loss_f(similarities_loss(y_true, y_pred))
+            else:
+                loss[name] = lambda y_true, y_pred, loss_f=loss_f: loss_f(y_true, y_pred)
 
         # Register all regularisations
         if len(self._additional_regularisations) > 0:

@@ -1,7 +1,8 @@
-from itertools import chain
+from itertools import chain, combinations
 from random import Random
 from os import path
 from time import time
+import collections
 
 import numpy as np
 
@@ -77,6 +78,9 @@ class ClusterNN(BaseNN):
 
         # Different losses may be weighted differently: Default weights are just 1
         self._loss_weights = {}
+
+        # The hints input for the network
+        self.__nw_clustering_hint = None
 
     @property
     def normalize_network_input(self):
@@ -194,10 +198,11 @@ class ClusterNN(BaseNN):
             def metric_plot(history, plt, metric=metric):
                 x = list(history.get_epoch_indices())
                 y = history['metric_{}'.format(metric)]
-                y_min = min(y)
-                y_max = max(y)
+                x_p, y_p = filter_None(x, y)
+                y_min = min(y_p)
+                y_max = max(y_p)
                 plt.plot(
-                    *filter_None(x, y),
+                    x_p, y_p,
                     *filter_None(x, self.plot_sliding_window_average(y)),
 
                     alpha=0.7,
@@ -333,6 +338,12 @@ class ClusterNN(BaseNN):
             current_inputs = inputs[c]['data']
             for i in range(len(current_inputs)):
                 X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
+
+        # Append hints
+        # TODO: Give the application the possibility to add "custom" hints
+        n = self.input_count
+        X.append(np.zeros((len(inputs), n * (n - 1) // 2), dtype=np.float32))
+
         return X
 
     def _build_Xy_data(self, data):
@@ -378,7 +389,7 @@ class ClusterNN(BaseNN):
 
         return self.__build_X_data(inputs), self._build_y_data(inputs)
 
-    def __build_inputs(self):
+    def __build_elements_inputs(self):
         return [
             self._s_layer('input_{}'.format(i), lambda name: Input(shape=self.data_provider.get_data_shape(), name=name))
             for i in range(self._input_count)
@@ -699,7 +710,56 @@ class ClusterNN(BaseNN):
 
         return metrics
 
-    def predict(self, X, debug_mode=None, debug_outputs=None):
+    def __preprocess_hints(self, hints):
+        """
+        This function preprocesses the hints. It creates an upper similarity matrix out of the hints.
+        The diagonal is not included (it obviously would be everywhere 1).
+
+        The matrix is flattened to an array (assuming there are 4 inputs):
+        [
+            (x0 is in the same cluster as x1),
+            (x0 is in the same cluster as x2),
+            (x0 is in the same cluster as x3),
+            (x1 is in the same cluster as x2),
+            (x1 is in the same cluster as x3),
+            (x2 is in the same cluster as x3),
+        ]
+
+        If both elements are in the same cluster, the value is 1, otherwise it is 0.
+        :param batch_size:
+        :param hints:
+        :return:
+        """
+        n = self.input_count
+        result = np.zeros((n * (n - 1) // 2,), dtype=np.float32)
+        if hints is None:
+            return result
+
+        # Check if some elements occur more than once in the hints
+        dbl_elements = [item for item, count in collections.Counter(list(chain(*hints))).items() if count > 1]
+        if len(dbl_elements) > 0:
+            raise Exception("Some elements are more than once in the hints: {}; Hints: {}".format(dbl_elements, hints))
+
+        # Add all hints (it could be done more efficient by just setting the right index, but it would be more complicated to develop (and to read (and speed doesnt matter here at all)))
+        processes_hints = {source_i:set() for source_i in range(self.input_count)}
+        def add_hint(x, y):
+            min_i = min(x, y)
+            max_i = max(x, y)
+            processes_hints[min_i].add(max_i)
+        for hint in hints:
+            for x, y in combinations(hint, r=2):
+                add_hint(x, y)
+        i = 0
+        for source_i in range(self.input_count):
+            curr_processed_hints = processes_hints[source_i]
+            for target_i in range(source_i + 1, self.input_count):
+                if target_i in curr_processed_hints:
+                    result[i] = 1.
+                i += 1
+        return result
+
+
+    def predict(self, X, hints=None, debug_mode=None, debug_outputs=None):
         # Cases:
         # X is a list of lists or np-arrays -> multiple runs
         # X is a list of np-arrays -> single run
@@ -712,8 +772,25 @@ class ClusterNN(BaseNN):
         # Important:
         # If X contains less inputs than the neural networks expects (e.g. len(X[0]) < self._input_count), then some
         # inputs will be 0.
+        #
+        # What does the input "hints" stand for?
+        # It contains hints for the network which elements are in the same cluster. It is a list of lists of lists:
+        # [[[[1, 3, 4], [0, 2]]], ...]
+        # The most outer list is just for the batch hints[0] contains hints for the first input, hint[2] for the second,
+        # etc. The value "None" is allowed for the hints variable, and also for the elements inside the hints-variable.
+        # We focus now on the hints for X[0], this means hints[0]:
+        # This example indicates that for sure (=the hint) the elements 1, 3 and 4 are in the same cluster. The second
+        # hint is that 0 and 2 are also in the same cluster. If an element index does not show up in this list, this means
+        # it is absolutely nothing known about the position of the input. The network may use these hints, but they also
+        # could be ignored (this highly depends on how the network is implemented)
         if debug_mode is None:
             debug_mode = self.debug_mode
+
+        if hints is None:
+            hints = [None] * len(X)
+        assert len(hints) == len(X)
+        X_hints = [self.__preprocess_hints(c_hints) for c_hints in hints]
+        X_hints = np.asarray(X_hints)
 
         data_shape = self.data_provider.get_data_shape()
         X_preprocessed = [
@@ -726,8 +803,13 @@ class ClusterNN(BaseNN):
             for i in range(min(len(ci), self._input_count)):
                 X_preprocessed[i][c] = self._normalize_array_if_required(X[c][i])
 
-        # TODO: Prepare X (use it directory from the data provider)
-        prediction = self._model_prediction.predict(X_preprocessed, batch_size=self._minibatch_size)
+        # Add the hints input
+        # TODO (this breaks the current interface!); Maybe add a method get_clustering_hints() to get the hints inside
+        # the build neural network function
+        nw_input = X_preprocessed + [X_hints]
+
+        # obsolete: TODO: Prepare X (use it directly from the data provider)
+        prediction = self._model_prediction.predict(nw_input, batch_size=self._minibatch_size)
 
         prediction_debug_output_count = len(self._prediction_debug_outputs)
         additional_prediction_output_count = len(self._additional_prediction_outputs)
@@ -738,10 +820,10 @@ class ClusterNN(BaseNN):
         else:
             prediction_outputs = prediction
         if additional_prediction_output_count > 0:
-            debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):-additional_prediction_output_count]
+            curr_debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):-additional_prediction_output_count]
             additional_prediction_outputs = prediction[-additional_prediction_output_count:]
         else:
-            debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):]
+            curr_debug_outputs = prediction[-(prediction_debug_output_count + additional_prediction_output_count):]
             additional_prediction_outputs = []
 
         # Check debug outputs.
@@ -770,14 +852,14 @@ class ClusterNN(BaseNN):
                         print("Layer name: {}".format(debug_output['layer'].name))
                         print("Data shape: {}".format(debug_output['layer'].shape))
                         print("Value(s):")
-                        print(debug_outputs[i])
+                        print(curr_debug_outputs[i])
                         if self.additional_debug_array_printer is not None:
                             print("Additional debug array printer output:")
-                            print(self.additional_debug_array_printer(debug_outputs[i]))
+                            print(self.additional_debug_array_printer(curr_debug_outputs[i]))
                         if debug_outputs is not None:
                             debug_outputs.append({
                                 'layer': self._prediction_debug_outputs[i],
-                                'output': debug_outputs[i]
+                                'output': curr_debug_outputs[i]
                             })
                 print("~~~~~~~~~~~~~~~~~~~~~")
                 print("~Debug output: End  ~")
@@ -866,6 +948,9 @@ class ClusterNN(BaseNN):
             'layer': layer
         })
 
+    def _get_clustering_hint(self):
+        return self.__nw_clustering_hint
+
     def build_networks(self, print_summaries=False):
         if self._embedding_nn is not None:
             self._embedding_nn.build(self.data_provider.get_data_shape())
@@ -873,14 +958,16 @@ class ClusterNN(BaseNN):
                 self._embedding_nn.model.summary()
 
         # Build the prediction model
-        nw_input = self.__build_inputs()
+        nw_input = self.__build_elements_inputs()
+        self.__nw_clustering_hint = Input(((self.input_count * (self.input_count - 1)) // 2,))
         nw_output = []
         additional_network_outputs = {}
         self.__reset_debug_outputs()
         self.__reset_additional_prediction_outputs()
         self._build_network(nw_input, nw_output, additional_network_outputs)
         self._model_prediction = Model(
-            nw_input, nw_output +
+            # nw_input, nw_output +
+            nw_input + [self.__nw_clustering_hint], nw_output +
             list(map(lambda a: a['layer'], self._prediction_debug_outputs)) +
             list(map(lambda a: a['layer'], self._additional_prediction_outputs))
         )
@@ -891,7 +978,8 @@ class ClusterNN(BaseNN):
         # Build the training model (it is based on the prediction model)
         loss_output = []
         self._build_loss_network(nw_output, loss_output, additional_network_outputs)
-        self._model_training = Model(nw_input, loss_output)
+        self._model_training = Model(nw_input + [self.__nw_clustering_hint], loss_output)
+        # self._model_training = Model(nw_input, loss_output)
         if print_summaries:
             self._model_training.summary()
         # self._model_training.summary()

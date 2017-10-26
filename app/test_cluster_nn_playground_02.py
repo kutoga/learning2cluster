@@ -9,6 +9,7 @@ from random import randint
 from time import time
 
 from impl.nn.try04_ddbc.cluster_nn_try04_ddbc import ClusterNNTry04_Ddbc
+from impl.nn.playground.cluster_nn_hint import ClusterNNHint
 from impl.nn.try00.cluster_nn_try00_v12 import ClusterNNTry00_V12
 from impl.nn.try00.cluster_nn_try00_v16 import ClusterNNTry00_V16
 
@@ -20,7 +21,9 @@ if __name__ == '__main__':
     from sys import platform
 
     from impl.data.image.mnist_data_provider import MNISTDataProvider
+    from impl.data.simple_2d_point_data_provider import Simple2DPointDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
+    from impl.nn.base.embedding_nn.simple_fc_embedding import SimpleFCEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
@@ -42,14 +45,23 @@ if __name__ == '__main__':
         batch_norm_for_init_layer=True, cnn_filter_size=5
     )
 
-    c_nn = ClusterNNTry04_Ddbc(dp, 10, en, lstm_layers=0, lstm_units=1, cluster_count_dense_layers=0, cluster_count_dense_units=1,
-                              output_dense_layers=0, output_dense_units=1, cluster_count_lstm_layers=0, cluster_count_lstm_units=1)
-    c_nn.minibatch_size = 1
-    c_nn.validate_every_nth_epoch = 1
+    fixedc = 2
+    dp = Simple2DPointDataProvider(
+        min_cluster_count=fixedc, max_cluster_count=fixedc, allow_less_clusters=False
+    )
+    en = None
+    # dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=10, allow_less_clusters=False)
+    # en = SimpleFCEmbedding(output_size=2, hidden_layers=[16, 32, 64, 64], final_activation='tanh')
 
-    c_nn.use_cluster_count_loss = False
-    c_nn.use_similarities_loss = False
-    c_nn.fixed_cluster_count_output = dp.get_max_cluster_count()
+    c_nn = ClusterNNHint(dp, 3, en, lstm_layers=0, kl_embedding_size=2, cluster_count_dense_layers=0, cluster_count_dense_units=1,
+                         output_dense_layers=0, output_dense_units=1, cluster_count_lstm_layers=1, cluster_count_lstm_units=1)
+    c_nn.minibatch_size = 2
+    c_nn.validate_every_nth_epoch = 1
+    c_nn.debug_mode = True
+
+    # c_nn.use_cluster_count_loss = False
+    # c_nn.use_similarities_loss = False
+    # c_nn.fixed_cluster_count_output = dp.get_max_cluster_count()
 
     # c_nn.f_cluster_count = lambda: 10
     # c_nn.minibatch_size = 200
@@ -71,11 +83,32 @@ if __name__ == '__main__':
 
     c_nn.build_networks(print_summaries=False)
 
-    # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNPlayground02'
-    c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=1)
-    c_nn.try_load_from_autosave(autosave_dir)
+    # # Enable autosave and try to load the latest configuration
+    # autosave_dir = top_dir + 'test/autosave_ClusterNNPlayground02'
+    # c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=1)
+    # c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
-    c_nn.train(1000000)
+    # c_nn.train(1)
+
+    y = c_nn.predict(
+        np.asarray([
+            [
+                [0.2, 0.8],
+                [0.1, 0.9],
+                [0.3, 0.7]
+            ],
+            [
+                [0.2, 0.8],
+                [0.1, 0.9],
+                [0.3, 0.7]
+            ],
+        ]),
+        hints=[
+            None,
+            [[0, 1], [2]]
+        ]
+    )
+
+    # Do a dummy prediction
 

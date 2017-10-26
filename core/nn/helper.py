@@ -2,13 +2,14 @@ import _pickle as pickle
 from os import path
 from shutil import move
 from inspect import getframeinfo, stack
+import numbers
 
 import numpy as np
 import scipy.stats as st
 
 from contextlib import contextmanager
 
-from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer, RepeatVector
+from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer, RepeatVector, add
 from keras.models import Sequential
 from keras.objectives import kullback_leibler_divergence
 import keras.backend as K
@@ -152,6 +153,95 @@ def slice_layer(layer, index, name=None):
     )(layer)
     # print("Output shape: {} -> {}".format(res._keras_shape, K.ndim(res)))
     return res
+
+
+def weighted_sum(inputs, weights):
+    assert len(inputs) == len(weights)
+    if len(inputs) == 0:
+        return None
+
+    # We need a dummy layer to convert Tensors to Keras Tensors
+    dummy_layer = inputs[0]
+
+    # Calculate the expected output shape (it is quite ugly, because .shape does not contain integers, but "Dimension"s)
+    output_target_shape = tuple(map(lambda x: int(str(x)), inputs[0].shape[1:]))
+
+    # Calculate the weighted inputs
+    weighted_inputs = []
+    c = 0
+    l_repeat = RepeatVector(np.prod(output_target_shape))
+    l_reshape = Reshape(output_target_shape)
+    for i in range(len(weights)):
+        weight = weights[i]
+        if not isinstance(weight, numbers.Number):
+            if not isinstance(weight, Layer):
+                weight = Lambda(lambda x: weight)(dummy_layer)
+            weight = l_repeat(weight)
+            weight = l_reshape(weight)
+        ws = Lambda(lambda x: weight * inputs[i])(dummy_layer)
+        # ws = Reshape(embeddings_processed[i].shape[1:])(ws)
+        ws = l_reshape(ws)
+        c += weight
+        weighted_inputs.append(ws)
+    res = add(weighted_inputs)
+    res = Lambda(lambda res: res / (c + K.epsilon()))(res)
+    return res
+
+
+def similarity_array_to_similarity_matrix(arr, n, diagonal_default_value=1.):
+    # Important: Only the upper half (including the diagonal) of the matrix will be defined
+    if arr.shape[1] == n * (n + 1) // 2:
+        include_self_comparison = True
+    elif arr.shape[1] == n * (n - 1) // 2:
+        include_self_comparison = False
+    else:
+        raise Exception("Invalid input array size")
+
+    # Create a "matrix" and fill in ever yvalue
+    get = lambda i: arr[:, i:i + 1]
+    M = [[None] * n for j in range(n)]
+    j = 0
+    for source_i in range(n):
+        if include_self_comparison:
+            M[source_i][source_i] = get(j)
+            j += 1
+        else:
+            M[source_i][source_i] = diagonal_default_value
+        for target_i in range(source_i + 1, n):
+            M[source_i][target_i] = get(j)
+            j += 1
+    assert j == arr.shape[1]
+    return M
+
+
+def similarity_matrix_select_weights(similarity_matrix, i_x):
+    # Similarity matrix is a list of the length n that includes at each index a list of the length n
+    n = len(similarity_matrix)
+    res = []
+    for i in range(n):
+        if i < i_x:
+            x = i_x
+            y = i
+        else:
+            x = i
+            y = i_x
+        res.append(similarity_matrix[y][x])
+    return res
+
+
+def reweight_values(inputs, similarity_array, diagonal_default_value=1.):
+    # similarity_array contains the upper half similarities matrix (including de diagonal)
+
+    # Get the similarity matrix
+    s_m = similarity_array_to_similarity_matrix(similarity_array, n=len(inputs), diagonal_default_value=diagonal_default_value)
+
+    # Reweight now all inputs
+    outputs = []
+    for i in range(len(inputs)):
+        weights = similarity_matrix_select_weights(s_m, i)
+        outputs.append(weighted_sum(inputs, weights))
+
+    return outputs
 
 
 def concat_layer(axis=-1, name=None, input_count=None):
