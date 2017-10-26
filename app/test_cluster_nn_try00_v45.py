@@ -57,7 +57,7 @@ if __name__ == '__main__':
     c_nn.early_stopping_iterations = 10000
     c_nn.validate_every_nth_epoch = 10 * validation_factor
     c_nn.validation_data_count = c_nn.minibatch_size * validation_factor
-    # c_nn.prepend_base_name_to_layer_name = False
+    c_nn.prepend_base_name_to_layer_name = False
     print_loss_plot_every_nth_itr = 100
 
     # c_nn.f_cluster_count = lambda: 10
