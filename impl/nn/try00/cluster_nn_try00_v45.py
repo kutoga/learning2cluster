@@ -15,7 +15,7 @@ class ClusterNNTry00_V45(SimpleLossClusterNN_V02):
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False, cluster_count_lstm_layers=2, cluster_count_lstm_units=64, internal_embedding_size=96,
                  kl_embedding_size=128, kl_divergence_factor=1.):
-        super().__init__(data_provider, input_count, embedding_nn, weighted_classes)
+        super().__init__(data_provider, input_count, embedding_nn, weighted_classes, include_input_count_in_name=False)
 
         self.__internal_embedding_size = internal_embedding_size
 
