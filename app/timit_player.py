@@ -62,16 +62,20 @@ while True:
     # Parse the specification
     m = re.search('^([^ ]+) \[([^\]]+)\] \[(\d+)-(\d+)].*$', snippet_spec)
     if m is None:
-        print("Invalid snippet specification. Abort.")
-        break
+        # print("Invalid snippet specification. Abort.")
+        # break
+        print("Invalid snippet specification.")
+        continue
     speaker = m.group(1)
     file = m.group(2)
     ms_start = int(m.group(3))
     ms_end = int(m.group(4))
 
     if not speaker in data:
-        print("Could not find speaker. Abort.")
-        break
+        # print("Could not find speaker. Abort.")
+        # break
+        print("Could not find speaker.")
+        continue
 
     files = sorted(data[speaker])
 

@@ -1,4 +1,3 @@
-
 # TODO
 # Requirements:
 # - Output can be a 2D image
@@ -8,6 +7,7 @@ import numpy as np
 from random import Random
 from os import path
 from time import time
+from math import ceil
 
 from impl.data.image.image_data_provider import ImageDataProvider
 
@@ -19,7 +19,7 @@ class AudioDataProvider(ImageDataProvider):
     def __init__(self, data_dir=None, audio_helper=None, cache_directory=None, train_classes=None, validate_classes=None,
                  test_classes=None, window_width=100, return_1d_audio_data=False,
                  min_cluster_count=None, max_cluster_count=None, concat_audio_files_of_speaker=False,
-                 minimum_snippets_per_cluster=1, return_equal_snippet_size=True):
+                 minimum_snippets_per_cluster=1, return_equal_snippet_size=True, split_audio_pieces_longer_than_and_create_hints=None):
         if audio_helper is None:
             audio_helper = AudioHelper()
 
@@ -46,11 +46,18 @@ class AudioDataProvider(ImageDataProvider):
         # overlap? This setting is only used if "__concat_audio_files_of_speaker" is enabled
         self.__allow_minimum_snippets_overlap = False
 
-        # The output length is the maximum possible snippet length
-        self.__output_length = max(map(lambda r: r[1], self.__window_width + ([] if isinstance(self.__minimum_snippets_per_cluster, int) else self.__minimum_snippets_per_cluster)))
-
         # If "return_equal_snippet_size" is False different snippets may have different lengths
         self.__return_equal_snippet_size = return_equal_snippet_size
+
+        # If this setting is None it is not used. If it is not None it has to be a positive integer. The effect is then
+        # the following: Each generated audio snippet that is longer than this defined value will be split into smaller
+        # pieces and the "hint" mechanism is used to return "hints" that these snippets belong together.
+        self.__split_audio_pieces_longer_than_and_create_hints = split_audio_pieces_longer_than_and_create_hints
+
+        # The output length is the maximum possible snippet length
+        self.__output_length = max(map(lambda r: r[1], self.__window_width + ([] if isinstance(self.__minimum_snippets_per_cluster, int) else self.__minimum_snippets_per_cluster)))
+        if self.__split_audio_pieces_longer_than_and_create_hints is not None:
+            self.__output_length = min(self.__split_audio_pieces_longer_than_and_create_hints, self.__output_length)
 
         self._load_data()
 
@@ -187,6 +194,34 @@ class AudioDataProvider(ImageDataProvider):
                 start_index = self.__rand.randint(0, output_length - element_length)
                 result[start_index:(start_index + element_length)] = element
                 element = result
+
+        # Test if element has to be split.
+        if self.__split_audio_pieces_longer_than_and_create_hints is not None:
+            max_len = self.__split_audio_pieces_longer_than_and_create_hints
+            parts = int(ceil(element.shape[0] / max_len))
+            if parts > 1:
+
+                # Ok, we have to do the split
+                elements = []
+                for i in range(parts):
+                    new_element = element[(max_len * i):(max_len * (i + 1))]
+                    if i == parts - 1:
+                        # Do padding if required
+                        new_element_length = new_element.shape[0]
+                        new_element_padded = np.zeros((max_len,) + new_element.shape[1:], dtype=np.float32)
+                        start_index = self.__rand.randint(0, max_len - new_element_length)
+                        new_element_padded[start_index:(start_index + new_element_length)] = new_element
+                        new_element = new_element_padded
+                    elements.append(new_element)
+
+                # Return now all the new objects; modify the additional obj info (for each piece)
+                element = elements
+                new_additional_obj_info = []
+                for i in range(parts):
+                    curr_new_additional_obj_info = dict(additional_obj_info)
+                    curr_new_additional_obj_info['description'] += '_[{}/{}]'.format(i + 1, parts)
+                    new_additional_obj_info.append(curr_new_additional_obj_info)
+                additional_obj_info = new_additional_obj_info
 
         return element, additional_obj_info
 

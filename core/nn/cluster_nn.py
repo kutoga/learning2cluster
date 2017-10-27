@@ -401,7 +401,9 @@ class ClusterNN(BaseNN):
     def _get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, return_additional_obj_infos=False, *args):
         if cluster_collection_count is None:
             cluster_collection_count = self._minibatch_size
-        clusters, additional_obj_info = self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
+        clusters, additional_obj_info, hints = self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
+
+        # TODO: Use / return hints
 
         # If required also return the object infos
         if return_additional_obj_infos:

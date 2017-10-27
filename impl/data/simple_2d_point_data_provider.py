@@ -54,7 +54,10 @@ class Simple2DPointDataProvider(DataProvider):
         # required.
         additional_obj_info = None
 
-        return clusters, additional_obj_info
+        # We do not provide any hints for the clustering algorithm...
+        hints = None
+
+        return clusters, additional_obj_info, hints
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
         cluster_counts = list(self.get_target_cluster_counts())

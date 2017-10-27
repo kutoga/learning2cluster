@@ -254,6 +254,124 @@ def concat(inputs, axis=-1, name=None):
     return concat_layer(axis=axis, name=name, input_count=len(inputs))(inputs)
 
 
+def loss_rand_index(y_true, y_pred):
+    """
+    See "MetrikenAlsLoss.docx"
+    :param y_true:
+    :param y_pred:
+    :return:
+    """
+    n = int(str(y_pred.shape[1])) # ~ n(n-1)/2 or n(n+1)/2
+
+    # Calcualte the rand index
+    a = K.sum(y_pred * y_true, axis=1)
+    b = K.sum(1 - y_pred, 1 - y_true, axis=1)
+    C_2 = n
+    rand_index = (a + b) / C_2
+
+    # We want to maximize the rand index (therefore we have to invert the value; we use 1-x because then we get never a negative loss)
+    loss = 1 - rand_index
+
+    # Use the mean (over the batch)
+    loss = K.mean(loss)
+
+    return loss
+
+
+def loss_fowlkes_mallows(y_true, y_pred):
+    """
+    See "MetrikenAlsLoss.docx"
+    :param y_true:
+    :param y_pred:
+    :return:
+    """
+
+    # Calculate TP, TP and FN
+    TP = K.sum(y_pred * y_true, axis=1)
+    FP = K.sum(y_pred, axis=1) - TP
+    FN = K.sum(1 - y_pred, y_true, axis=1)
+
+    # Calculate the score
+    FMI = TP / K.sqrt((TP + FP) * (TP + FN) + K.epsilon())
+
+    # We want to maximize the Fowlkes-Mallows score (therefore we have to invert the value; we use 1-x because then we get never a negative loss)
+    loss = 1 - FMI
+
+    # Use the mean (over the batch)
+    loss = K.mean(loss)
+
+    return loss
+
+
+def loss_homogeneity_score(y_true, y_pred):
+    """
+    See "MetrikenAlsLoss.docx"
+    :param y_true:
+    :param y_pred:
+    :return:
+    """
+    # The available information (similarities-output) is not sufficient to calculate this loss
+    # TODO: Implement
+    pass
+
+
+def regularizer_cluster_assignement(softmax_outputs):
+    """
+    See "ClusterzuordnungsImplikationsregel.docx".
+
+    ASSUMPTIONS:
+    - There is a softmax for each input and each cluster count assumption
+    - There exist cluster count assumptions from k_min to k_max (for all natural numbers)
+
+    softmax_outputs = {
+        k_min: [sm_0, sm_1, ... sm_n],
+        k_min + 1: [sm_0, sm_1, ...],
+        ...
+        k_max: [sm_0, sm_1, ...]
+    }
+    :param softmax_outputs:
+    :return:
+    """
+    ks = sorted(list(softmax_outputs.keys()))
+    k_min = ks[0]
+    k_max = ks[-1]
+
+    # If there is only one possible cluster count, we have nothing to do
+    if k_min == k_max:
+        return 0
+
+    # Get the count of available elements
+    element_count = len(softmax_outputs[k_min])
+
+    s = 0
+    for k in range(k_min, k_max - 1):
+        k_0 = k
+        k_1 = k + 1
+        sm_0 = softmax_outputs[k_0]
+        sm_1 = softmax_outputs[k_1]
+
+        # Go through all input combinations (excluding the diagonal)
+        for element_i in range(element_count):
+            for element_j in range(element_i + 1, element_count):
+
+                # Calculate dot(s_{n+1}(element_i), s_{n+1}(element_j))
+                t1 = K.sum(
+                    sm_1[element_i] * sm_1[element_j], axis=1
+                )
+
+                # Calculate dot(s_{n}(element_i), s_{n}(element_j))
+                t0 = K.sum(
+                    sm_0[element_i] * sm_0[element_j], axis=1
+                )
+
+                s += t1 * (1 - t0)
+
+    # Normalize the result
+    s *= 2 / ((k_max - k_min) * element_count * (element_count - 1))
+
+    # Thats it:)
+    return s
+
 class DynamicGaussianNoise(Layer):
 
     def __init__(self, stddev=1., mean=0., only_execute_for_training=True, **kwargs):

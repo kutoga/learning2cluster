@@ -45,6 +45,6 @@ class DummyDataProvider(DataProvider):
         :param element_count:
         :param cluster_count:
         :param test_data
-        :return: clusters, additional_obj_info
+        :return: clusters, additional_obj_info, clustering_hints
         """
-        return self.__clusters, None
+        return self.__clusters, None, None

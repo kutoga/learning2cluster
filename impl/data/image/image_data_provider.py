@@ -148,6 +148,7 @@ class ImageDataProvider(DataProvider):
             post_process = lambda element, additional_obj_info: (self.__image_2d_to_1d(element), additional_obj_info)
         else:
             post_process = lambda element, additional_obj_info: (element, additional_obj_info)
+
         clusters = {class_name: [
             post_process(*self._get_random_element(class_name, i)) for i in range(self._min_element_count_per_cluster)
         ] for class_name in classes}
@@ -171,7 +172,10 @@ class ImageDataProvider(DataProvider):
         # # Return additional object information: The class names
         # additional_obj_info = [[k] * len(clusters[k]) for k in sorted(clusters.keys())]
 
-        return res_clusters, res_additional_obj_info
+        # No hints for the clustering algorithm are provided
+        hints = None
+
+        return res_clusters, res_additional_obj_info, hints
 
 
     def _summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):

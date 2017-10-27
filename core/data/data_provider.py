@@ -196,18 +196,21 @@ class DataProvider:
 
                 train_data.append(clusters)
             additional_obj_info = [None] * cluster_colletion_count
+            hints = [None] * cluster_colletion_count
 
         else:
 
             # Generate the training data
             train_data = []
             additional_obj_info = []
+            hints = []
             for i in range(cluster_colletion_count):
-                data, obj_info = self._get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
+                data, obj_info, clustering_hints = self._get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
                 train_data.append(data)
                 additional_obj_info.append(obj_info)
+                hints.append(clustering_hints)
 
-        return train_data, additional_obj_info
+        return train_data, additional_obj_info, hints
 
     def _get_clusters(self, element_count, cluster_count=None, data_type='train'):
         """
@@ -215,7 +218,7 @@ class DataProvider:
         :param element_count:
         :param cluster_count:
         :param test_data
-        :return: clusters, additional_obj_info
+        :return: clusters, additional_obj_info, clustering_hints
         """
         pass
 
