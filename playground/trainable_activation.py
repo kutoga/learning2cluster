@@ -1,5 +1,5 @@
 from keras.models import Sequential, Model
-from keras.layers import Activation, Conv2D, MaxPool2D, Flatten, Dense, BatchNormalization, Reshape, TimeDistributed, Input, Dropout, Concatenate, add
+from keras.layers import Activation, Conv2D, MaxPool2D, Flatten, Dense, BatchNormalization, Reshape, TimeDistributed, Input, Dropout, Concatenate, add, Lambda
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import GaussianNoise
 from keras.regularizers import l2
@@ -16,12 +16,30 @@ import keras.backend as K
 
 K.set_learning_phase(1) #set learning phase
 
-regularizer = l2(0.0001)
-test_name = 'relu_v04'
+regularizer = None # l2(0.0001)
+test_name = 'mixed_comb_v03'
 base_activation = Activation('relu')
 plot_x_min = -2
 plot_x_max = 2
 mixed = False
+
+def my_activation(layer_in, n):
+    assert (n // 4) * 4 == n
+    n //= 4
+    n0 = Dense(n, kernel_regularizer=regularizer)(layer_in)
+    n1 = Dense(n, kernel_regularizer=regularizer)(layer_in)
+    n2 = Dense(n, kernel_regularizer=regularizer)(layer_in)
+    n3 = Dense(n, kernel_regularizer=regularizer)(layer_in)
+    n0 = Activation('relu')(n0)
+    n1 = Activation('tanh')(n1)
+    n2 = Lambda(lambda x: K.exp(-x*x))(n2)
+    n3 = Lambda(lambda x: K.sin(x))(n3)
+    return Concatenate(axis=1)([n0, n1, n2, n3])
+base_activation = lambda x: my_activation(x, x._keras_shape[1])
+
+# Cool waere ein test mit vielen verschiedenen non-linearities (kombiniert):
+# relu, tanh, exp(-x^2), sin(x)
+# Jede non-linearity erhaelt zwei non-linearitys
 
 # test_name = 'mixed_v01'
 # mixed = True
@@ -46,22 +64,19 @@ def build_nonlinearity():
 
         nl_input = Input((1,))
         nl = nl_input
-        nl = Dense(8, kernel_regularizer=regularizer, input_shape=(1,))(nl)
-        nld0 = nl
+        nl = Dense(16, kernel_regularizer=regularizer, input_shape=(1,))(nl)
+        nl = base_activation(nl)
+        #nld0 = nl
 
+        #nl = Dense(16, kernel_regularizer=regularizer, input_shape=(1,))(nl)
         nl = base_activation(nl)
-        nl = GaussianNoise(0.001)(nl)
-        nl = Dense(8, kernel_regularizer=regularizer, input_shape=(1,))(nl)
-        nl = base_activation(nl)
-        nld1 = add([nld0, nl])
-        nl = nld1
+        #nld1 = add([nld0, nl])
+        #nl = nld1
 
+        #nl = Dense(16, kernel_regularizer=regularizer, input_shape=(1,))(nl)
         nl = base_activation(nl)
-        nl = GaussianNoise(0.001)(nl)
-        nl = Dense(8, kernel_regularizer=regularizer, input_shape=(1,))(nl)
-        nl = base_activation(nl)
-        nld2 = add([nld1, nl])
-        nl = nld2
+        #nld2 = add([nld1, nl])
+        #nl = nld2
 
         nl = Dense(1, kernel_regularizer=regularizer)(nl)
         nl = add([nl_input, nl])
@@ -105,7 +120,7 @@ def build_nonlinearity():
         nl_nw_input = Input(input_shape)
         nl_nw = nl_nw_input
         nl_nw = Reshape(tmp_shape)(nl_nw)
-        nl_nw = GaussianNoise(0.01)(nl_nw)
+        # nl_nw = GaussianNoise(0.01)(nl_nw)
         nl_nw = TimeDistributed(nl)(nl_nw)
         nl_nw = Reshape(input_shape[1:])(nl_nw)
 
@@ -214,7 +229,7 @@ nw = Dense(num_classes, activation='softmax')(nw)
 model = Model(nw_input, nw)
 
 model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adadelta()
+              optimizer=keras.optimizers.Adadelta(clipnorm=1.)
               #,metrics=['accuracy']
 )
 model.summary()
@@ -231,17 +246,24 @@ nw = nw_input
 nw = my_nl(nw)
 model_nl = Model(nw_input, nw)
 
-def plot_trainable_activation(index):
-    x = np.arange(plot_x_min, plot_x_max, (plot_x_max - plot_x_min) / 1000., dtype=np.float32)
+def plot_trainable_activation(index, x_min, x_max):
+    x = np.arange(x_min, x_max, (x_max - x_min) / 1000., dtype=np.float32)
     K.set_learning_phase(0)
     y = model_nl.predict(x)
     K.set_learning_phase(1)
     plt.plot(x, y)
-    plt.savefig('trainable_activation_{}_{}.png'.format(test_name, index))
+    plt.grid()
+    plt.savefig('trainable_activation_{}_{:05d}_{}_{}.png'.format(test_name, index, x_min, x_max))
     plt.clf()
     plt.close()
 
-plot_trainable_activation(0)
+def plot_trainable_activation_all(index):
+    plot_trainable_activation(index, plot_x_min, plot_x_max)
+    plot_trainable_activation(index, -5, 5)
+    plot_trainable_activation(index, -10, 10)
+    plot_trainable_activation(index, -50, 50)
+
+plot_trainable_activation_all(0)
 for i in range(epochs):
     c_x_train, c_y_train = unison_shuffled_copies(x_train, y_train)
     c_x_train = c_x_train[:10000]
@@ -254,7 +276,7 @@ for i in range(epochs):
               epochs=1,
               verbose=1,
               validation_data=validation_data)
-    plot_trainable_activation(i + 1)
+    plot_trainable_activation_all(i + 1)
 
     # score = model.evaluate(x_test, y_test, verbose=0)
     # print('Test loss:', score[0])

@@ -149,15 +149,55 @@ class ImageDataProvider(DataProvider):
         else:
             post_process = lambda element, additional_obj_info: (element, additional_obj_info)
 
-        clusters = {class_name: [
-            post_process(*self._get_random_element(class_name, i)) for i in range(self._min_element_count_per_cluster)
-        ] for class_name in classes}
-        element_count -= cluster_count * self._min_element_count_per_cluster
+        # Initialize an empty "result"
+        clusters = {class_name:[] for class_name in classes}
+
+        # Save all hints in a list
+        hints = []
+
+        # Create a function to add a new element to a class. It may be possible that more than 1 element is added,
+        # because the sub-classes may implement a mechanism to split an element. Then a hint for these elements is
+        # created.
+        def add_element(class_name, max_element_count, index=None):
+            """
+
+            :param class_name:
+            :return:
+            """
+            if index is None:
+                index = len(clusters[class_name])
+            element, additional_obj_info = self._get_random_element(class_name, index)
+            if isinstance(element, list):
+                element = element[:max_element_count]
+                if additional_obj_info is None:
+                    additional_obj_info = [None] * len(element)
+            else:
+                element = [element]
+                additional_obj_info = [additional_obj_info]
+            elements_for_hints = []
+            for i in range(len(element)):
+                obj = post_process(element[i], additional_obj_info[i])
+                elements_for_hints.append(obj)
+                clusters[class_name].append(obj)
+            if len(elements_for_hints) > 0:
+                hints.append(elements_for_hints)
+            return len(element)
+
+        for i in range(self._min_element_count_per_cluster):
+            for class_name in classes:
+                element_count -= add_element(class_name, element_count, i)
+        # clusters = {class_name: [
+        #     post_process(*self._get_random_element(class_name, i)) for i in range(self._min_element_count_per_cluster)
+        # ] for class_name in classes}
+        # element_count -= cluster_count * self._min_element_count_per_cluster
 
         # Fill now all elements to the data structure
-        for i in range(element_count):
+        while element_count > 0:
             class_name = random.choice(classes)
-            clusters[class_name].append(post_process(*self._get_random_element(class_name, len(clusters[class_name]))))
+            element_count -= add_element(class_name, element_count)
+        # for i in range(element_count):
+        #     class_name = random.choice(classes)
+        #     clusters[class_name].append(post_process(*self._get_random_element(class_name, len(clusters[class_name]))))
 
         # Create the resulting clusters and the additional_obj_info
         res_clusters = []
@@ -171,9 +211,6 @@ class ImageDataProvider(DataProvider):
         #
         # # Return additional object information: The class names
         # additional_obj_info = [[k] * len(clusters[k]) for k in sorted(clusters.keys())]
-
-        # No hints for the clustering algorithm are provided
-        hints = None
 
         return res_clusters, res_additional_obj_info, hints
 
