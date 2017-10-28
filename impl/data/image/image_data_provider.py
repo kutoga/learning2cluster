@@ -132,6 +132,7 @@ class ImageDataProvider(DataProvider):
         return img
 
     def _get_clusters(self, element_count, cluster_count=None, data_type='train'):
+        org_element_count = element_count # debugging
         if cluster_count is not None and cluster_count > self.get_max_cluster_count():
             cluster_count = self.get_max_cluster_count()
         if cluster_count is None:
@@ -168,12 +169,16 @@ class ImageDataProvider(DataProvider):
                 index = len(clusters[class_name])
             element, additional_obj_info = self._get_random_element(class_name, index)
             if isinstance(element, list):
-                element = element[:max_element_count]
                 if additional_obj_info is None:
                     additional_obj_info = [None] * len(element)
             else:
                 element = [element]
                 additional_obj_info = [additional_obj_info]
+
+            # Constraint: Do not use more than "max_element_count" elements
+            element = element[:max_element_count]
+            additional_obj_info = additional_obj_info[:max_element_count]
+
             elements_for_hints = []
             for i in range(len(element)):
                 obj = post_process(element[i], additional_obj_info[i])

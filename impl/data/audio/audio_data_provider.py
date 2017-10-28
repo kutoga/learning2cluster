@@ -189,7 +189,7 @@ class AudioDataProvider(ImageDataProvider):
         if self.__return_equal_snippet_size:
             output_length = self.__output_length
             element_length = element.shape[0]
-            if element_length != output_length:
+            if element_length < output_length:
                 result = np.zeros((output_length,) + element.shape[1:], dtype=np.float32)
                 start_index = self.__rand.randint(0, output_length - element_length)
                 result[start_index:(start_index + element_length)] = element

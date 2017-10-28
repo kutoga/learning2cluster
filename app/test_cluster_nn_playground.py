@@ -43,7 +43,9 @@ if __name__ == '__main__':
         # window_width=[(40, 50), (70, 80)],
 
         # For each cluster we want at least one large snippet and one short snippet
-        minimum_snippets_per_cluster=[(200, 200), (50, 50)]
+        minimum_snippets_per_cluster=[(200, 200), (50, 50)],
+
+        split_audio_pieces_longer_than_and_create_hints=120
     )
     # dp = Birds200DataProvider(
     #     min_cluster_count=1,
