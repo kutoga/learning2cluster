@@ -450,7 +450,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
         def sample_data():
 
             # Generate data
-            data = self._get_data('train')
+            data, _, _ = self._get_data('train')
             _, y = self._build_Xy_data(data)
 
             # Get the y-data and calculate the expected percentage of '0s' in the similarities output

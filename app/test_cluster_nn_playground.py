@@ -3,6 +3,7 @@ matplotlib.use('Agg')
 
 from impl.nn.base.cluster_nn.minimal_cluster_nn import MinimalClusterNN
 from impl.nn.playground.cluster_nn_kl_divergence import ClusterNNKlDivergence
+from impl.nn.try00.cluster_nn_try00_v51 import ClusterNNTry00_V51
 
 if __name__ == '__main__':
 
@@ -38,14 +39,18 @@ if __name__ == '__main__':
         # validate_classes=TIMIT20_lst,
         concat_audio_files_of_speaker=True,
 
-        # Sample from these given window widths
-        window_width=[(80, 150)],
-        # window_width=[(40, 50), (70, 80)],
+        # # Sample from these given window widths
+        # window_width=[(80, 150)],
+        # # window_width=[(40, 50), (70, 80)],
+        #
+        # # For each cluster we want at least one large snippet and one short snippet
+        # minimum_snippets_per_cluster=[(200, 200), (50, 50)],
+        #
+        # split_audio_pieces_longer_than_and_create_hints=120
 
-        # For each cluster we want at least one large snippet and one short snippet
-        minimum_snippets_per_cluster=[(200, 200), (50, 50)],
 
-        split_audio_pieces_longer_than_and_create_hints=120
+        minimum_snippets_per_cluster=[(200, 200), (100, 100)],
+        window_width=[(100, 200)]
     )
     # dp = Birds200DataProvider(
     #     min_cluster_count=1,
@@ -54,14 +59,14 @@ if __name__ == '__main__':
     # dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=2, allow_less_clusters=False)
 
     # en = SimpleFCEmbedding(hidden_layers=[3])
-    en = BDLSTMEmbedding()
+    # en = BDLSTMEmbedding()
     # en = None
-    # en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
+    en = CnnEmbedding(block_feature_counts=[1, 2, 3], fc_layer_feature_counts=[4], output_size=3, dimensionality='auto')
 
     # cnn = MinimalClusterNN(dp, 5, en, weighted_classes=True)
-    cnn = ClusterNNKlDivergence(dp, 6, en, weighted_classes=True, lstm_layers=1, cluster_count_lstm_units=2, cluster_count_lstm_layers=1, cluster_count_dense_layers=1,
+    cnn = ClusterNNTry00_V51(dp, 6, en, weighted_classes=True, lstm_layers=2, cluster_count_lstm_units=2, cluster_count_lstm_layers=1, cluster_count_dense_layers=1,
                                 cluster_count_dense_units=1, output_dense_layers=1, output_dense_units=1)
-    # cnn.class_weights_approximation = 'stochastic'
+    cnn.class_weights_approximation = 'stochastic'
     # cnn.build_networks(print_summaries=True)
     cnn.build_networks(print_summaries=False)
     cnn.minibatch_size = 2

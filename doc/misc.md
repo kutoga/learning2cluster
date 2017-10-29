@@ -9,7 +9,9 @@ Docker auf srv-lab-t-697 starten:
     pip install termcolor librosa
     cd tmp/ClusterNN
     ln -s /data/MT/ /tmp/test
+    (cd /home/keras/; mv .keras .keras_org; ln -s /data/.keras .)
     bash ./scripts/run.sh ./app/test_minimal_cluster_nn.py /tmp/test_minimal_cluster_nn.py.log
+
 
 Bzw. falls root & Port-Weiterleitung gewünscht ist:
 
@@ -82,6 +84,8 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v47.py /tmp/test/test_cluster_nn_try00_v47.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v48.py /tmp/test/test_cluster_nn_try00_v48.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v49.py /tmp/test/test_cluster_nn_try00_v49.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v50.py /tmp/test/test_cluster_nn_try00_v50.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v51.py /tmp/test/test_cluster_nn_try00_v51.py.log
 
     # Copy the modified cudnn layer (see https://github.com/fchollet/keras/issues/8164)
 	cp /tmp/test/cudnn_recurrent.py /tmp/test/wrappers.py /opt/conda/lib/python3.5/site-packages/keras/layers/

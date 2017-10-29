@@ -336,8 +336,13 @@ class ClusterNN(BaseNN):
         ]
         for c in range(len(inputs)):
             current_inputs = inputs[c]['data']
+            assert len(current_inputs) == len(X)
             for i in range(len(current_inputs)):
-                X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
+                try:
+                    X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
+                except:
+                    print("jaja")
+                    X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
 
         # Append hints
         # TODO: Give the application the possibility to add "custom" hints
@@ -398,18 +403,20 @@ class ClusterNN(BaseNN):
     def __get_last_epoch(self):
         return self._get_history(self._model_training).length()
 
-    def _get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, return_additional_obj_infos=False, *args):
+    def _get_data(self, data_type='train', dummy_data=False, cluster_collection_count=None, *args):
         if cluster_collection_count is None:
             cluster_collection_count = self._minibatch_size
         clusters, additional_obj_info, hints = self._data_provider.get_data(self._input_count, cluster_collection_count, data_type=data_type, dummy_data=dummy_data, cluster_count_f=self._f_cluster_count, *args)
 
-        # TODO: Use / return hints
+        return clusters, additional_obj_info, hints
 
-        # If required also return the object infos
-        if return_additional_obj_infos:
-            return clusters, additional_obj_info
-        else:
-            return clusters
+        # # TODO: Use / return hints
+        #
+        # # If required also return the object infos
+        # if return_additional_obj_infos:
+        #     return clusters, additional_obj_info
+        # else:
+        #     return clusters
 
     def _get_cluster_counts(self):
         return list(self._data_provider.get_target_cluster_counts())
@@ -431,12 +438,12 @@ class ClusterNN(BaseNN):
 
         # Generate training data
         t_start_data_gen_time = time()
-        train_data = self._get_data('train', dummy_data=dummy_train)
+        train_data, _, train_hints = self._get_data('train', dummy_data=dummy_train)
         X_train, y_train = self._build_Xy_data(train_data)
 
         # If required: Generate validation data
         if do_validation:
-            valid_data = self._get_data('valid', dummy_data=dummy_train, cluster_collection_count=self._validation_data_count)
+            valid_data, _, valid_hints = self._get_data('valid', dummy_data=dummy_train, cluster_collection_count=self._validation_data_count)
             validation_data = self._build_Xy_data(valid_data)
         else:
             valid_data = None
@@ -644,8 +651,8 @@ class ClusterNN(BaseNN):
     def evaluate_metrics(self, data, return_prediction=False, shuffle_data=True):
         # TBD: Convert data and call "evaluate_metrics_from_prediction(self, X, cluster_indices, prediction):"
 
-        data_X, data_idx = self._data_provider.convert_data_to_prediction_X(data, shuffle=shuffle_data, return_shuffle_indices=True)
-        prediction = self.predict(data_X)
+        data_X, data_hints, data_idx,  = self._data_provider.convert_data_to_prediction_X(data, shuffle=shuffle_data)
+        prediction = self.predict(data_X, data_hints)
 
         cluster_indices = self.data_to_cluster_indices(data, data_idx)
         metrics = self.evaluate_metrics_from_prediction(prediction, cluster_indices)
@@ -1016,8 +1023,8 @@ class ClusterNN(BaseNN):
     def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True):
 
         # Generate test data
-        test_data, test_data_obj_info = self._get_data(data_type=data_type, cluster_collection_count=count, return_additional_obj_infos=True) # self._data_provider.get_data(self._input_count, count, data_type=data_type)
-        test_data_X, test_data_idx = self._data_provider.convert_data_to_prediction_X(test_data, shuffle=shuffle_data, return_shuffle_indices=True)
+        test_data, test_data_obj_info, test_hints = self._get_data(data_type=data_type, cluster_collection_count=count)
+        test_data_X, test_data_hints, test_data_idx = self._data_provider.convert_data_to_prediction_X(test_data, shuffle=shuffle_data)
 
         # Shuffle the test_data_obj_infos according to the shuffeling
         test_data_obj_info = [(None if x is None else list(chain(*x))) for x in test_data_obj_info]
@@ -1025,7 +1032,7 @@ class ClusterNN(BaseNN):
 
         # Do a prediction
         print("Do a test prediction (output directory: {})...".format(output_directory))
-        prediction = self.predict(test_data_X)
+        prediction = self.predict(test_data_X, test_data_hints)
 
         # Evaluate the metrics if required
         if include_metrics:
@@ -1054,9 +1061,9 @@ class ClusterNN(BaseNN):
         :return:
         """
         data = self.data_provider.get_data(self._input_count, self._minibatch_size, data_type='train', dummy_data=True)
-        X = self.data_provider.convert_data_to_prediction_X(data)
+        X, hints, _ = self.data_provider.convert_data_to_prediction_X(data)
         print("Start dummy prediction...")
-        self.predict(X)
+        self.predict(X, hints)
         print("Finished dummy prediction...")
 
     def register_autosave(self, output_directory, base_filename=None, nth_iteration=100, always_save_best_config=True,

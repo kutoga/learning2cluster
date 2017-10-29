@@ -73,7 +73,7 @@ class DataProvider:
     def get_data_shape(self):
         pass
 
-    def convert_data_to_prediction_X(self, data, shuffle=True, return_shuffle_indices=False):
+    def convert_data_to_prediction_X(self, data, hints=None, shuffle=True):
         """
         Convert data that has the format of "get_data" to "X" input data for the prediction. The "data" value
         contains already the perfect result about the clusters and the "X" data only contains the input points and
@@ -91,10 +91,18 @@ class DataProvider:
         #     ]
         # ]
         # Do this in a public function (so anyone may use it)
+        def index_of(lst, obj, cmp=lambda x, y: x is y):
+            for j in range(len(lst)):
+                if cmp(lst[j], obj):
+                    return j
+            return None
 
         X = []
+        res_hints = []
         shuffle_indices = []
-        for cluster_collection in data:
+        for i in range(len(data)):
+            cluster_collection = data[i]
+        # for cluster_collection in data:
             inputs = list(chain.from_iterable(cluster_collection))
 
             shuffle_idx = list(range(len(inputs)))
@@ -104,17 +112,29 @@ class DataProvider:
             X.append(inputs)
             shuffle_indices.append(shuffle_idx)
 
-        if return_shuffle_indices:
-            return X, shuffle_indices
-        else:
-            return X
+            if hints is not None and hints[i] is not None:
+                curr_hints = list(map(
+                    lambda cluster_hint: list(map(
+                        lambda x: index_of(X, x),
+                        cluster_hint
+                    )),
+                    hints[i]
+                ))
+            else:
+                curr_hints = None
+            res_hints.append(curr_hints)
+
+        return X, res_hints, shuffle_indices
 
     def convert_prediction_to_clusters(self, X, prediction, point_post_processor=None, additional_obj_info=None,
                                        return_reformatted_additional_obj_infos=False):
 
         # Handle list inputs
         if isinstance(prediction, list):
-            return list(map(lambda i: self.convert_data_to_prediction_X(X[i], prediction[i]), range(len(prediction))))
+            return list(map(lambda i: self.convert_prediction_to_clusters(X[i], prediction[i],
+                                                                          point_post_processor=point_post_processor,
+                                                                          additional_obj_info=additional_obj_info,
+                                                                          return_reformatted_additional_obj_infos=return_reformatted_additional_obj_infos), range(len(prediction))))
 
         cluster_counts = list(self.get_target_cluster_counts())
 
