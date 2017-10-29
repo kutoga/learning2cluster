@@ -693,6 +693,7 @@ def load_weights(model, base_filename, print_unitialized_target_layers=True):
     for layer in list(layers_with_weights):
         layer_name = layer.name
         if layer_name in weights:
+            print("Load weights for layer '{}'...".format(layer_name))
             layer.set_weights(weights[layer_name])
             layers_with_weights.remove(layer)
             initialized_layers.add(layer_name)

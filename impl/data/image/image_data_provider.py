@@ -27,6 +27,29 @@ class ImageDataProvider(DataProvider):
         self._random_mirror_images = random_mirror_images
         self._min_element_count_per_cluster = min_element_count_per_cluster
 
+        # Load the data
+        self.__data = None
+        if auto_load_data:
+            # Load the data
+            self.load_data()
+
+        # If required: Define the training / validation sets
+        if train_classes is None and validate_classes is None and test_classes is None:
+            rand = random.Random()
+            rand.seed(1337)
+            classes = list(self.__data.keys())
+            rand.shuffle(classes)
+            train_classes_count = int(0.8 * len(classes))
+            train_classes = classes[:train_classes_count]
+            validate_classes = classes[train_classes_count:]
+            test_classes = classes[train_classes_count:]
+        if test_classes is not None and validate_classes is not None:
+            classes = list(self.__data.keys())
+            train_classes = set(classes)
+            train_classes -= set(test_classes)
+            train_classes -= set(validate_classes)
+            train_classes = list(train_classes)
+
         self._data_classes = {
             'train': train_classes,
             'valid': validate_classes,
@@ -44,11 +67,6 @@ class ImageDataProvider(DataProvider):
         self.__min_cluster_count = 1
         if min_cluster_count is not None:
             self.__min_cluster_count = max([self.__min_cluster_count, min([min_cluster_count, self._max_cluster_count])])
-
-        self.__data = None
-        if auto_load_data:
-            # Load the data
-            self.load_data()
 
     @property
     def center_data(self):

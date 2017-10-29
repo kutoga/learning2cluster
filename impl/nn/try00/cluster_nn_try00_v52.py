@@ -8,14 +8,13 @@ import numpy as np
 from core.nn.helper import slice_layer, lukic_kl_divergence, reweight_values, concat
 from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
-# from keras.layers import LSTM
 LSTM = CuDNNLSTM
 
-class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
+class ClusterNNTry00_V52(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False, cluster_count_lstm_layers=2, cluster_count_lstm_units=64, internal_embedding_size=96,
-                 kl_embedding_size=128, kl_divergence_factor=1.):
+                 kl_embedding_size=128, kl_divergence_factor=1., cluster_count_bdlstm_layer_source_index=7):
         super().__init__(data_provider, input_count, embedding_nn, weighted_classes, include_input_count_in_name=False)
 
         self.__internal_embedding_size = internal_embedding_size
@@ -30,6 +29,7 @@ class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
         self.__output_dense_layers = output_dense_layers
         self.__kl_embedding_size = kl_embedding_size
         self.__kl_divergence_factor = kl_divergence_factor
+        self.__cluster_count_bdlstm_layer_source_index = cluster_count_bdlstm_layer_source_index
 
     def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
@@ -74,13 +74,13 @@ class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
 
         # Use now some lstm-layers
         processed = embeddings_merged
-        second_last_processed = None
+        processed_layers = [processed]
         for i in range(self.__lstm_layers):
-            second_last_processed = processed
             tmp = self._s_layer(
                 'LSTM_proc_{}'.format(i), lambda name: Bidirectional(LSTM(internal_embedding_size // 2, return_sequences=True), name=name)
             )(processed)
             processed = Add()([processed, tmp])
+            processed_layers.append(processed)
 
         # Split the tensor to seperate layers
         embeddings_processed = [self._s_layer('slice_{}'.format(i), lambda name: slice_layer(processed, i, name)) for i in range(len(network_input))]
@@ -119,9 +119,9 @@ class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
         layers = []
         for i in range(self.__output_dense_layers):
             layers += [
-                # self._s_layer('output_dense{}'.format(i), lambda name: Dense(self.__output_dense_units, name=name)),
-                # self._s_layer('output_batch'.format(i), lambda name: BatchNormalization(name=name)),
-                # LeakyReLU()
+                self._s_layer('output_dense{}'.format(i), lambda name: Dense(self.__output_dense_units, name=name)),
+                self._s_layer('output_batch'.format(i), lambda name: BatchNormalization(name=name)),
+                LeakyReLU()
                 # self._s_layer('output_relu'.format(i), lambda name: Activation(LeakyReLU(), name=name))
             ]
         cluster_softmax = {
@@ -147,7 +147,7 @@ class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
 
         # Calculate the real cluster count
         assert self.__cluster_count_lstm_layers >= 1
-        cluster_count = second_last_processed
+        cluster_count = processed_layers[self.__cluster_count_bdlstm_layer_source_index]
         for i in range(self.__cluster_count_lstm_layers - 1):
             cluster_count = self._s_layer('cluster_count_LSTM{}'.format(i), lambda name: Bidirectional(LSTM(self.__cluster_count_lstm_units, return_sequences=True), name=name)(cluster_count))
             cluster_count = self._s_layer('cluster_count_LSTM{}_batch'.format(i), lambda name: BatchNormalization(name=name))(cluster_count)
