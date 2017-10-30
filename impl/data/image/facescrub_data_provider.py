@@ -8,6 +8,18 @@ class FaceScrubDataProvider(ImageDataProvider):
     A DataProvider for the FaceScrub dataset. The dataset may be downloaded and up to some kind pre-processed with
     the following scripts:
     https://github.com/kutoga/facescrub
+
+    Alternative:
+    Dear Benjamin Meier,
+
+    thank you for your interest in the FaceScrub dataset.
+    You can download it from this link: http://vintage.winkler.site/faceScrub.zip
+    The password for decrypting the zip file is: ICIP'14
+
+    Best regards,
+
+    Stefan Winkler
+    ADSC
     """
     def __init__(self, dataset_dir, img_size=(48, 48), train_classes=None, validate_classes=None, test_classes=None,
                  min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1):

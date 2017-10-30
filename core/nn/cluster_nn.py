@@ -17,7 +17,7 @@ from core.nn.base_nn import BaseNN
 from core.nn.history import History
 from core.nn.helper import filter_None, AlignedTextTable, np_show_complete_array, get_caller
 from core.event import Event
-from core.helper import try_makedirs
+from core.helper import try_makedirs, index_of
 
 from core.nn.external.purity import purity_score
 from core.nn.misc.MR import misclassification_rate_BV01
@@ -25,7 +25,8 @@ from core.nn.misc.BBN import BBN
 
 class ClusterNN(BaseNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, seed=None, create_metrics_plot=True,
-                 include_input_count_in_name=True, validation_data_count=None, early_stopping_itrs=None):
+                 include_input_count_in_name=True, validation_data_count=None, early_stopping_itrs=None,
+                 use_hints_for_training=True):
         super().__init__(
             name='NN_[CLASS]_I{}'.format(input_count) if include_input_count_in_name else 'NN_[CLASS]'
         )
@@ -81,6 +82,9 @@ class ClusterNN(BaseNN):
 
         # The hints input for the network
         self.__nw_clustering_hint = None
+
+        # Use hints for the training? (if hints are available; otherwise this setting has no effect)
+        self.__use_hints_for_training = use_hints_for_training
 
     @property
     def normalize_network_input(self):
@@ -145,6 +149,14 @@ class ClusterNN(BaseNN):
     @early_stopping_iterations.setter
     def early_stopping_iterations(self, early_stopping_itrs):
         self._early_stopping_itrs = early_stopping_itrs
+
+    @property
+    def use_hints_for_training(self):
+        return self.__use_hints_for_training
+
+    @use_hints_for_training.setter
+    def use_hints_for_training(self, use_hints_for_training):
+        self.__use_hints_for_training = use_hints_for_training
 
     def set_loss_weight(self, loss_name, weight=None):
         self._loss_weights[loss_name] = weight
@@ -338,20 +350,17 @@ class ClusterNN(BaseNN):
             current_inputs = inputs[c]['data']
             assert len(current_inputs) == len(X)
             for i in range(len(current_inputs)):
-                try:
-                    X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
-                except:
-                    print("jaja")
-                    X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
+                X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
 
         # Append hints
-        # TODO: Give the application the possibility to add "custom" hints
-        n = self.input_count
-        X.append(np.zeros((len(inputs), n * (n - 1) // 2), dtype=np.float32))
+        X.append(self.__hints_to_np_arr(
+            list(map(lambda inp: inp['hints'], inputs)),
+            len(inputs)
+        ))
 
         return X
 
-    def _build_Xy_data(self, data):
+    def _build_Xy_data(self, data, hints=None):
 
         # Prepare the data:
         # [
@@ -386,10 +395,21 @@ class ClusterNN(BaseNN):
             # Shuffle all inputs
             self._rand.shuffle(current_inputs)
 
+            # Generate the hints (if some hints are given)
+            current_hints = []
+            if hints is not None:
+                current_x_inputs = list(map(lambda x: x[0], current_inputs))
+                for hint in hints[c]:
+                    current_hints.append(list(map(
+                        lambda x: index_of(current_x_inputs, x[0]),
+                        hint
+                    )))
+
             # That's it for the current cluster collection:)
             inputs.append({
                 'cluster_count': len(clusters),
-                'data': current_inputs
+                'data': current_inputs,
+                'hints': current_hints
             })
 
         return self.__build_X_data(inputs), self._build_y_data(inputs)
@@ -439,12 +459,12 @@ class ClusterNN(BaseNN):
         # Generate training data
         t_start_data_gen_time = time()
         train_data, _, train_hints = self._get_data('train', dummy_data=dummy_train)
-        X_train, y_train = self._build_Xy_data(train_data)
+        X_train, y_train = self._build_Xy_data(train_data, train_hints if self.__use_hints_for_training else None)
 
         # If required: Generate validation data
         if do_validation:
             valid_data, _, valid_hints = self._get_data('valid', dummy_data=dummy_train, cluster_collection_count=self._validation_data_count)
-            validation_data = self._build_Xy_data(valid_data)
+            validation_data = self._build_Xy_data(valid_data, valid_hints)
         else:
             valid_data = None
             validation_data = None
@@ -719,6 +739,15 @@ class ClusterNN(BaseNN):
 
         return metrics
 
+    def __hints_to_np_arr(self, hints, count=1):
+        if hints is None:
+            hints = [None] * count
+        else:
+            count = len(hints)
+        X_hints = [self.__preprocess_hints(c_hints) for c_hints in hints]
+        X_hints = np.asarray(X_hints)
+        return X_hints
+
     def __preprocess_hints(self, hints):
         """
         This function preprocesses the hints. It creates an upper similarity matrix out of the hints.
@@ -795,11 +824,7 @@ class ClusterNN(BaseNN):
         if debug_mode is None:
             debug_mode = self.debug_mode
 
-        if hints is None:
-            hints = [None] * len(X)
-        assert len(hints) == len(X)
-        X_hints = [self.__preprocess_hints(c_hints) for c_hints in hints]
-        X_hints = np.asarray(X_hints)
+        X_hints = self.__hints_to_np_arr(hints, len(X))
 
         data_shape = self.data_provider.get_data_shape()
         X_preprocessed = [

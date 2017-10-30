@@ -12,7 +12,7 @@ import json
 
 from yattag import Doc
 
-from core.helper import try_makedirs
+from core.helper import try_makedirs, index_of
 
 class DataProvider:
     def __init__(self, target_min_cluster_count=None, target_max_cluster_count=None, seed=None):
@@ -90,12 +90,6 @@ class DataProvider:
         #         # This list contains all input points
         #     ]
         # ]
-        # Do this in a public function (so anyone may use it)
-        def index_of(lst, obj, cmp=lambda x, y: x is y):
-            for j in range(len(lst)):
-                if cmp(lst[j], obj):
-                    return j
-            return None
 
         X = []
         res_hints = []
