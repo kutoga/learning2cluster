@@ -480,7 +480,6 @@ def get_caller():
     # See: https://stackoverflow.com/a/24439444/916672
     return getframeinfo(stack()[2][0])
 
-
 @contextmanager
 def np_show_complete_array():
     # See: https://stackoverflow.com/a/45831462/916672
@@ -671,7 +670,7 @@ def load_optimizer_state(model, base_filename):
 
     # TODO: This is ugly and i dont know why it has to be done (but it has to). See: https://github.com/fchollet/keras/blob/master/keras/models.py
     if model.train_function is not None:
-        print("WARNING: Removeingh the train function (required for loading the optimizer state)")
+        print("WARNING: Removing the train function (required for loading the optimizer state)")
         model.train_function = None
     model._make_train_function()
 
