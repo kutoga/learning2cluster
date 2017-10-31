@@ -13,7 +13,7 @@ from core.nn.helper import filter_None, concat, concat_layer, create_weighted_bi
 
 class SimpleLossClusterNN_V02(ClusterNN):
     def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False, cluster_n_output_loss='categorical_crossentropy',
-                 use_cluster_count_loss=True, use_similarities_loss=True, include_input_count_in_name=True):
+                 use_cluster_count_loss=True, use_similarities_loss=True, include_input_count_in_name=True, similarities_loss_f=None):
         super().__init__(data_provider, input_count, embedding_nn, include_input_count_in_name=include_input_count_in_name)
 
         # For the loss all n outputs are compared with each other. More exactly:
@@ -35,6 +35,10 @@ class SimpleLossClusterNN_V02(ClusterNN):
 
         self._use_cluster_count_loss = use_cluster_count_loss
         self._use_similarities_loss = use_similarities_loss
+
+        # If a custom similarities loss function shoudl be used, then it can be defined via similarities_loss_f.
+        # Important: If such a loss function is defined then the class weights are ignored.
+        self._similarities_loss_f = similarities_loss_f
 
     @property
     def use_cluster_count_loss(self):
@@ -100,6 +104,14 @@ class SimpleLossClusterNN_V02(ClusterNN):
     def cluster_n_output_loss(self, cluster_n_output_loss):
         self._cluster_n_output_loss = cluster_n_output_loss
 
+    @property
+    def similarities_loss_f(self):
+        return self._similarities_loss_f
+
+    @similarities_loss_f.setter
+    def similarities_loss_f(self, similarities_loss_f):
+        self._similarities_loss_f = similarities_loss_f
+
     def _register_additional_grouping_similarity_loss(self, name, loss_f, calculate_org_similarity_loss=True):
         """
         This losses give the possibility to add custom losses based on the similarity_loss (that still has to be defined)
@@ -118,7 +130,9 @@ class SimpleLossClusterNN_V02(ClusterNN):
             'calculate_org_similarity_loss': calculate_org_similarity_loss
         })
 
-    def _register_additional_regularisation(self, layer, name):
+    def _register_additional_regularisation(self, layer, name, weight=1.0):
+        if weight is not None:
+            layer = Lambda(lambda x: x * weight)(layer)
         self._additional_regularisations.append({
             'layer': Activation('linear', name=name)(layer),
             'name': name
@@ -503,7 +517,10 @@ class SimpleLossClusterNN_V02(ClusterNN):
         return w0, w1
 
     def _get_keras_loss(self):
-        if self.weighted_classes:
+        if self._similarities_loss_f is not None:
+            print("Use a custom similarities loss function")
+            similarities_loss = self._similarities_loss_f
+        elif self.weighted_classes:
 
             # Calculate the class weights
             w0, w1 = self.get_class_weights()
@@ -536,6 +553,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
             print("Final calculated weights: w0={}, w1={}".format(w0, w1))
             similarities_loss = create_weighted_binary_crossentropy(w0, w1)
         else:
+            print("Use the standard non-weighted binary crossentropy loss")
             similarities_loss = binary_crossentropy # 'binary_crossentropy'
         loss = {}
         if self._use_similarities_loss:

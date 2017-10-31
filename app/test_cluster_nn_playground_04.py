@@ -10,8 +10,12 @@ from time import time
 
 from impl.nn.try04_ddbc.cluster_nn_try04_ddbc import ClusterNNTry04_Ddbc
 from impl.nn.playground.cluster_nn_simple_center_loss import ClusterNNSimpleCenterLoss
+from impl.nn.playground.cluster_nn_implication_rule import ClusterNNImplicationRule
 from impl.nn.try00.cluster_nn_try00_v12 import ClusterNNTry00_V12
 from impl.nn.try00.cluster_nn_try00_v16 import ClusterNNTry00_V16
+
+
+from core.nn.helper import loss_rand_index, loss_fowlkes_mallows
 
 if __name__ == '__main__':
 
@@ -49,7 +53,7 @@ if __name__ == '__main__':
 
     fixedc = 2
     dp = Simple2DPointDataProvider(
-        min_cluster_count=fixedc, max_cluster_count=fixedc, allow_less_clusters=False
+        min_cluster_count=fixedc, max_cluster_count=fixedc,
     )
     en = None
 
@@ -69,15 +73,25 @@ if __name__ == '__main__':
         ]
     ])
 
+    dp = Simple2DPointDataProvider(
+        min_cluster_count=1, max_cluster_count=3,
+    )
+
     # dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=10, allow_less_clusters=False)
     # en = SimpleFCEmbedding(output_size=2, hidden_layers=[16, 32, 64, 64], final_activation='tanh')
 
-    c_nn = ClusterNNSimpleCenterLoss(dp, dp.get_input_count(), en, lstm_layers=0, kl_embedding_size=2, cluster_count_dense_layers=0, cluster_count_dense_units=1,
+    c_nn = ClusterNNImplicationRule(dp, 3, en, lstm_layers=0, kl_embedding_size=2, cluster_count_dense_layers=0, cluster_count_dense_units=1,
                                      output_dense_layers=0, output_dense_units=1, cluster_count_lstm_layers=1, cluster_count_lstm_units=1)
-    c_nn.minibatch_size = 1
+    c_nn.minibatch_size = 2
     c_nn.validate_every_nth_epoch = 1
     c_nn.debug_mode = True
     c_nn.include_self_comparison = False
+
+    # Test rand index
+    c_nn.similarities_loss_f = loss_rand_index
+
+    # Test fowlkes mallows
+    c_nn.similarities_loss_f = loss_fowlkes_mallows
 
     c_nn.use_cluster_count_loss = False
     # c_nn.use_similarities_loss = False

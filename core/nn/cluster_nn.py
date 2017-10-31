@@ -397,7 +397,7 @@ class ClusterNN(BaseNN):
 
             # Generate the hints (if some hints are given)
             current_hints = []
-            if hints is not None:
+            if hints is not None and hints[c] is not None:
                 current_x_inputs = list(map(lambda x: x[0], current_inputs))
                 for hint in hints[c]:
                     current_hints.append(list(map(

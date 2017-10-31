@@ -265,7 +265,7 @@ def loss_rand_index(y_true, y_pred):
 
     # Calcualte the rand index
     a = K.sum(y_pred * y_true, axis=1)
-    b = K.sum(1 - y_pred, 1 - y_true, axis=1)
+    b = K.sum((1 - y_pred) * (1 - y_true), axis=1)
     C_2 = n
     rand_index = (a + b) / C_2
 
@@ -289,7 +289,7 @@ def loss_fowlkes_mallows(y_true, y_pred):
     # Calculate TP, TP and FN
     TP = K.sum(y_pred * y_true, axis=1)
     FP = K.sum(y_pred, axis=1) - TP
-    FN = K.sum(1 - y_pred, y_true, axis=1)
+    FN = K.sum((1 - y_pred) * y_true, axis=1)
 
     # Calculate the score
     FMI = TP / K.sqrt((TP + FP) * (TP + FN) + K.epsilon())
@@ -315,7 +315,7 @@ def loss_homogeneity_score(y_true, y_pred):
     pass
 
 
-def regularizer_cluster_assignement(softmax_outputs):
+def regularizer_cluster_assignment(softmax_outputs):
     """
     See "ClusterzuordnungsImplikationsregel.docx".
 
@@ -338,7 +338,14 @@ def regularizer_cluster_assignement(softmax_outputs):
 
     # If there is only one possible cluster count, we have nothing to do
     if k_min == k_max:
-        return 0
+
+        # We cannot just return 0, because keras expects a keras tensor.
+        # So... we just create such a tensor:)
+        #return 0
+
+        # Just take a random value (here: the first softmax), reduce it to 1 dimension and multiply it by 0
+        sm = Lambda(lambda x: K.mean(x) * 0)(softmax_outputs[k_min][0])
+        return sm
 
     # Get the count of available elements
     element_count = len(softmax_outputs[k_min])
@@ -356,18 +363,21 @@ def regularizer_cluster_assignement(softmax_outputs):
 
                 # Calculate dot(s_{n+1}(element_i), s_{n+1}(element_j))
                 t1 = K.sum(
-                    sm_1[element_i] * sm_1[element_j], axis=1
+                    sm_1[element_i] * sm_1[element_j], axis=2
                 )
 
                 # Calculate dot(s_{n}(element_i), s_{n}(element_j))
                 t0 = K.sum(
-                    sm_0[element_i] * sm_0[element_j], axis=1
+                    sm_0[element_i] * sm_0[element_j], axis=2
                 )
 
                 s += t1 * (1 - t0)
 
     # Normalize the result
     s *= 2 / ((k_max - k_min) * element_count * (element_count - 1))
+
+    # Now we finally need to create a keras tensor; this is a bit hacky
+    s = Lambda(lambda x: s)(softmax_outputs[k_min][0])
 
     # Thats it:)
     return s
