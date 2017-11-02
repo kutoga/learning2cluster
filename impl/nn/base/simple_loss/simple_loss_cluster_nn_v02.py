@@ -112,7 +112,7 @@ class SimpleLossClusterNN_V02(ClusterNN):
     def similarities_loss_f(self, similarities_loss_f):
         self._similarities_loss_f = similarities_loss_f
 
-    def _register_additional_grouping_similarity_loss(self, name, loss_f, calculate_org_similarity_loss=True):
+    def _register_additional_grouping_similarity_loss(self, name, loss_f, calculate_org_similarity_loss=True, weight=1.0):
         """
         This losses give the possibility to add custom losses based on the similarity_loss (that still has to be defined)
         :param name:
@@ -127,7 +127,8 @@ class SimpleLossClusterNN_V02(ClusterNN):
         self._additional_grouping_similarity_losses.append({
             'name': name,
             'loss_f': loss_f,
-            'calculate_org_similarity_loss': calculate_org_similarity_loss
+            'calculate_org_similarity_loss': calculate_org_similarity_loss,
+            'weight': weight
         })
 
     def _register_additional_regularisation(self, layer, name, weight=1.0):
@@ -565,10 +566,13 @@ class SimpleLossClusterNN_V02(ClusterNN):
         for additional_grouping_similarity_loss in self._additional_grouping_similarity_losses:
             name = additional_grouping_similarity_loss['name']
             loss_f = additional_grouping_similarity_loss['loss_f']
+            weight = additional_grouping_similarity_loss['weight']
+            if weight is None:
+                weight = 1.0
             if additional_grouping_similarity_loss['calculate_org_similarity_loss']:
-                loss[name] = lambda y_true, y_pred, loss_f=loss_f: loss_f(similarities_loss(y_true, y_pred))
+                loss[name] = lambda y_true, y_pred, loss_f=loss_f: weight * loss_f(similarities_loss(y_true, y_pred))
             else:
-                loss[name] = lambda y_true, y_pred, loss_f=loss_f: loss_f(y_true, y_pred)
+                loss[name] = lambda y_true, y_pred, loss_f=loss_f: weight * loss_f(y_true, y_pred)
 
         # Register all regularisations
         if len(self._additional_regularisations) > 0:

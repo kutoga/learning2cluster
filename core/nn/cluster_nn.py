@@ -233,6 +233,9 @@ class ClusterNN(BaseNN):
                 plt.grid(True)
             self._register_plot(model_name, metric_plot, metrics_plot_name)
 
+    def _uses_embedding_layer(self):
+        return self._embedding_nn is not None
+
     def _get_embedding(self, layer):
 
         # If a list of layers is given: Return the embedding for each layer

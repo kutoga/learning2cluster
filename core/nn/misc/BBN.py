@@ -12,7 +12,7 @@ def BBN(y_true, y_pred, Q=0., normalize=False):
     :param y_pred:
     :param Q:
     :param normalize: The normalization is not defined in the original paper and is only fully defined if Q==0.
-                    If Q>0 it may be the case that the score return "None"
+                    If Q>0 it may be the case that the score returns "None" (because of a zero-division).
     :return:
     """
 
@@ -28,7 +28,7 @@ def BBN(y_true, y_pred, Q=0., normalize=False):
     true_c2i = create_cluster_dicts(y_true)
     pred_c2i = create_cluster_dicts(y_pred)
 
-    # Claculate now the sum of the paper:
+    # Calculate now the sum of the paper:
     # Remember, y_true describes the true speakers and y_pred the clustering.
     clusters = sorted(pred_c2i.keys())
     Nc = len(clusters)
@@ -44,6 +44,9 @@ def BBN(y_true, y_pred, Q=0., normalize=False):
     if normalize:
 
         # Hehe, thats the easiest way to find the maximum value;-)
+        # Just calculate the score for the case y_pred:=y_true (this returns the maximum possible value).
+        # There is just one problem: If Q is not equal to 0, the score may also include negative values. A normalization
+        # currently doesn't work for Q!=0, because sometimes the maximum value is 0
         max_v = BBN(y_true, y_true, Q=Q, normalize=False)
 
         if max_v == 0:

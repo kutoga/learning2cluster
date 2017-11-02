@@ -38,11 +38,12 @@ def misclassification_rate_BV01(y_true, y_pred):
     """
 
     # First step: Find for each source cluster the target cluster:
-    # This is the most critical step. We just use an approximation.
+    # This is the most critical step. We just use an approximation, because it seems to be very hard to get the optimal
+    # cluster assignment.
     # 1) For each source cluster find the target cluster that contains the most elements of the source cluster. If the
     #    relative element count is >50%, then assign the target cluster to the source cluster. If there are multiple clusters
     #    for which this is true, then take the one with the most elements of the source cluster. If there are still multiple
-    #    choices, then choose the cluster with the minimum element count.
+    #    choices, then choose the cluster with the minimum element count (if there is such a single one).
     # 2) Order the non-assigned source clusters by their entropy (descending):
     #
     #      s = 0
@@ -53,10 +54,10 @@ def misclassification_rate_BV01(y_true, y_pred):
     #        n += c_n
     #      entropy = s / n
     #
-    #    If two source clusters have the same entropy, oder the clusters by the number of unasigned elements.
+    #    If two source clusters have the same entropy, oder the clusters by the number of unassigned elements.
     #    If still two clusters get the same number, order them by their index (or some other deterministic number).
     # 3) Assign each source cluster to each target cluster with the highest relative element count. If there is no target
-    #    cluster left with elements (or any target cluster) do not do any assignement.
+    #    cluster left with elements (or any target cluster) do not do any assignment.
     # Second step:
     # Now it is easy to calculate MR. We can easily calculate the number of correctly assigned elements (and therefore
     # also the number of wrong assigned elements).
@@ -102,12 +103,6 @@ def misclassification_rate_BV01(y_true, y_pred):
                     elif target_n_elements == target_elements:
                         possible_target_clusters.append((tci, shared_elements))
 
-                # if target_n_elements is None or target_n_elements < target_elements:
-                #     possible_target_clusters = [(tci, shared_elements)]
-                #     target_n_elements = target_elements
-                # elif target_n_elements == target_elements:
-                #     possible_target_clusters.append((tci, shared_elements))
-
         # Check all possibilities:
         # 1) len(possible_target_clusters) == 0 => No assignment possible
         # 2) len(possible_target_clusters) == 1 => Am assignment is possible
@@ -128,6 +123,7 @@ def misclassification_rate_BV01(y_true, y_pred):
                 cluster_assignments[sci] = tci
                 unassigned_target_clusters.remove(tci)
                 unassigned_source_clusters.remove(sci)
+
     # 2) Order the non-assigned source clusters by their entropy (descending) and then bei their cluster id (also descending)
     def source_entropy(sci):
         source_cluster = source_clusters[sci]
@@ -144,6 +140,7 @@ def misclassification_rate_BV01(y_true, y_pred):
         else:
             return s / n
     source_clusters_ordered = sorted(unassigned_source_clusters, reverse=True, key=lambda sci: (source_entropy(sci), sci))
+
     # 3) Assign each source cluster to each target cluster with the highest relative element count. If there is no target
     #    cluster left with elements (or any target cluster) do not do any assignement.
     for sci in source_clusters_ordered:
@@ -173,7 +170,7 @@ def misclassification_rate_BV01(y_true, y_pred):
 
     # Second step:
     # Now it is easy to calculate MR. We can easily calculate the number of correctly assigned elements (and therefore
-    # also the number of wrong assigned elements).
+    # also the number of wrong assigned elements). This is the part which is described in the paper.
     sum_e_j = 0
     for sci in source_clusters.keys():
         source_cluster = source_clusters[sci]

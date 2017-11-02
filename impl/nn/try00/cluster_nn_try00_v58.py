@@ -5,13 +5,13 @@ from keras.losses import mean_squared_error
 
 import numpy as np
 
-from core.nn.helper import slice_layer, lukic_kl_divergence, reweight_values, concat
+from core.nn.helper import slice_layer, lukic_kl_divergence, reweight_values, concat, regularizer_cluster_assignment
 from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
 # from keras.layers import LSTM
 LSTM = CuDNNLSTM
 
-class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
+class ClusterNNTry00_V58(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, output_dense_units=512,
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False, cluster_count_lstm_layers=2, cluster_count_lstm_units=64, internal_embedding_size=96,
@@ -131,6 +131,9 @@ class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
             k: self._s_layer('softmax_cluster_{}'.format(k), lambda name: Dense(k, activation='softmax', name=name)) for k in cluster_counts
         }
 
+        # Prepare a data structure for the cluster assignement regularizer ("implication rule")
+        softmax_outputs = {k:[] for k in cluster_counts}
+
         # Create now the outputs
         clusters_output = additional_network_outputs['clusters'] = {}
         for i in range(len(embeddings_processed)):
@@ -147,6 +150,16 @@ class ClusterNNTry00_V51(SimpleLossClusterNN_V02):
                 output_classifier = cluster_softmax[k](embedding_proc)
                 input_clusters_output['cluster{}'.format(k)] = output_classifier
                 network_output.append(output_classifier)
+
+                # Add the output for the regularizer
+                softmax_outputs[k].append(output_classifier)
+
+        cluster_assignment_regularization = regularizer_cluster_assignment(softmax_outputs)
+        self._register_additional_regularisation(
+            cluster_assignment_regularization,
+            'cluster_assignment_regularization',
+            weight=0.5
+        )
 
         # Calculate the real cluster count
         assert self.__cluster_count_lstm_layers >= 1
