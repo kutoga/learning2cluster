@@ -13,7 +13,7 @@ class CnnBDLSTMEmbedding(EmbeddingNN):
                  hidden_activation='relu', final_activation='sigmoid', cnn_filter_size=3, max_pooling_size=2, max_pooling_stride=2,
                  dimensionality='2d', dropout_after_max_pooling=[],
                  batch_norm_for_init_layer=False, batch_norm_for_final_layer=False, batch_norm_after_activation=True,
-                 batch_norm_after_bdlstm=False
+                 batch_norm_after_bdlstm=False, dropout_init=None, dropout_after_fc=[]
                  ):
         super().__init__()
 
@@ -32,7 +32,19 @@ class CnnBDLSTMEmbedding(EmbeddingNN):
         self._max_pooling_size = max_pooling_size
         self._max_pooling_stride = max_pooling_stride
         self._dimensionality = dimensionality
-        self._dropout_after_max_pooling = dropout_after_max_pooling
+
+        # Define the dropouts
+        def get_dropout_lst(input_def, target_list_len, default_value=None):
+            if isinstance(input_def, list):
+                res = input_def[:target_list_len]
+                res = res + [default_value] * (target_list_len - len(res))
+            else:
+                res = [input_def] * target_list_len
+            return res
+        self._dropout_init = dropout_init
+        self._dropout_after_max_pooling = get_dropout_lst(dropout_after_max_pooling, len(self._block_feature_counts))
+        self._dropout_after_fc = get_dropout_lst(dropout_after_fc, len(self._fc_layers_units))
+
 
     def _build_model(self, input_shape):
         dimensionality = self._dimensionality
@@ -60,6 +72,9 @@ class CnnBDLSTMEmbedding(EmbeddingNN):
         else:
             # The first layer always requires the networks input shape. Create a dummy layer (its the easiest way)
             model.add(self._s_layer('dummy_init', lambda name: Activation('linear', name=name, input_shape=input_shape)))
+
+        # Add an initial dropout layer
+        add_dropout_if_required('dropout_init', self._dropout_init)
 
         # Add all convolutional layers
         for i in range(len(self._block_feature_counts)):
@@ -131,6 +146,9 @@ class CnnBDLSTMEmbedding(EmbeddingNN):
                 model.add(self._s_layer('activation{}'.format(i), lambda name: Activation(self._hidden_activation, name=name)))
             if self._batch_norm_after_activation:
                 model.add(batch_norm)
+
+            # Add dropout if required
+            add_dropout_if_required('dropout_fc_{}'.format(i), self._dropout_after_fc[i])
 
         model.add(self._s_layer('output_dense', lambda name: Dense(self._output_size, name=name, kernel_regularizer=self.regularizer)))
 

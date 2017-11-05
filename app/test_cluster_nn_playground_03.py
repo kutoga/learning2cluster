@@ -23,6 +23,7 @@ if __name__ == '__main__':
     from impl.data.image.mnist_data_provider import MNISTDataProvider
     from impl.data.image.cifar100_data_provider import Cifar100DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
+    from impl.nn.base.embedding_nn.cnn_bdlstm_embedding import CnnBDLSTMEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "E:/tmp/"
@@ -38,9 +39,9 @@ if __name__ == '__main__':
     dp.target_min_cluster_count = 2
     dp.target_max_cluster_count = 2
 
-    en = CnnEmbedding(
+    en = CnnBDLSTMEmbedding(
         output_size=2, cnn_layers_per_block=1, block_feature_counts=[1, 1],
-        fc_layer_feature_counts=[1, 1, 1], hidden_activation='relu', final_activation='relu',
+        fc_layers_units=[1, 1, 1], hidden_activation='relu', final_activation='relu',
         batch_norm_for_init_layer=True, cnn_filter_size=5,
         dropout_init=.5, dropout_after_max_pooling=.5, dropout_after_fc=[.2, .3, .4, .5]
     )
@@ -72,7 +73,8 @@ if __name__ == '__main__':
     #     except:
     #         print("ERROR")
 
-    c_nn.build_networks(print_summaries=False)
+    c_nn.build_networks(print_summaries=True)
+    exit()
 
     # Enable autosave and try to load the latest configuration
     autosave_dir = top_dir + 'test/autosave_ClusterNNPlayground02'

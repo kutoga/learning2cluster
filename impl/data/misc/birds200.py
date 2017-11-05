@@ -74,7 +74,7 @@ def load_data(target_img_size=(48, 48)):
 
         print("Load the train / test split...")
         for img_id, is_training_image in read_definition_file(os.path.join(tmp_data_dir, 'train_test_split.txt')):
-            get_img_dict(img_id)['is_training_image'] = is_training_image
+            get_img_dict(img_id)['is_training_image'] = bool(int(is_training_image))
 
         print("Load and pre-process image files...")
         x = np.zeros((len(imgs),) + target_img_size + (3,), dtype=np.uint8)

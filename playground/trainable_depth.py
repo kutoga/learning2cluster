@@ -340,7 +340,7 @@ for i in range(10000):
     print_layer_counts()
 
 # Resultate:
-# MNIST:
+# MNIST (batch size=500):
 # Iteration 25
 # Train on 60000 samples, validate on 10000 samples
 # Epoch 1/1
@@ -348,7 +348,7 @@ for i in range(10000):
 # df0: 0.7753986716270447
 # df1: 1.335105061531067
 # df2: 1.8371177911758423
-# CIFAR10
+# CIFAR10 (batch size=500):
 # Iteration 254
 # Train on 50000 samples, validate on 10000 samples
 # Epoch 1/1
@@ -356,7 +356,7 @@ for i in range(10000):
 # df0: 0.5839430093765259
 # df1: 1.8853037357330322
 # df2: 2.000136375427246
-# CIFAR100 (nicht ganz fertig)
+# CIFAR100 (nicht ganz fertig) (batch size=500):
 # Iteration 166
 # Train on 50000 samples, validate on 10000 samples
 # Epoch 1/1
@@ -364,6 +364,11 @@ for i in range(10000):
 # df0: 0.6286575794219971
 # df1: 1.7639727592468262
 # df2: 3.9990553855895996
+# Birds200 (batch size=500):
+# 5994/5994 [==============================] - 13s 2ms/step - loss: 0.5885 - categorical_accuracy: 0.9511 - val_loss: 7.3716 - val_categorical_accuracy: 0.1068
+# df0: 0.8518016338348389
+# df1: 1.1794722080230713
+# df2: 5.998287677764893
 
 
 

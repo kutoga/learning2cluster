@@ -12,6 +12,8 @@ Docker auf srv-lab-t-697 starten:
     (cd /home/keras/; mv .keras .keras_org; ln -s /data/.keras .)
     bash ./scripts/run.sh ./app/test_minimal_cluster_nn.py /tmp/test_minimal_cluster_nn.py.log
 
+    ./scripts/run.sh ./playground/trainable_depth.py /tmp/test/trainable_depth_000.log
+
 
 Bzw. falls root & Port-Weiterleitung gewünscht ist:
 

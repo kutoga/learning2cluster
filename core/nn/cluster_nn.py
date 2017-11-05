@@ -236,7 +236,7 @@ class ClusterNN(BaseNN):
     def _uses_embedding_layer(self):
         return self._embedding_nn is not None
 
-    def _get_embedding(self, layer, time_distributed=False, layer_base_name='embedding_preprocessor'):
+    def _get_embedding(self, layer, time_distributed=True, layer_base_name='embedding_preprocessor'):
 
         # If a list of layers is given: Return the embedding for each layer
         if isinstance(layer, list):
