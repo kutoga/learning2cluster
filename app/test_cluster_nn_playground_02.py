@@ -10,6 +10,7 @@ from time import time
 
 from impl.nn.try04_ddbc.cluster_nn_try04_ddbc import ClusterNNTry04_Ddbc
 from impl.nn.playground.cluster_nn_hint import ClusterNNHint
+from impl.nn.playground.cluster_nn_merged_inputs import ClusterNNMergedInputs
 from impl.nn.try00.cluster_nn_try00_v12 import ClusterNNTry00_V12
 from impl.nn.try00.cluster_nn_try00_v16 import ClusterNNTry00_V16
 
@@ -51,10 +52,9 @@ if __name__ == '__main__':
     )
     en = None
     # dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=10, allow_less_clusters=False)
-    # en = SimpleFCEmbedding(output_size=2, hidden_layers=[16, 32, 64, 64], final_activation='tanh')
+    en = SimpleFCEmbedding(output_size=3, hidden_layers=[2], final_activation='tanh')
 
-    c_nn = ClusterNNHint(dp, 3, en, lstm_layers=0, kl_embedding_size=2, cluster_count_dense_layers=0, cluster_count_dense_units=1,
-                         output_dense_layers=0, output_dense_units=1, cluster_count_lstm_layers=1, cluster_count_lstm_units=1)
+    c_nn = ClusterNNMergedInputs(dp, 3, en)
     c_nn.minibatch_size = 2
     c_nn.validate_every_nth_epoch = 1
     c_nn.debug_mode = True

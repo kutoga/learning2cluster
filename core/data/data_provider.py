@@ -220,6 +220,10 @@ class DataProvider:
             hints = []
             for i in range(cluster_colletion_count):
                 data, obj_info, clustering_hints = self._get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
+
+                if min(map(len, data)) == 0:
+                    print("Warning: There are empty clusters in the generated data (this may cause some problems).")
+
                 train_data.append(data)
                 additional_obj_info.append(obj_info)
                 hints.append(clustering_hints)

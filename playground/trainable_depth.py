@@ -264,11 +264,17 @@ if False:
 
 from keras.layers import Convolution2D, MaxPooling2D, Dropout
 from keras.datasets import mnist, fashion_mnist, cifar10, cifar100
+from impl.data.misc import flowers102, birds200
 from keras.losses import hinge
 
 (x_train, y_train), (x_test, y_test) = cifar100.load_data()
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+(x_train, y_train), (x_valid, y_valid), (x_test, y_test) = flowers102.load_data((48, 48))
+(x_train, y_train), (x_test, y_test) = birds200.load_data((48, 48))
+
 num_classes = np.prod(np.unique(y_train).shape)
+print("num_classes={}".format(num_classes))
 
 data_shape = x_train[0].shape
 if len(data_shape) < 3:
@@ -280,24 +286,25 @@ if len(data_shape) < 3:
 reg=l2(1e-2)
 n_penalty=l2(1e-11)
 batch_norm=True
+max_layer_count=10
 
 nw_input = Input(data_shape)
 nw = nw_input
 
 nw = Convolution2D(32, (3, 3), trainable=False, padding='same')(nw)
-nw, df0 = dynamic_layer_count(nw, lambda x: Dropout(0.25)(Convolution2D(32, (3, 3), kernel_regularizer=reg, padding='same')(x)), max_layer_count=10, n_penalty=n_penalty, batch_norm=batch_norm)
+nw, df0 = dynamic_layer_count(nw, lambda x: Dropout(0.25)(Convolution2D(32, (3, 3), kernel_regularizer=reg, padding='same')(x)), max_layer_count=max_layer_count, n_penalty=n_penalty, batch_norm=batch_norm)
 nw = MaxPooling2D(pool_size=(2, 2))(nw)
 # nw = Dropout(0.5)(nw)
 
 nw = Convolution2D(64, (3, 3), trainable=False, padding='same')(nw)
-nw, df1 = dynamic_layer_count(nw, lambda x: Dropout(0.25)(Convolution2D(64, (3, 3), kernel_regularizer=reg, padding='same')(x)), max_layer_count=10, n_penalty=n_penalty, batch_norm=batch_norm)
+nw, df1 = dynamic_layer_count(nw, lambda x: Dropout(0.25)(Convolution2D(64, (3, 3), kernel_regularizer=reg, padding='same')(x)), max_layer_count=max_layer_count, n_penalty=n_penalty, batch_norm=batch_norm)
 nw = MaxPooling2D()(nw)
 # nw = Dropout(0.5)(nw)
 
 nw = Flatten()(nw)
 
 nw = Dense(256, trainable=False)(nw)
-nw, df2 = dynamic_layer_count(nw, lambda x: Dropout(0.25)(Dense(256, kernel_regularizer=reg)(x)), max_layer_count=10, n_penalty=n_penalty, batch_norm=batch_norm)
+nw, df2 = dynamic_layer_count(nw, lambda x: Dropout(0.25)(Dense(256, kernel_regularizer=reg)(x)), max_layer_count=max_layer_count, n_penalty=n_penalty, batch_norm=batch_norm)
 
 nw = Dense(num_classes, trainable=False, name="classification", activation='softmax')(nw)
 
@@ -341,8 +348,27 @@ for i in range(10000):
 # df0: 0.7753986716270447
 # df1: 1.335105061531067
 # df2: 1.8371177911758423
+# CIFAR10
+# Iteration 254
+# Train on 50000 samples, validate on 10000 samples
+# Epoch 1/1
+# 50000/50000 [==============================] - 25s 491us/step - loss: 0.6033 - categorical_accuracy: 0.8595 - val_loss: 1.1314 - val_categorical_accuracy: 0.6955
+# df0: 0.5839430093765259
+# df1: 1.8853037357330322
+# df2: 2.000136375427246
+# CIFAR100 (nicht ganz fertig)
+# Iteration 166
+# Train on 50000 samples, validate on 10000 samples
+# Epoch 1/1
+# 50000/50000 [==============================] - 24s 490us/step - loss: 2.0777 - categorical_accuracy: 0.5426 - val_loss: 2.9357 - val_categorical_accuracy: 0.3750
+# df0: 0.6286575794219971
+# df1: 1.7639727592468262
+# df2: 3.9990553855895996
 
 
 
 # TODO:
 # Ist regularisierung für den dense / conv layer notwendig?
+# f_{i+1}(x) könnte man noch wie folgt regularisieren (so sind die Werte immer normalisiert (aktuell könnten sie theoretisch explodieren):
+# g_{i+1}(x) = Relu(f_{i}(x)+d(i)*Layer(f_{i}(x))) # dies entspricht dem "alten" f_{i+1}
+# f_{i+1}(x) = d(i)*BatchNorm(g_{i+1}(x)) + (1-d(i))*g_{i+1}(x)

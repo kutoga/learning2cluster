@@ -11,11 +11,11 @@ from sklearn import metrics
 from termcolor import colored
 
 from keras.models import Model
-from keras.layers import Input, Activation
+from keras.layers import Input, Activation, Reshape, TimeDistributed
 
 from core.nn.base_nn import BaseNN
 from core.nn.history import History
-from core.nn.helper import filter_None, AlignedTextTable, np_show_complete_array, get_caller
+from core.nn.helper import filter_None, AlignedTextTable, np_show_complete_array, get_caller, concat_layer, slice_layer
 from core.event import Event
 from core.helper import try_makedirs, index_of
 
@@ -236,11 +236,56 @@ class ClusterNN(BaseNN):
     def _uses_embedding_layer(self):
         return self._embedding_nn is not None
 
-    def _get_embedding(self, layer):
+    def _get_embedding(self, layer, time_distributed=False, layer_base_name='embedding_preprocessor'):
 
         # If a list of layers is given: Return the embedding for each layer
         if isinstance(layer, list):
-            return [self._get_embedding(l) for l in layer]
+            if time_distributed:
+
+                # Simple case: if there is no embedding-network, just return the input
+                if self._embedding_nn is None:
+                    return layer
+
+                # Use the "time-distributed" mode: Merge all inputs together, create the Embeddings and then split them
+                shape = layer[0]._keras_shape[1:]
+
+                # Prepare the required layers
+                reshape_layer = self._s_layer(
+                    '{}_concat_init_reshape'.format(layer_base_name),
+                    lambda name: Reshape((1,) + shape, name=name)
+                )
+                merge_layer = self._s_layer(
+                    '{}_concat'.format(layer_base_name),
+                    lambda name: concat_layer(axis=1, name=name, input_count=len(layer))
+                )
+
+                # Merge all input together
+                merged = merge_layer([
+                    reshape_layer(l) for l in layer
+                ])
+
+                # Create now the embeddings
+                embeddings = TimeDistributed(self._embedding_nn.model)(merged)
+
+                # Slice them all: We want to split the result
+                shape = embeddings._keras_shape[1:]
+                reshape_layer = self._s_layer(
+                    '{}_concat_final_reshape'.format(layer_base_name),
+                    lambda name: Reshape(shape[1:], name=name)
+                )
+                embeddings_list = [
+                    reshape_layer(
+                        self._s_layer('{}_slice_{}'.format(layer_base_name, i), lambda name: slice_layer(embeddings, i, name))
+                    ) for i in range(len(layer))
+                ]
+
+                # Thats it
+                return embeddings_list
+
+            else:
+
+                # Create the embedding for each input independent of each other
+                return [self._get_embedding(l) for l in layer]
 
         # Return the embedding for the given layer
         if self._embedding_nn is None:
@@ -455,6 +500,9 @@ class ClusterNN(BaseNN):
         return arr
 
     def __train_iteration(self, dummy_train=False):
+        if self._model_training is None:
+            raise Exception("No training model is defined (it has to be built with 'build_networks(build_training_model=True)'")
+
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
         do_validation = (self.__get_last_epoch() + 1) % self._validate_every_nth_epoch == 0
         cluster_counts = self._get_cluster_counts()  #list(self._data_provider.get_cluster_counts())
@@ -654,11 +702,13 @@ class ClusterNN(BaseNN):
         return early_stopped
 
     def data_to_cluster_indices(self, data, shuffle_indices=None):
-        if isinstance(data[0][0], list):
+        if len(data[0]) > 0 and isinstance(data[0][0], list):
             return list(map(
                 lambda i: self.data_to_cluster_indices(data[i], None if shuffle_indices is None else shuffle_indices[i]),
                 range(len(data))
             ))
+        if len(data[0]) == 0:
+            print("There are empty clusters in the input. This may produce detection problems.")
 
         cluster_indices = list(chain.from_iterable(map(
             lambda i: [i] * len(data[i]),
@@ -988,7 +1038,7 @@ class ClusterNN(BaseNN):
     def _get_clustering_hint(self):
         return self.__nw_clustering_hint
 
-    def build_networks(self, print_summaries=False):
+    def build_networks(self, print_summaries=False, build_training_model=True):
         if self._embedding_nn is not None:
             self._embedding_nn.build(self.data_provider.get_data_shape())
             if print_summaries:
@@ -1012,30 +1062,34 @@ class ClusterNN(BaseNN):
             self._model_prediction.summary()
         # self._model_prediction.summary()
 
-        # Build the training model (it is based on the prediction model)
-        loss_output = []
-        self._build_loss_network(nw_output, loss_output, additional_network_outputs)
-        self._model_training = Model(nw_input + [self.__nw_clustering_hint], loss_output)
-        # self._model_training = Model(nw_input, loss_output)
-        if print_summaries:
-            self._model_training.summary()
-        # self._model_training.summary()
+        if build_training_model:
 
-        # Compile the training model
-        self._model_training.compile(
-            optimizer=self._optimizer,
-            loss=self._get_weighted_keras_loss(),
-            metrics=self._get_keras_metrics()
-        )
+            # Build the training model (it is based on the prediction model).
+            # This can be quite expensive and is not required if only predictions
+            # are done.
+            loss_output = []
+            self._build_loss_network(nw_output, loss_output, additional_network_outputs)
+            self._model_training = Model(nw_input + [self.__nw_clustering_hint], loss_output)
+            # self._model_training = Model(nw_input, loss_output)
+            if print_summaries:
+                self._model_training.summary()
+            # self._model_training.summary()
+
+            # Compile the training model
+            self._model_training.compile(
+                optimizer=self._optimizer,
+                loss=self._get_weighted_keras_loss(),
+                metrics=self._get_keras_metrics()
+            )
+
+            # Register the training model: The prediction model contains only weights which are also available in the
+            # training model, therefore we only have to store one of these models. They also share the weights (shared
+            # layers) and the weights have therefore only to be loaded for the "larger" model: The training model.
+            self._register_model(self._model_training, self._get_name('cluster_nn'))
 
         # Register the embedding model
         if self._embedding_nn is not None:
             self._register_model(self._embedding_nn, self._get_name('embedding_nn'))
-
-        # Register the training model: The prediction model contains only weights which are also available in the
-        # training model, therefore we only have to store one of these models. They also share the weights (shared
-        # layers) and the weights have therefore only to be loaded for the "larger" model: The training model.
-        self._register_model(self._model_training, self._get_name('cluster_nn'))
 
         # Register all plots
         self._register_plots()

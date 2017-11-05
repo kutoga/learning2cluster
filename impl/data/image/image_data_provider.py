@@ -43,7 +43,7 @@ class ImageDataProvider(DataProvider):
             train_classes = classes[:train_classes_count]
             validate_classes = classes[train_classes_count:]
             test_classes = classes[train_classes_count:]
-        if test_classes is not None and validate_classes is not None:
+        if test_classes is not None and validate_classes is not None and train_classes is None:
             classes = list(self.__data.keys())
             train_classes = set(classes)
             train_classes -= set(test_classes)
@@ -116,7 +116,7 @@ class ImageDataProvider(DataProvider):
     def _load_data(self):
         pass
 
-    def _get_random_element(self, class_name, element_index=None):
+    def _get_random_element(self, class_name, data_type, element_index=None):
         # data = self.__data[class_name][:1] # Just for debugging
 
         data = self.__data[class_name]
@@ -185,7 +185,7 @@ class ImageDataProvider(DataProvider):
             """
             if index is None:
                 index = len(clusters[class_name])
-            element, additional_obj_info = self._get_random_element(class_name, index)
+            element, additional_obj_info = self._get_random_element(class_name, data_type, index)
             if isinstance(element, list):
                 if additional_obj_info is None:
                     additional_obj_info = [None] * len(element)

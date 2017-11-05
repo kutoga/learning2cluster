@@ -219,7 +219,7 @@ class BaseNN:
 
         self.event_store_weights_before.fire(base_filename, include_history)
 
-        for model_name in self._registered_models:
+        for model_name in sorted(self._registered_models.keys()):
             model = self._registered_models[model_name]
             current_base_filename = base_filename + model_name
 
@@ -240,7 +240,7 @@ class BaseNN:
 
         self.event_load_weights_before.fire(base_filename, include_history)
 
-        for model_name in self._registered_models.keys():
+        for model_name in sorted(self._registered_models.keys()):
             model = self._registered_models[model_name]
             current_base_filename = base_filename + model_name
 

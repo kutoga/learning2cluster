@@ -19,7 +19,16 @@ class AudioDataProvider(ImageDataProvider):
     def __init__(self, data_dir=None, audio_helper=None, cache_directory=None, train_classes=None, validate_classes=None,
                  test_classes=None, window_width=100, return_1d_audio_data=False,
                  min_cluster_count=None, max_cluster_count=None, concat_audio_files_of_speaker=False,
-                 minimum_snippets_per_cluster=1, return_equal_snippet_size=True, split_audio_pieces_longer_than_and_create_hints=None):
+                 minimum_snippets_per_cluster=1, return_equal_snippet_size=True, split_audio_pieces_longer_than_and_create_hints=None,
+                 snippet_merge_mode=None):
+        # snippet_merge_mode:
+        # This is a list of a file count. E.g. if it is [8, 2] then the first two files of a speaker (ordered by the
+        # filenames) are merged to one snippet and the next two files are merged to a second snippet. The value
+        # -1 might be used at the end of the list to incidcate that all other snippets should be merged into a final
+        # new snippet. If -1 is not given, the additional snippets will be ignored.
+        # If snippet_merge_mode is not None, the "concat_audio_files_of_speaker" setting will be ignored. Its behavior
+        # can be produced with "snippet_merge_mode=[-1]", therefore, it is obsolete (it is still there for compatibility).
+
         if audio_helper is None:
             audio_helper = AudioHelper()
 
@@ -29,6 +38,8 @@ class AudioDataProvider(ImageDataProvider):
         self.__audio_helper = audio_helper
         self.__cache = None if cache_directory is None else SimpleFileCache(cache_directory, compression=True)
         self.__concat_audio_files_of_speaker = concat_audio_files_of_speaker
+        self.__snippet_merge_mode = snippet_merge_mode
+        self.__split_modes = {}
 
         # Window width may be a scalar or an array of possible intervals for the sizes, e.g.:
         # [(180, 200), (400, 420), ...]
@@ -70,7 +81,7 @@ class AudioDataProvider(ImageDataProvider):
             train_classes = classes[:train_classes_count]
             validate_classes = classes[train_classes_count:]
             test_classes = classes[train_classes_count:]
-        if test_classes is not None and validate_classes is not None:
+        if test_classes is not None and validate_classes is not None and train_classes is None:
             classes = list(self.__data.keys())
             train_classes = set(classes)
             train_classes -= set(test_classes)
@@ -83,6 +94,34 @@ class AudioDataProvider(ImageDataProvider):
             max_cluster_count=max_cluster_count,
             min_element_count_per_cluster=minimum_snippets_per_cluster if isinstance(minimum_snippets_per_cluster, int) else len(minimum_snippets_per_cluster)
         )
+
+    def set_split_mode(self, data_type, mode=None):
+        if mode is not None:
+            # Currently, there is only one valid mode; maybe in futture there will be more different modes
+            if mode not in ['snippet']:
+                return False
+        self.__split_modes[data_type] = mode
+
+    def get_split_mode(self, data_type):
+        if data_type in self.__split_modes:
+            return self.__split_modes[data_type]
+        return None
+
+    def get_required_input_count_for_full_test(self, data_type='test'):
+        if len(self.__window_width) != 1 or (self.__window_width[0][0] != self.__window_width[0][1]):
+            raise Exception("It is required that only one constant possible window width exists if the required inputs should be calculated.")
+        classes = self._data_classes[data_type]
+        window_width = self.__window_width[0][0]
+        def required_input_count_for_snippet(x):
+            return int(ceil(x['content'].shape[0] / window_width))
+        input_count = sum(map(
+            lambda cls: sum(map(
+                lambda snippet: required_input_count_for_snippet(snippet),
+                self.__data[cls]
+            )),
+            classes
+        ))
+        return input_count
 
     def _get_img_data_shape(self):
 
@@ -114,16 +153,43 @@ class AudioDataProvider(ImageDataProvider):
             for k in clusters.keys():
 
                 # Get all audio snippets
-                snippets = map(
+                snippets = list(map(
                     lambda file: {
                         'content': self.__load_audio_file(path.join(self.__data_dir, file)),
                         'filename': path.splitext(path.basename(path.join(self.__data_dir, file)))[0]
                     },
                     sorted(clusters[k])
-                )
+                ))
 
-                # If required: Merge all snippets
-                if self.__concat_audio_files_of_speaker:
+                if self.__snippet_merge_mode is not None:
+
+                    # Merge the snippets according to the defined configuration
+                    new_snippets = []
+                    i = 0
+                    for merge_len in self.__snippet_merge_mode:
+
+                        # Get the start and end index
+                        start = i
+                        if merge_len == -1:
+                            if start >= len(snippets):
+                                break
+                            end = len(snippets)
+                        else:
+                            end = start + merge_len
+
+                        # Merge the snippets
+                        source_snippets = list(map(lambda x: x['content'], snippets[start:end]))
+                        if len(source_snippets) > 0:
+                            new_snippets.append({
+                                'content': np.concatenate(source_snippets),
+                                'filename': 'CONCAT({}:{})'.format(start, end)
+                            })
+                        i += (end - start)
+                    snippets = new_snippets
+
+                elif self.__concat_audio_files_of_speaker:
+
+                    # Merge all snippets to one large snippet
                     snippets = [{
                         'content': np.concatenate(list(map(lambda x: x['content'], snippets))),
                         'filename': 'CONCAT'
@@ -148,10 +214,19 @@ class AudioDataProvider(ImageDataProvider):
     def _get_audio_file_clusters(self, data_dir):
         return {}
 
-    def _get_random_element(self, class_name, element_index=None):#, window_range=None, blocked_ranges=None):
+    def _get_random_element(self, class_name, data_type, element_index=None):#, window_range=None, blocked_ranges=None):
+        if data_type is not None and data_type in self.__split_modes and self.__split_modes[data_type] is not None:
+            mode = self.__split_modes[data_type]
+        else:
+            mode = None
 
         # Get a target audio object
-        audio_object = self.__rand.choice(self._get_data()[class_name])
+        audio_objects = self._get_data()[class_name]
+
+        if mode == 'snippet' and element_index is not None and len(audio_objects) > element_index:
+            audio_object = audio_objects[element_index]
+        else:
+            audio_object = self.__rand.choice(audio_objects)
         audio_content = audio_object['content']
         audio_width = audio_content.shape[0]
 
@@ -173,55 +248,91 @@ class AudioDataProvider(ImageDataProvider):
             raise Exception("Invalid window width (audio is too short)")
         window_range = (window_range[0], min(window_range[1], audio_width))
         window_width = self.__rand.randint(*window_range)
+        if mode == 'snippet':
 
-        # Select a random snippet
-        start_index_range = (0, audio_content.shape[0] - window_width)
-        start_index = self.__rand.randint(start_index_range[0], start_index_range[1])
+            # For this mode we want to use the complete sentence and create hints that the sentence is really only
+            # one single snippet.
 
-        element = audio_content[start_index:(start_index + window_width)]
-        additional_obj_info = {
-            'description': '{} [{}] [{}-{}]'.format(class_name, audio_object['filename'], start_index, start_index + window_width),
-            'class': class_name,
-            'sort_key': '{}/{}'.format(class_name, start_index)
-        }
+            # Is some padding required?
+            snippet_count = int(ceil(audio_width / window_width))
+            padding = snippet_count * window_width - audio_width
+            if padding > 0:
+                new_audio_content = np.zeros((audio_width + padding,) + audio_content.shape[1:], dtype=np.float32)
+                begin_padding = self.__rand.randint(0, padding)
+                new_audio_content[begin_padding:(begin_padding + audio_width)] = audio_content
+                audio_content = new_audio_content
+            else:
+                begin_padding = 0
 
-        # It may be required to put the element to a larger array (if uniform length elements are required)
-        if self.__return_equal_snippet_size:
-            output_length = self.__output_length
-            element_length = element.shape[0]
-            if element_length < output_length:
-                result = np.zeros((output_length,) + element.shape[1:], dtype=np.float32)
-                start_index = self.__rand.randint(0, output_length - element_length)
-                result[start_index:(start_index + element_length)] = element
-                element = result
+            # Split now the audio content into many small pieces
+            snippets = list(map(
+                lambda si: {
+                    'additional_obj_info': {
+                        'description': '{} [{}] [{}-{}] [{}/{}] [p{}]'.format(class_name, audio_object['filename'], (si * window_width),
+                                                                              ((si + 1) * window_width), si, snippet_count, begin_padding),
+                        'class': class_name,
+                        'sort_key': '{}/{}/{}'.format(class_name, audio_object['filename'], si)
+                    },
+                    'content': audio_content[(si * window_width):((si + 1) * window_width)]
+                }, range(snippet_count)
+            ))
 
-        # Test if element has to be split.
-        if self.__split_audio_pieces_longer_than_and_create_hints is not None:
-            max_len = self.__split_audio_pieces_longer_than_and_create_hints
-            parts = int(ceil(element.shape[0] / max_len))
-            if parts > 1:
+            # Prepare now everything for the output
+            element = list(map(lambda x: x['content'], snippets))
+            additional_obj_info = list(map(lambda x: x['additional_obj_info'], snippets))
 
-                # Ok, we have to do the split
-                elements = []
-                for i in range(parts):
-                    new_element = element[(max_len * i):(max_len * (i + 1))]
-                    if i == parts - 1:
-                        # Do padding if required
-                        new_element_length = new_element.shape[0]
-                        new_element_padded = np.zeros((max_len,) + new_element.shape[1:], dtype=np.float32)
-                        start_index = self.__rand.randint(0, max_len - new_element_length)
-                        new_element_padded[start_index:(start_index + new_element_length)] = new_element
-                        new_element = new_element_padded
-                    elements.append(new_element)
+        elif mode is None:
 
-                # Return now all the new objects; modify the additional obj info (for each piece)
-                element = elements
-                new_additional_obj_info = []
-                for i in range(parts):
-                    curr_new_additional_obj_info = dict(additional_obj_info)
-                    curr_new_additional_obj_info['description'] += '_[{}/{}]'.format(i + 1, parts)
-                    new_additional_obj_info.append(curr_new_additional_obj_info)
-                additional_obj_info = new_additional_obj_info
+            # Select a random snippet
+            start_index_range = (0, audio_content.shape[0] - window_width)
+            start_index = self.__rand.randint(start_index_range[0], start_index_range[1])
+
+            element = audio_content[start_index:(start_index + window_width)]
+            additional_obj_info = {
+                'description': '{} [{}] [{}-{}]'.format(class_name, audio_object['filename'], start_index, start_index + window_width),
+                'class': class_name,
+                'sort_key': '{}/{}'.format(class_name, start_index)
+            }
+
+            # It may be required to put the element to a larger array (if uniform length elements are required)
+            if self.__return_equal_snippet_size:
+                output_length = self.__output_length
+                element_length = element.shape[0]
+                if element_length < output_length:
+                    result = np.zeros((output_length,) + element.shape[1:], dtype=np.float32)
+                    start_index = self.__rand.randint(0, output_length - element_length)
+                    result[start_index:(start_index + element_length)] = element
+                    element = result
+
+            # Test if element has to be split.
+            if self.__split_audio_pieces_longer_than_and_create_hints is not None:
+                max_len = self.__split_audio_pieces_longer_than_and_create_hints
+                parts = int(ceil(element.shape[0] / max_len))
+                if parts > 1:
+
+                    # Ok, we have to do the split
+                    elements = []
+                    for i in range(parts):
+                        new_element = element[(max_len * i):(max_len * (i + 1))]
+                        if i == parts - 1:
+                            # Do padding if required
+                            new_element_length = new_element.shape[0]
+                            new_element_padded = np.zeros((max_len,) + new_element.shape[1:], dtype=np.float32)
+                            start_index = self.__rand.randint(0, max_len - new_element_length)
+                            new_element_padded[start_index:(start_index + new_element_length)] = new_element
+                            new_element = new_element_padded
+                        elements.append(new_element)
+
+                    # Return now all the new objects; modify the additional obj info (for each piece)
+                    element = elements
+                    new_additional_obj_info = []
+                    for i in range(parts):
+                        curr_new_additional_obj_info = dict(additional_obj_info)
+                        curr_new_additional_obj_info['description'] += ' [{}/{}]'.format(i + 1, parts)
+                        new_additional_obj_info.append(curr_new_additional_obj_info)
+                    additional_obj_info = new_additional_obj_info
+        else:
+            raise Exception("Invalid mode '{}' for data type '{}'.".format(mode, data_type))
 
         return element, additional_obj_info
 

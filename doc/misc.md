@@ -4,9 +4,9 @@ Docker auf srv-lab-t-697 starten:
     
     scr 3 # bzw. irgendeine Zahl (erstekllt eine Screen-Session)
     srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 bash
-    # if required: docker build -t keras-meierbe8-3 images/keras3
-    nvidia-docker run -it -v ~/data:/data -v ~/code/:/code -v ~/code/tmp:/src/tmp -v ~ keras-meierbe8-3 bash
-    pip install termcolor librosa
+    # if required: docker build -t keras-meierbe8-4 images/keras4
+    nvidia-docker run -it -v ~/data:/data -v ~/code/:/code -v ~/code/tmp:/src/tmp -v ~ keras-meierbe8-4 bash
+    pip install termcolor librosa yattag
     cd tmp/ClusterNN
     ln -s /data/MT/ /tmp/test
     (cd /home/keras/; mv .keras .keras_org; ln -s /data/.keras .)

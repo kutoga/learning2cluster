@@ -12,14 +12,15 @@ class TIMITDataProvider(AudioDataProvider):
     def __init__(self, data_dir=None, audio_helper=None, cache_directory=None, window_width=100, return_1d_audio_data=False,
                  min_cluster_count=None, max_cluster_count=None, train_classes=None, validate_classes=None, test_classes=None,
                  concat_audio_files_of_speaker=False, minimum_snippets_per_cluster=1,
-                 split_audio_pieces_longer_than_and_create_hints=None):
+                 split_audio_pieces_longer_than_and_create_hints=None, snippet_merge_mode=None):
         super().__init__(
             data_dir=data_dir, audio_helper=audio_helper, cache_directory=cache_directory, window_width=window_width,
             return_1d_audio_data=return_1d_audio_data, min_cluster_count=min_cluster_count, max_cluster_count=max_cluster_count,
             train_classes=train_classes, validate_classes=validate_classes, test_classes=test_classes,
             concat_audio_files_of_speaker=concat_audio_files_of_speaker,
             minimum_snippets_per_cluster=minimum_snippets_per_cluster,
-            split_audio_pieces_longer_than_and_create_hints=split_audio_pieces_longer_than_and_create_hints
+            split_audio_pieces_longer_than_and_create_hints=split_audio_pieces_longer_than_and_create_hints,
+            snippet_merge_mode=snippet_merge_mode
         )
 
     def _get_audio_file_clusters(self, data_dir):
