@@ -10,6 +10,7 @@ from keras.layers import Layer, InputSpec
 import keras.initializers as initializers
 import keras.regularizers as regularizers
 import keras.backend as K
+from keras.utils import plot_model
 
 class DeltaF(Layer):
     def __init__(self, alpha_regularizer=None, default_layer_count=1,
@@ -314,6 +315,7 @@ model.compile(
     loss='categorical_crossentropy',
     metrics=['categorical_accuracy']
 )
+plot_model(model, to_file='E:\\model1.png')
 
 def print_layer_counts():
     print("df0: {}".format(df0.get_weights()[0][0]))

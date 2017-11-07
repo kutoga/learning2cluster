@@ -1,6 +1,7 @@
 import numpy as np
 import numbers
 
+from keras.utils import plot_model
 from keras.models import Model
 from keras.layers import Input, Dense, Activation, BatchNormalization, InputSpec, Layer, Lambda, RepeatVector, Reshape, \
     multiply, add, Flatten
@@ -8,6 +9,29 @@ from keras.regularizers import l2
 import keras.regularizers
 import keras.initializers
 import keras.backend as K
+
+# Print iterations progress
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '#'):
+    """
+    See: https://stackoverflow.com/a/34325723/916672
+
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
+    # Print New Line on Complete
+    if iteration == total:
+        print()
 
 class C_L2(keras.regularizers.Regularizer):
     """Regularizer for L1 and L2 regularization.
@@ -44,12 +68,18 @@ class C_L2(keras.regularizers.Regularizer):
     def get_config(self):
         return {'l2': float(self.l2),'shift':float(self.shift)}
 
+def GammaRegularizedBatchLayer(reg, max_free_gamma=1., **kwargs):
+    if reg is not None:
+        reg = C_L2(reg.l2, shift=max_free_gamma)
+    return BatchNormalization(gamma_regularizer=reg, **kwargs)
+
 def c_l2(l=0.01):
     return C_L2(l2=l)
 
 def pseudo_step_function(x):
     # return ((x - K.epsilon()) / (K.abs(x) + K.epsilon()) + 1) / 2
-    return 0.5 * (1 + (x - 2 * K.epsilon()) / (K.abs(x - K.epsilon()) + K.epsilon()))
+    # return 0.5 * (1 + (x - 2 * K.epsilon()) / (K.abs(x - K.epsilon()) + K.epsilon()))
+    return K.relu(K.sign(x))
 
 class DeltaF(Layer):
     def __init__(self, alpha_regularizer=None, default_layer_count=1.,
@@ -112,8 +142,6 @@ class DynamicLayer:
         self._reweight_regularizer = reweight_regularizer
         self._dummy_layer = None
         self._w_step = w_step
-        if w_step is not None:
-            print("w_step is not yet implemented; it will be ignored")
         if param_count_f is not None and not reweight_regularizer:
             print("reweight_regularizer is False, therefore param_count_f will be ignored")
 
@@ -136,11 +164,11 @@ class DynamicLayer:
         # But in this case we dont like to count their l2-regularization. So... We just can implement a factor
         # that is based on the delta-function. It returns 1 if the function is in the "active range" and 0
         # otherwise.
-        if i is not None and self._w_step is not None:
+        if i is not None:
             if self._dummy_layer is None:
-                print("No dummy layer is defined, but this is required if a dynamic regularization should be used.")
+                raise Exception("No dummy layer is defined, but this is required if a dynamic regularization should be used.")
             else:
-                l = l * pseudo_step_function(self._deltaF(self._constant(i)))
+                l *= pseudo_step_function(self._deltaF(self._constant(i)))
 
         return f(l)
 
@@ -168,16 +196,29 @@ class DynamicLayer:
             return self.w_init
         return weights[0][0]
 
-    def get_current_parameter_count(self):
+    def is_rebuild_required(self):
+        return self.get_w() > len(self._current_layers)
+
+    def calculate_used_parameters(self):
         return max(0, int(np.ceil(self.get_w()))) * self.parameter_count_per_f
+        # return int(np.ceil(self.get_w())) * self.parameter_count_per_f
+
+    def calculate_unused_parameters(self):
+        return len(self._current_layers) * self.parameter_count_per_f - self.calculate_used_parameters()
 
     def build_network(self, nw):
         layer_count = int(np.ceil(self.get_w()))
+
+        if self._w_step is not None:
+            # Use w_step to define the amount of layers to build
+            layer_count = int(np.ceil((layer_count / self._w_step))) * self._w_step
+
         dim = list(map(lambda x: int(str(x)), nw._keras_shape[1:]))
         dim_n = np.prod(dim)
 
-        # Remove layers if we have too many of them
-        self._current_layers = self._current_layers[:layer_count]
+        # We never remove any layer:)
+        # # Remove layers if we have too many of them
+        # self._current_layers = self._current_layers[:layer_count]
 
         # Add new layers if more layers are required
         for i in range(len(self._current_layers), layer_count):
@@ -244,6 +285,8 @@ class DynamicLayer:
             dummy_layer = Dense(1, kernel_initializer='zeros', trainable=False)(dummy_layer)
         self._dummy_layer = dummy_layer
 
+        return nw
+
     def _get_layers(self, base_name, layer_builders, regularizer=None):
         return [layer_builders[i](regularizer) for i in range(len(layer_builders))]
 
@@ -252,7 +295,6 @@ class TDModel:
         self._layers = []
         self._model = None
         self._dynamic_layers = []
-        self._current_dynamic_config_key = None
         self._compile_kwargs = {}
 
     def append(self, layer):
@@ -266,15 +308,8 @@ class TDModel:
         self.append(layer)
         return self
 
-    def _get_dynamic_config_key(self):
-        return '_'.join(map(
-            lambda l: str(max(0, int(np.ceil(l.get_w())))),
-            self._dynamic_layers
-        ))
-
     def rebuild_model_if_required(self):
-        key = self._get_dynamic_config_key()
-        if self._current_dynamic_config_key == key:
+        if not any(map(lambda dl: dl.is_rebuild_required(), self._dynamic_layers)):
             return
         print("Rebuild model...")
 
@@ -291,10 +326,9 @@ class TDModel:
         self._model = Model(nw_input, nw)
         self._model.compile(**self._compile_kwargs)
 
-        # Define the current model key
-        self._current_dynamic_config_key = key
-
-        print("Model parameter count: {}".format(self._model.count_params()))
+        unused_parameters = sum(map(lambda dl: dl.calculate_unused_parameters(), self._dynamic_layers))
+        print("Model parameter count: {}".format(self._model.count_params() - unused_parameters))
+        print("Additional unused parameters: {}".format(unused_parameters))
 
     def init(self, reweight_dynamic_layers=False, **compile_kwargs):
         assert len(self._layers) > 0
@@ -306,7 +340,7 @@ class TDModel:
             if isinstance(layer, DynamicLayer):
 
                 # We need to calculate the parameter count of the dynamic layer
-                layer.init(nw, dummy_layer=self._layers[0])
+                nw = layer.init(nw, dummy_layer=self._layers[0])
 
                 # "Register" the dynamic layer
                 self._dynamic_layers.append(layer)
@@ -338,13 +372,45 @@ class TDModel:
         for layer in self._dynamic_layers:
             print("{}.w = {}".format(layer.name, layer.get_w()))
 
-    def train_step(self, x, y, validation_data=None, rebuild_model_if_required=True, **kwargs):
+    def train_step(self, x, y, validation_data=None, rebuild_model_if_required=True, debug_print=True, **kwargs):
         assert self._model is not None
         batch_size = x.shape[0]
         self._model.fit(x, y, validation_data=validation_data, batch_size=batch_size, **kwargs)
-        self.print_depths()
+        if debug_print:
+            self.print_depths()
         if rebuild_model_if_required:
             self.rebuild_model_if_required()
+
+    def train_batch(self, x, y, validation_data=None, batch_size=None, rebuild_model_if_required=True, debug_print=True, shuffle=True, **kwargs):
+        if batch_size is None:
+            batch_size = x.shape[0]
+        records = x.shape[0]
+        batches = int(np.ceil(records / batch_size))
+        if debug_print:
+            printProgressBar(0, batches)
+        if shuffle:
+            p = np.random.permutation(len(x))
+            x, y = x[p], y[p]
+        for i in range(batches):
+            b_x = x[(i * batch_size):((i + 1) * batch_size)]
+            b_y = y[(i * batch_size):((i + 1) * batch_size)]
+            b_debug_print = debug_print
+            b_validation_data = None
+            if i == batches - 1:
+                b_validation_data = validation_data
+            else:
+                b_debug_print = False
+            self.train_step(
+                b_x, b_y,
+                validation_data=b_validation_data,
+                rebuild_model_if_required=rebuild_model_if_required,
+                debug_print=b_debug_print,
+                verbose=1 if b_debug_print else 0,
+                **kwargs
+            )
+            if debug_print:
+                printProgressBar(i + 1, batches)
+
 
 #################################### Model 1: FC ####################################
 # Create a simple XOR model
@@ -418,7 +484,8 @@ from keras.datasets import mnist, fashion_mnist, cifar10, cifar100
 from keras.layers import Dropout, Convolution2D, MaxPool2D
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
-(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+# (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+# (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
 
 # Shaping things
 num_classes = np.prod(np.unique(y_train).shape)
@@ -434,7 +501,7 @@ x_train /= 255
 x_test /= 255
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
-init_cnn_count = 32
+init_cnn_count = 30
 assert init_cnn_count % data_shape[-1] == 0
 init_cnn_repeat_factor = init_cnn_count // data_shape[-1]
 
@@ -442,6 +509,7 @@ init_cnn_repeat_factor = init_cnn_count // data_shape[-1]
 assert n_used_inputs <= n_inputs
 r_c = 1e-3
 fc_units = 256
+w_step = 5
 model = TDModel()
 model += Input(data_shape)
 # model += Lambda(lambda nw: K.repeat_elements(nw, init_cnn_repeat_factor, axis=3))
@@ -454,12 +522,14 @@ model += DynamicLayer(
     f_layer=[
         lambda reg: Convolution2D(init_cnn_count, (3, 3), padding='same', kernel_regularizer=reg),
         lambda reg: Dropout(0.25),
-        # lambda reg: BatchNormalization(gamma_regularizer=C_L2(1e-2, shift=1.)),
+        # lambda reg: BatchNormalization(),
+        # lambda reg: Activation('relu'),
+        lambda reg: GammaRegularizedBatchLayer(reg),
     ], h_step=[
         lambda reg: Activation('relu'),
-    ]
+    ],
+    w_step=w_step,
 )
-model += BatchNormalization()
 model += MaxPool2D()
 # model += Lambda(lambda nw: K.repeat_elements(nw, 2, axis=3))
 model += Convolution2D(init_cnn_count * 2, (3, 3), trainable=False, padding='same')
@@ -471,16 +541,17 @@ model += DynamicLayer(
     f_layer=[
         lambda reg: Convolution2D(init_cnn_count * 2, (3, 3), padding='same', kernel_regularizer=reg),
         lambda reg: Dropout(0.25),
-        # lambda reg: BatchNormalization(gamma_regularizer=C_L2(1e-2, shift=1.)),
+        # lambda reg: BatchNormalization(),
+        # lambda reg: Activation('relu'),
+        lambda reg: GammaRegularizedBatchLayer(reg),
     ], h_step=[
         lambda reg: Activation('relu'),
-    ]
+    ],
+    w_step=w_step,
 )
-model += BatchNormalization()
 model += MaxPool2D()
 model += Flatten()
 model += Dense(fc_units, trainable=False)
-model += BatchNormalization()
 model += DynamicLayer(
     'dfc0',
     w_regularizer=(c_l2, 1e-11),
@@ -489,19 +560,22 @@ model += DynamicLayer(
     f_layer=[
         lambda reg: Dense(fc_units, kernel_regularizer=reg),
         lambda reg: Dropout(0.25),
-        # lambda reg: BatchNormalization(gamma_regularizer=C_L2(1e-2, shift=1.)),
+        # lambda reg: BatchNormalization(),
+        # lambda reg: Activation('relu'),
+        lambda reg: GammaRegularizedBatchLayer(reg),
     ], h_step=[
         lambda reg: Activation('relu'),
     ],
-    param_count_f=lambda x: np.sqrt(x)
+    w_step=w_step,
 )
-model += BatchNormalization()
 model += Dense(num_classes, activation='softmax', trainable=False)
 model.init(
     optimizer='adadelta', # TODO: adadelta needs to store the state; that is quite tricky, I think...
     loss='categorical_crossentropy',
     metrics=['categorical_accuracy']
 )
+model._model.summary()
+plot_model(model._model, to_file='E:\\model2.png')
 
 # Helper function for shuffle
 def unison_shuffled_copies(a, b):
@@ -510,30 +584,54 @@ def unison_shuffled_copies(a, b):
     return a[p], b[p]
 
 n = 500
+print()
 for i in range(10000000):
-    print("Iteration {}".format(i))
-    x, y = unison_shuffled_copies(x_train, y_train)
-    x = x[:n]
-    y = y[:n]
+    print("Epoch {}".format(i))
 
-    if i % 100 == 0:
-        validation_data = (x_test, y_test)
-    else:
-        validation_data = None
+    # x, y = unison_shuffled_copies(x_train, y_train)
+    # x = x[:n]
+    # y = y[:n]
+    #
+    # if i % 100 == 0:
+    #     validation_data = (x_test, y_test)
+    # else:
+    #     validation_data = None
 
-    # y *= 0 # use a constant output (less layers shoudl be required to produce a network)
-    model.train_step(
-        x, y,
-        validation_data=validation_data,
+    # # y *= 0 # use a constant output (less layers shoudl be required to produce a network)
+    model.train_batch(
+        x_train, y_train,
+        validation_data=(x_test, y_test),
+        batch_size=n,
 
-        # Only rebuild the model every 5th iteration (otherwise it is very inefficient if the algorithm reaches 1.9999 etc.)
-        rebuild_model_if_required=i % 5 == 0,
-
-        verbose=1 if i % 100 == 0 else 0
+        # # Only rebuild the model every 5th iteration (otherwise it is very inefficient if the algorithm reaches 1.9999 etc.)
+        # rebuild_model_if_required=i % 5 == 0,
     )
-    depths_hist.append(model.get_depths())
+    # model._model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=500)
+    # depths_hist.append(model.get_depths())
     print()
 
 # TODO: Man kann steuern wie viele Layer pro Schritt hinzugefügt werden sollen (also immer in 5er Schritten usw).
 # So kann verhindert werden, dass der Zustand vom OPtimizer immer verschmissen wird und das Training wird wohl
 # schneller sein.
+# Die Regularisierungen in f(x) sind eigentlich jeweils nur im letzten Layer notwendig
+
+# MNIST:
+# Epoch 16
+# Train on 500 samples, validate on 10000 samples######################################################-| 99.2%
+# Epoch 1/1
+# 500/500 [==============================] - 1s 2ms/step - loss: 0.0721 - categorical_accuracy: 0.9940 - val_loss: 0.0814 - val_categorical_accuracy: 0.9919
+# dcnn0.w = 0.8904051184654236
+# dcnn1.w = 1.3498839139938354
+# dfc0.w = 1.6405143737792969
+#  |####################################################################################################| 100.0%
+# CIFAR10:
+# Epoch 368
+# Train on 500 samples, validate on 10000 samples######################################################-| 99.0%
+# Epoch 1/1
+# 500/500 [==============================] - 1s 3ms/step - loss: 0.6143 - categorical_accuracy: 0.8400 - val_loss: 1.2339 - val_categorical_accuracy: 0.6707
+# dcnn0.w = 0.5436192750930786
+# dcnn1.w = 1.9263592958450317
+# dfc0.w = 2.7511935234069824
+#  |####################################################################################################| 100.0%
+
+
