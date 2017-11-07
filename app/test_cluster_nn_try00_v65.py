@@ -44,13 +44,13 @@ if __name__ == '__main__':
         batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
     )
 
-    c_nn = ClusterNNTry00_V51(dp, 20, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+    c_nn = ClusterNNTry00_V51(dp, 40, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                               output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                               kl_embedding_size=128, kl_divergence_factor=0.1)
     c_nn.include_self_comparison = False
     c_nn.weighted_classes = True
     c_nn.class_weights_approximation = 'stochastic'
-    c_nn.minibatch_size = 15
+    c_nn.minibatch_size = 35
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
     c_nn.set_loss_weight('similarities_output', 5.0)
     c_nn.optimizer = Adadelta(lr=5.0)

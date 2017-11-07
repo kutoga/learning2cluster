@@ -17,28 +17,39 @@ class C_L2(keras.regularizers.Regularizer):
         l2: Float; L2 regularization factor.
     """
 
-    def __init__(self, l2=0.):
+    def __init__(self, l2=0., shift=None):
         self.l2 = l2
+        self.shift = shift
 
     def __call__(self, x):
 
-        # This is hacky: We need a scalar and therefore we calculate the mean of l2
+        # # This is hacky: We need a scalar and therefore we calculate the mean of l2
+        # l2 = self.l2
+        # if not isinstance(l2, numbers.Number):
+        #     l2 = K.mean(l2, axis=0)
         l2 = self.l2
+
+        # It may be the case that our l2 is a variable instead of a constant. It is assumed that
+        # its value is for the complete batch the same. Therefore we calculate its mean over the first axis
+        # (hacky, but it works)
         if not isinstance(l2, numbers.Number):
             l2 = K.mean(l2, axis=0)
 
-        regularization = K.sum(l2 * K.square(x))
+        if self.shift is None:
+            regularization = K.sum(l2 * K.square(x))
+        else:
+            regularization = l2 * K.sum(K.relu(K.square(x) - self.shift))
         return regularization
 
     def get_config(self):
-        return {'l1': float(self.l1),
-                'l2': float(self.l2)}
+        return {'l2': float(self.l2),'shift':float(self.shift)}
 
 def c_l2(l=0.01):
     return C_L2(l2=l)
 
 def pseudo_step_function(x):
-    return (x / (K.abs(x) + K.epsilon()) + 1) / 2
+    # return ((x - K.epsilon()) / (K.abs(x) + K.epsilon()) + 1) / 2
+    return 0.5 * (1 + (x - 2 * K.epsilon()) / (K.abs(x - K.epsilon()) + K.epsilon()))
 
 class DeltaF(Layer):
     def __init__(self, alpha_regularizer=None, default_layer_count=1.,
@@ -76,7 +87,7 @@ class DeltaF(Layer):
 class DynamicLayer:
     def __init__(self, name, f_layer, h_step=[lambda reg: Activation('relu')], w_init=1.0,
                  w_regularizer=(l2, 'auto'), f_regularizer=(l2, 1e-8), h_regularizer=None, res_net_like=True,
-                 param_count_f=None, reweight_regularizer=True, initial_w_range=None):
+                 param_count_f=None, reweight_regularizer=True, w_step=None):
         # w_regularizer[1] = 'auto' oder 'f_regularizer' = auto =>
         # initial_w_range=(0, 10) => erstellt bereits 10 layer (macht das netzwerk performanter, da es nicht andauernd neu erstellt werden muss)
 
@@ -100,9 +111,9 @@ class DynamicLayer:
         self._param_count_f = (lambda x: x) if param_count_f is None else param_count_f
         self._reweight_regularizer = reweight_regularizer
         self._dummy_layer = None
-        self._initial_w_range = initial_w_range
-        if initial_w_range is not None:
-            print("initial_w_range is not yet implemented; it will be ignored")
+        self._w_step = w_step
+        if w_step is not None:
+            print("w_step is not yet implemented; it will be ignored")
         if param_count_f is not None and not reweight_regularizer:
             print("reweight_regularizer is False, therefore param_count_f will be ignored")
 
@@ -125,7 +136,7 @@ class DynamicLayer:
         # But in this case we dont like to count their l2-regularization. So... We just can implement a factor
         # that is based on the delta-function. It returns 1 if the function is in the "active range" and 0
         # otherwise.
-        if i is not None and self._initial_w_range is not None:
+        if i is not None and self._w_step is not None:
             if self._dummy_layer is None:
                 print("No dummy layer is defined, but this is required if a dynamic regularization should be used.")
             else:
@@ -261,7 +272,7 @@ class TDModel:
             self._dynamic_layers
         ))
 
-    def _rebuild_model_if_required(self):
+    def rebuild_model_if_required(self):
         key = self._get_dynamic_config_key()
         if self._current_dynamic_config_key == key:
             return
@@ -285,7 +296,7 @@ class TDModel:
 
         print("Model parameter count: {}".format(self._model.count_params()))
 
-    def init(self, reweight_dynamic_layers=True, **compile_kwargs):
+    def init(self, reweight_dynamic_layers=False, **compile_kwargs):
         assert len(self._layers) > 0
         assert isinstance(self._layers[0], Input((1,)).__class__)
 
@@ -316,7 +327,7 @@ class TDModel:
         self._compile_kwargs = compile_kwargs
 
         # Build the initial model
-        self._rebuild_model_if_required()
+        self.rebuild_model_if_required()
 
     def get_depths(self):
         return {
@@ -327,12 +338,13 @@ class TDModel:
         for layer in self._dynamic_layers:
             print("{}.w = {}".format(layer.name, layer.get_w()))
 
-    def train_step(self, x, y, validation_data=None, **kwargs):
+    def train_step(self, x, y, validation_data=None, rebuild_model_if_required=True, **kwargs):
         assert self._model is not None
         batch_size = x.shape[0]
         self._model.fit(x, y, validation_data=validation_data, batch_size=batch_size, **kwargs)
         self.print_depths()
-        self._rebuild_model_if_required()
+        if rebuild_model_if_required:
+            self.rebuild_model_if_required()
 
 #################################### Model 1: FC ####################################
 # Create a simple XOR model
@@ -442,11 +454,12 @@ model += DynamicLayer(
     f_layer=[
         lambda reg: Convolution2D(init_cnn_count, (3, 3), padding='same', kernel_regularizer=reg),
         lambda reg: Dropout(0.25),
-        # lambda reg: BatchNormalization(),
+        # lambda reg: BatchNormalization(gamma_regularizer=C_L2(1e-2, shift=1.)),
     ], h_step=[
-        lambda reg: Activation('relu')
+        lambda reg: Activation('relu'),
     ]
 )
+model += BatchNormalization()
 model += MaxPool2D()
 # model += Lambda(lambda nw: K.repeat_elements(nw, 2, axis=3))
 model += Convolution2D(init_cnn_count * 2, (3, 3), trainable=False, padding='same')
@@ -458,14 +471,16 @@ model += DynamicLayer(
     f_layer=[
         lambda reg: Convolution2D(init_cnn_count * 2, (3, 3), padding='same', kernel_regularizer=reg),
         lambda reg: Dropout(0.25),
-        # lambda reg: BatchNormalization(),
+        # lambda reg: BatchNormalization(gamma_regularizer=C_L2(1e-2, shift=1.)),
     ], h_step=[
-        lambda reg: Activation('relu')
+        lambda reg: Activation('relu'),
     ]
 )
+model += BatchNormalization()
 model += MaxPool2D()
 model += Flatten()
 model += Dense(fc_units, trainable=False)
+model += BatchNormalization()
 model += DynamicLayer(
     'dfc0',
     w_regularizer=(c_l2, 1e-11),
@@ -474,15 +489,15 @@ model += DynamicLayer(
     f_layer=[
         lambda reg: Dense(fc_units, kernel_regularizer=reg),
         lambda reg: Dropout(0.25),
-        # lambda reg: BatchNormalization(),
+        # lambda reg: BatchNormalization(gamma_regularizer=C_L2(1e-2, shift=1.)),
     ], h_step=[
-        lambda reg: Activation('relu')
+        lambda reg: Activation('relu'),
     ],
     param_count_f=lambda x: np.sqrt(x)
 )
+model += BatchNormalization()
 model += Dense(num_classes, activation='softmax', trainable=False)
 model.init(
-    reweight_dynamic_layers=False,
     optimizer='adadelta', # TODO: adadelta needs to store the state; that is quite tricky, I think...
     loss='categorical_crossentropy',
     metrics=['categorical_accuracy']
@@ -507,6 +522,18 @@ for i in range(10000000):
         validation_data = None
 
     # y *= 0 # use a constant output (less layers shoudl be required to produce a network)
-    model.train_step(x, y, validation_data=validation_data)
+    model.train_step(
+        x, y,
+        validation_data=validation_data,
+
+        # Only rebuild the model every 5th iteration (otherwise it is very inefficient if the algorithm reaches 1.9999 etc.)
+        rebuild_model_if_required=i % 5 == 0,
+
+        verbose=1 if i % 100 == 0 else 0
+    )
     depths_hist.append(model.get_depths())
     print()
+
+# TODO: Man kann steuern wie viele Layer pro Schritt hinzugefügt werden sollen (also immer in 5er Schritten usw).
+# So kann verhindert werden, dass der Zustand vom OPtimizer immer verschmissen wird und das Training wird wohl
+# schneller sein.

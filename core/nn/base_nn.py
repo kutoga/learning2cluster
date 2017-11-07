@@ -255,7 +255,10 @@ class BaseNN:
                     if include_history:
                         self._get_history(model).load_keras_history(load_history(current_base_filename))
                 except Exception as e:
-                    print('Could not load weights / history / optimizer state...')
+                    error = str(e)
+                    if hasattr(e, 'message'):
+                        error += ': {}'.format(e.message.replace('\n', '; '))
+                    print('Could not load weights / history / optimizer state. Error: {}...'.format(error))
                     # print('Could not load weights / history / optimizer state. Error: {}'.format(e.message.replace('\n', '; ')))
 
         self.event_load_weights_after.fire(base_filename, include_history)
