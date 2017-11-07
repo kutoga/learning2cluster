@@ -1,4 +1,5 @@
 import numpy as np
+import numbers
 
 from keras.models import Model
 from keras.layers import Input, Dense, Activation, BatchNormalization, InputSpec, Layer, Lambda, RepeatVector, Reshape, \
@@ -7,6 +8,37 @@ from keras.regularizers import l2
 import keras.regularizers
 import keras.initializers
 import keras.backend as K
+
+class C_L2(keras.regularizers.Regularizer):
+    """Regularizer for L1 and L2 regularization.
+
+    # Arguments
+        l1: Float; L1 regularization factor.
+        l2: Float; L2 regularization factor.
+    """
+
+    def __init__(self, l2=0.):
+        self.l2 = l2
+
+    def __call__(self, x):
+
+        # This is hacky: We need a scalar and therefore we calculate the mean of l2
+        l2 = self.l2
+        if not isinstance(l2, numbers.Number):
+            l2 = K.mean(l2, axis=0)
+
+        regularization = K.sum(l2 * K.square(x))
+        return regularization
+
+    def get_config(self):
+        return {'l1': float(self.l1),
+                'l2': float(self.l2)}
+
+def c_l2(l=0.01):
+    return C_L2(l2=l)
+
+def pseudo_step_function(x):
+    return (x / (K.abs(x) + K.epsilon()) + 1) / 2
 
 class DeltaF(Layer):
     def __init__(self, alpha_regularizer=None, default_layer_count=1.,
@@ -43,8 +75,11 @@ class DeltaF(Layer):
 
 class DynamicLayer:
     def __init__(self, name, f_layer, h_step=[lambda reg: Activation('relu')], w_init=1.0,
-                 w_regularizer=(l2, 'auto'), f_regularizer=(l2, 1e-8), h_regularizer=None, res_net_like=True,):
+                 w_regularizer=(l2, 'auto'), f_regularizer=(l2, 1e-8), h_regularizer=None, res_net_like=True,
+                 param_count_f=None, reweight_regularizer=True, initial_w_range=None):
         # w_regularizer[1] = 'auto' oder 'f_regularizer' = auto =>
+        # initial_w_range=(0, 10) => erstellt bereits 10 layer (macht das netzwerk performanter, da es nicht andauernd neu erstellt werden muss)
+
         if not isinstance(f_layer, list):
             f_layer = [f_layer]
         if not isinstance(h_step, list):
@@ -62,27 +97,58 @@ class DynamicLayer:
         self._deltaF = None
         self._res_net_like = res_net_like
         self._regularization_weight = 1.0
+        self._param_count_f = (lambda x: x) if param_count_f is None else param_count_f
+        self._reweight_regularizer = reweight_regularizer
+        self._dummy_layer = None
+        self._initial_w_range = initial_w_range
+        if initial_w_range is not None:
+            print("initial_w_range is not yet implemented; it will be ignored")
+        if param_count_f is not None and not reweight_regularizer:
+            print("reweight_regularizer is False, therefore param_count_f will be ignored")
 
     def _get_regularizer_c(self):
         # w_regularizer = parameter_count_per_f * f_regularizer * c
         c = 5e-2 / (104 * 1e-5)
         return c
 
-    def _get_regularizer(self, current, other, c_f):
+    def _get_regularizer(self, current, other, c_f, i=None):
         if current is None:
             return None
         if current[1] == 'auto':
             current = (current[0], other[1] * c_f)
         current = (current[0], current[1] * self._regularization_weight)
-        return current[0](current[1])
+
+        f = current[0]
+        l = current[1]
+
+        # To make the model faster it can make sense to prebuild more layers than we actually are using.
+        # But in this case we dont like to count their l2-regularization. So... We just can implement a factor
+        # that is based on the delta-function. It returns 1 if the function is in the "active range" and 0
+        # otherwise.
+        if i is not None and self._initial_w_range is not None:
+            if self._dummy_layer is None:
+                print("No dummy layer is defined, but this is required if a dynamic regularization should be used.")
+            else:
+                l = l * pseudo_step_function(self._deltaF(self._constant(i)))
+
+        return f(l)
 
     def _get_w_regularization(self):
-        return self._get_regularizer(self.w_regularizer, self.f_regularizer, c_f=self._get_regularizer_c() * self.parameter_count_per_f)
+        c_f = 1
+        if self._reweight_regularizer:
+            c_f = self._get_regularizer_c() * self._param_count_f(self.parameter_count_per_f)
+        return self._get_regularizer(self.w_regularizer, self.f_regularizer, c_f=c_f)
 
-    def _get_f_regularizer(self):
-        return self._get_regularizer(self.f_regularizer, self.w_regularizer, c_f=1/(self._get_regularizer_c() * self.parameter_count_per_f))
+    def _get_f_regularizer(self, i=None):
+        c_f = 1
+        if self._reweight_regularizer:
+            c_f = 1/(self._get_regularizer_c() * self._param_count_f(self.parameter_count_per_f))
+        return self._get_regularizer(self.f_regularizer, self.w_regularizer, c_f=c_f, i=i)
 
-    def reweight_regularization(self, regularization_weight):
+    def _constant(self, c):
+        return Lambda(lambda s: s * 0 + c)(self._dummy_layer)
+
+    def set_reweight_regularization(self, regularization_weight):
         self._regularization_weight = regularization_weight
 
     def get_w(self):
@@ -105,24 +171,16 @@ class DynamicLayer:
         # Add new layers if more layers are required
         for i in range(len(self._current_layers), layer_count):
             self._current_layers.append({
-                'f_layer': self._get_layers('f', self.f_layer, self._get_f_regularizer()),
+                'f_layer': self._get_layers('f', self.f_layer, self._get_f_regularizer(i)),
                 'h_step': self._get_layers('f', self.h_step, self.h_regularizer)
             })
-
-        # Define a helper function to get constant values. They must be included in the graph, therefore it is a bit hacky (probably there are nicer ways to do this)
-        dummy_layer = nw
-        if len(dim) > 1:
-            dummy_layer = Flatten()(dummy_layer)
-        dummy_layer = Dense(1, kernel_initializer='zeros', trainable=False)(nw)
-        def constant(c):
-            return Lambda(lambda s: s * 0 + c)(dummy_layer)
 
         # Build now the model; Call the input "x"
         x = nw
         for i in range(layer_count):
 
             # Execute the delta-function for the current layer (i)
-            lf = self._deltaF(constant(i))
+            lf = self._deltaF(self._constant(i))
 
             # Resize it to the required dimension
             lf = RepeatVector(dim_n)(lf)
@@ -151,7 +209,7 @@ class DynamicLayer:
         nw = x
         return nw
 
-    def init(self, input_layer):
+    def init(self, input_layer, dummy_layer=None):
         layers = self._get_layers('f', self.f_layer)
 
         # Build the "subnetwork"
@@ -167,6 +225,13 @@ class DynamicLayer:
 
         # Create the DeltaF layer
         self._deltaF = DeltaF(self._get_w_regularization(), default_layer_count=self.w_init)
+
+        # Store the dummy layer
+        if dummy_layer is not None:
+            if len(dummy_layer._keras_shape) > 2:
+                dummy_layer = Flatten()(dummy_layer)
+            dummy_layer = Dense(1, kernel_initializer='zeros', trainable=False)(dummy_layer)
+        self._dummy_layer = dummy_layer
 
     def _get_layers(self, base_name, layer_builders, regularizer=None):
         return [layer_builders[i](regularizer) for i in range(len(layer_builders))]
@@ -220,7 +285,7 @@ class TDModel:
 
         print("Model parameter count: {}".format(self._model.count_params()))
 
-    def init(self, **compile_kwargs):
+    def init(self, reweight_dynamic_layers=True, **compile_kwargs):
         assert len(self._layers) > 0
         assert isinstance(self._layers[0], Input((1,)).__class__)
 
@@ -230,7 +295,7 @@ class TDModel:
             if isinstance(layer, DynamicLayer):
 
                 # We need to calculate the parameter count of the dynamic layer
-                layer.init(nw)
+                layer.init(nw, dummy_layer=self._layers[0])
 
                 # "Register" the dynamic layer
                 self._dynamic_layers.append(layer)
@@ -238,13 +303,14 @@ class TDModel:
             else:
                 nw = layer(nw)
 
-        # Set a regularization factor for all dynamic layers
-        avg_parameters_per_layer = np.mean(list(map(
-            lambda l: l.parameter_count_per_f,
-            self._dynamic_layers
-        )))
-        for layer in self._dynamic_layers:
-            layer.reweight_regularization(layer.parameter_count_per_f / avg_parameters_per_layer)
+        if reweight_dynamic_layers:
+            # Set a regularization factor for all dynamic layers
+            avg_parameters_per_layer = np.mean(list(map(
+                lambda l: l.parameter_count_per_f,
+                self._dynamic_layers
+            )))
+            for layer in self._dynamic_layers:
+                layer.reweight_regularization(layer.parameter_count_per_f / avg_parameters_per_layer)
 
         # Define the compile arguments
         self._compile_kwargs = compile_kwargs
@@ -263,10 +329,12 @@ class TDModel:
 
     def train_step(self, x, y, validation_data=None, **kwargs):
         assert self._model is not None
-        self._model.fit(x, y, validation_data=validation_data, **kwargs)
+        batch_size = x.shape[0]
+        self._model.fit(x, y, validation_data=validation_data, batch_size=batch_size, **kwargs)
         self.print_depths()
         self._rebuild_model_if_required()
 
+#################################### Model 1: FC ####################################
 # Create a simple XOR model
 units = 8
 n_inputs = 4
@@ -297,11 +365,11 @@ model += DynamicLayer(
         lambda reg: Activation('relu')
     ])
 model += Dense(1, trainable=False, activation='sigmoid')
-model.init(
-    optimizer='adadelta',
-    loss='binary_crossentropy',
-    metrics=['accuracy']
-)
+# model.init(
+#     optimizer='adadelta',
+#     loss='binary_crossentropy',
+#     metrics=['accuracy']
+# )
 
 # A data generator
 def generate_xor_data(n):
@@ -314,11 +382,12 @@ def generate_xor_data(n):
 
 n = 500
 depths_hist = []
-for i in range(10000000):
+for i in range(0):
+# for i in range(10000000):
     print("Iteration {}".format(i))
     x, y = generate_xor_data(n)
     # y *= 0 # use a constant output (less layers shoudl be required to produce a network)
-    model.train_step(x, y, batch_size=n)
+    model.train_step(x, y)
     depths_hist.append(model.get_depths())
     print()
 
@@ -331,3 +400,113 @@ for i in range(10000000):
 # 5e-2 = 104 * 1e-5 * c
 # c = 0.05/0.00001/104
 # c = 5e-2 / (104 * 1e-5)
+
+#################################### Model 2: CNN ####################################
+from keras.datasets import mnist, fashion_mnist, cifar10, cifar100
+from keras.layers import Dropout, Convolution2D, MaxPool2D
+
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+
+# Shaping things
+num_classes = np.prod(np.unique(y_train).shape)
+print("num_classes={}".format(num_classes))
+data_shape = x_train[0].shape
+if len(data_shape) < 3:
+    data_shape += (1,)
+x_train = x_train.reshape(x_train.shape[0], *data_shape)
+x_test = x_test.reshape(x_test.shape[0], *data_shape)
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+init_cnn_count = 32
+assert init_cnn_count % data_shape[-1] == 0
+init_cnn_repeat_factor = init_cnn_count // data_shape[-1]
+
+# Build the model
+assert n_used_inputs <= n_inputs
+r_c = 1e-3
+fc_units = 256
+model = TDModel()
+model += Input(data_shape)
+# model += Lambda(lambda nw: K.repeat_elements(nw, init_cnn_repeat_factor, axis=3))
+model += Convolution2D(init_cnn_count, (3, 3), padding='same', trainable=False)
+model += DynamicLayer(
+    'dcnn0',
+    w_regularizer=(c_l2, 1e-11),
+    f_regularizer=(c_l2, 1e-2),
+    reweight_regularizer=False,
+    f_layer=[
+        lambda reg: Convolution2D(init_cnn_count, (3, 3), padding='same', kernel_regularizer=reg),
+        lambda reg: Dropout(0.25),
+        # lambda reg: BatchNormalization(),
+    ], h_step=[
+        lambda reg: Activation('relu')
+    ]
+)
+model += MaxPool2D()
+# model += Lambda(lambda nw: K.repeat_elements(nw, 2, axis=3))
+model += Convolution2D(init_cnn_count * 2, (3, 3), trainable=False, padding='same')
+model += DynamicLayer(
+    'dcnn1',
+    w_regularizer=(c_l2, 1e-11),
+    f_regularizer=(c_l2, 1e-2),
+    reweight_regularizer=False,
+    f_layer=[
+        lambda reg: Convolution2D(init_cnn_count * 2, (3, 3), padding='same', kernel_regularizer=reg),
+        lambda reg: Dropout(0.25),
+        # lambda reg: BatchNormalization(),
+    ], h_step=[
+        lambda reg: Activation('relu')
+    ]
+)
+model += MaxPool2D()
+model += Flatten()
+model += Dense(fc_units, trainable=False)
+model += DynamicLayer(
+    'dfc0',
+    w_regularizer=(c_l2, 1e-11),
+    f_regularizer=(c_l2, 1e-2),
+    reweight_regularizer=False,
+    f_layer=[
+        lambda reg: Dense(fc_units, kernel_regularizer=reg),
+        lambda reg: Dropout(0.25),
+        # lambda reg: BatchNormalization(),
+    ], h_step=[
+        lambda reg: Activation('relu')
+    ],
+    param_count_f=lambda x: np.sqrt(x)
+)
+model += Dense(num_classes, activation='softmax', trainable=False)
+model.init(
+    reweight_dynamic_layers=False,
+    optimizer='adadelta', # TODO: adadelta needs to store the state; that is quite tricky, I think...
+    loss='categorical_crossentropy',
+    metrics=['categorical_accuracy']
+)
+
+# Helper function for shuffle
+def unison_shuffled_copies(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
+n = 500
+for i in range(10000000):
+    print("Iteration {}".format(i))
+    x, y = unison_shuffled_copies(x_train, y_train)
+    x = x[:n]
+    y = y[:n]
+
+    if i % 100 == 0:
+        validation_data = (x_test, y_test)
+    else:
+        validation_data = None
+
+    # y *= 0 # use a constant output (less layers shoudl be required to produce a network)
+    model.train_step(x, y, validation_data=validation_data)
+    depths_hist.append(model.get_depths())
+    print()

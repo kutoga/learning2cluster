@@ -269,9 +269,9 @@ from keras.losses import hinge
 
 (x_train, y_train), (x_test, y_test) = cifar100.load_data()
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
-(x_train, y_train), (x_test, y_test) = cifar10.load_data()
-(x_train, y_train), (x_valid, y_valid), (x_test, y_test) = flowers102.load_data((48, 48))
-(x_train, y_train), (x_test, y_test) = birds200.load_data((48, 48))
+# (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+# (x_train, y_train), (x_valid, y_valid), (x_test, y_test) = flowers102.load_data((48, 48))
+# (x_train, y_train), (x_test, y_test) = birds200.load_data((48, 48))
 
 num_classes = np.prod(np.unique(y_train).shape)
 print("num_classes={}".format(num_classes))

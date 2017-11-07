@@ -81,7 +81,9 @@ if __name__ == '__main__':
     #     except:
     #         print("ERROR")
 
-    c_nn.build_networks(print_summaries=False)
+    c_nn.build_networks(print_summaries=False, build_training_model=False)
+
+    c_nn.test_network(3, output_directory=top_dir + 'test/test_playground2')
 
     # # Enable autosave and try to load the latest configuration
     # autosave_dir = top_dir + 'test/autosave_ClusterNNPlayground02'

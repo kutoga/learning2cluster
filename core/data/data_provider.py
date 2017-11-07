@@ -299,6 +299,30 @@ class DataProvider:
 
                 results[current_output_directory_name] = current_result
 
+        # Write metrics statistics to a file
+        if metrics is not None and prediction is not None:
+
+            # Calculate the mean for all metrics
+            metrics_tot = {}
+            cluster_counts = self.get_target_cluster_counts()
+            for i in range(len(prediction)):
+                predicted_cluster_count = cluster_counts[0] + np.argmax(prediction[i]['cluster_count'])
+                current_metrics = metrics[i]
+                if current_metrics is not None:
+                    for metric in sorted(current_metrics.keys()):
+                        if not metric in metrics_tot:
+                            metrics_tot[metric] = []
+                        metrics_tot[metric].append(current_metrics[metric][predicted_cluster_count])
+            for metric in metrics_tot.keys():
+                metrics_tot[metric] = np.mean(metrics_tot[metric])
+
+            # Write it to a file
+            with open(path.join(output_directory, 'metric_stats.csv'), 'wt') as f:
+                f.write('metric;average\n')
+                for metric in sorted(metrics_tot.keys()):
+                    f.write('{};{}\n'.format(metric, metrics_tot[metric]))
+                f.close()
+
         # Create a summary over everything
         if len(results) > 0:
             self._write_test_results_html_file(output_html_file, results)

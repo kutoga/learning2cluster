@@ -56,7 +56,7 @@ def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=[
 
         # Load and resize the files
         for img_file in img_files:
-            print("Read and pre-process image file (already loaded {} files): {}".format(img_file, tot_files_loaded))
+            print("Read and pre-process image file (already loaded {} files): {}".format(tot_files_loaded, img_file))
             img = imread(img_file, mode='RGB')
             img = imresize(img, target_img_size + (3,))
             objects.append(img)
