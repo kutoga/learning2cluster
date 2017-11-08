@@ -26,7 +26,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_bdlstm_embedding import CnnBDLSTMEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "E:/tmp/"
+    top_dir = "/tmp/" if is_linux else "G:/tmp/"
 
     # Create an mnist data provider that uses all images for tarining / testing. The neural network always returns 10 cluster options
     dp = Cifar100DataProvider(

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "E:/tmp/"
+    top_dir = "/tmp/" if is_linux else "G:/tmp/"
 
 
     TIMIT20_lst = ['MTDB0','FCMG0','MABW0','MWEM0','MTLS0','MMAM0','MTJU0','FECD0','FVMH0','MDCD0','MJPG0','MRSP0','MRFK0','FCAU0','MRCG0','MRKM0','MPRT0','MCTT0','FEME0','MCRE0']

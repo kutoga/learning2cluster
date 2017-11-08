@@ -21,7 +21,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "E:/tmp/"
+    top_dir = "/tmp/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
     TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_400.txt')
