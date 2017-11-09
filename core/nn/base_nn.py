@@ -208,8 +208,18 @@ class BaseNN:
         :return: Did it work (True|False)?
         """
         if len(self._shared_layers) > 0:
+            print("To share all layers between two networks, the target network must not be initialized.")
             return False
         self._shared_layers = nn._shared_layers
+
+    def share_histories_between_networks(self, nn):
+        if len(self._histories) > 0:
+            print("To share the histories between two networks, the target network must not be initialized.")
+            return False
+        self._histories = nn._histories
+
+    def share_state(self, nn):
+        return self.share_layers_between_networks(nn) and self.share_histories_between_networks(nn)
 
     def get_shared_layer(self, name):
         return self._shared_layers[name]

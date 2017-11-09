@@ -1086,6 +1086,11 @@ class ClusterNN(BaseNN):
             # training model, therefore we only have to store one of these models. They also share the weights (shared
             # layers) and the weights have therefore only to be loaded for the "larger" model: The training model.
             self._register_model(self._model_training, self._get_name('cluster_nn'))
+        else:
+
+            # Register the training model: The training model may contain more weights, but it is not built. Therefore,
+            # we register the prediction model. This allows to load its weights from a trained model.
+            self._register_model(self._model_prediction, self._get_name('cluster_nn'))
 
         # Register the embedding model
         if self._embedding_nn is not None:

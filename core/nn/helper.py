@@ -624,8 +624,11 @@ __MODEL_FILE_HISTORY_SUFFIX = '.history.pkl'
 __MODEL_FILE_OPTIMIZER_SUFFIX = '.optimizer.pkl'
 
 
-def __extract_layers_wight_weights(layers):
-    return filter(__layer_has_weights, layers)
+def __extract_layers_wight_weights(layers, sort_res=True):
+    layers_with_weights = filter(__layer_has_weights, layers)
+    if sort_res:
+        layers_with_weights = sorted(layers_with_weights, key=lambda l: l.name)
+    return layers_with_weights
 
 
 def save_optimizer_state(model, base_filename):
@@ -697,9 +700,10 @@ def load_weights(model, base_filename, print_unitialized_target_layers=True):
     with open(filename, 'rb') as weights_file:
         weights = pickle.load(weights_file)
         weights_file.close()
-    layers_with_weights = set(__extract_layers_wight_weights(model.layers))
+    sorted_layers_with_weights = __extract_layers_wight_weights(model.layers)
+    layers_with_weights = set(sorted_layers_with_weights)
     initialized_layers = set()
-    for layer in list(layers_with_weights):
+    for layer in sorted_layers_with_weights:
         layer_name = layer.name
         if layer_name in weights:
             print("Load weights for layer '{}'...".format(layer_name))

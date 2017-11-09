@@ -9,7 +9,7 @@ from keras.optimizers import Adadelta
 from random import randint
 from time import time
 
-from impl.nn.try00.cluster_nn_try00_v51 import ClusterNNTry00_V51
+from impl.nn.try00.cluster_nn_try00_v66 import ClusterNNTry00_V66
 
 if __name__ == '__main__':
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
     )
 
-    c_nn = ClusterNNTry00_V51(dp, 40, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+    c_nn = ClusterNNTry00_V66(dp, 40, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                               output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                               kl_embedding_size=128, kl_divergence_factor=0.1)
     c_nn.include_self_comparison = False
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V65'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V66'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
