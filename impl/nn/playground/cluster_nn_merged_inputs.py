@@ -15,7 +15,7 @@ class ClusterNNMergedInputs(SimpleLossClusterNN_V02):
     """
 
     def __init__(self, data_provider, input_count, embedding_nn=None, weighted_classes=False):
-        super().__init__(data_provider, input_count, embedding_nn, weighted_classes)
+        super().__init__(data_provider, input_count, embedding_nn, weighted_classes, include_input_count_in_name=False)
 
     def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())

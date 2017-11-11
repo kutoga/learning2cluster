@@ -196,7 +196,11 @@ class BaseNN:
 
     def _try_get_shared_layer(self, name, builder):
         if name not in self._shared_layers:
+            if self.debug_mode:
+                print("Create a new layer '{}'...".format(name))
             self._shared_layers[name] = builder(name)
+        elif self.debug_mode:
+            print("The layer '{}' already exists: Return it...".format(name))
         return self._shared_layers[name]
 
     def share_layers_between_networks(self, nn):
@@ -211,12 +215,14 @@ class BaseNN:
             print("To share all layers between two networks, the target network must not be initialized.")
             return False
         self._shared_layers = nn._shared_layers
+        return True
 
     def share_histories_between_networks(self, nn):
         if len(self._histories) > 0:
             print("To share the histories between two networks, the target network must not be initialized.")
             return False
         self._histories = nn._histories
+        return True
 
     def share_state(self, nn):
         return self.share_layers_between_networks(nn) and self.share_histories_between_networks(nn)

@@ -48,6 +48,7 @@ if __name__ == '__main__':
     for input_count in input_counts:
 
         cnn = ClusterNNMergedInputs(dp, input_count, en, weighted_classes=True)
+        cnn.debug_mode = True
         models.append(cnn)
 
         # Share the state between all networks. This includes the history etc.
