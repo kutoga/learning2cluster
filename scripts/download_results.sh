@@ -14,11 +14,14 @@ fi
 echo $TARGET_DIR
 
 exclude="TIMIT cache"
-srv_base_dir="~/data/MT"
+if [ -z "$MT_DIR_NAME" ]; then
+    MT_DIR_NAME="MT"
+fi
+srv_base_dir="~/data/$MT_DIR_NAME"
 
 exclude_args=""
 for exclude_path in $exclude; do
-    exclude_args="$exclude_args --exclude MT/$exclude_path"
+    exclude_args="$exclude_args --exclude $MT_DIR_NAME/$exclude_path"
 done
 
 additional_args=""
@@ -27,7 +30,7 @@ if [ ! -z "$RSYNC_MAX_SIZE" ]; then
 fi
 
 # See: https://unix.stackexchange.com/a/165417/246665
-rsync -avz $additional_args $exclude_args --delete meierbe8@$SERVER:~/data/MT --progress --partial --append-verify "$TARGET_DIR"
+rsync -avz $additional_args $exclude_args --delete meierbe8@$SERVER:~/data/$MT_DIR_NAME --progress --partial --append-verify "$TARGET_DIR"
 
 # TODO:
 # Implement a download loop for rsync. Always use a timeout and the

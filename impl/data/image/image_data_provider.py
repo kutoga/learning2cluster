@@ -332,7 +332,8 @@ class ImageDataProvider(DataProvider):
             cluster_probability_plot_file = path.join(output_directory, get_filename('cluster_probabilities.png'))
             self.__plot_cluster_distribution(
                 {c: cluster_probabilities[c - cluster_counts[0]] for c in cluster_counts},
-                cluster_probability_plot_file
+                cluster_probability_plot_file,
+                correct_cluster_count=len(clusters)
             )
             result['cluster_probability_plot'] = cluster_probability_plot_file
 
@@ -691,7 +692,7 @@ class ImageDataProvider(DataProvider):
         plt.close()
 
 
-    def __plot_cluster_distribution(self, distribution, output_file):
+    def __plot_cluster_distribution(self, distribution, output_file, correct_cluster_count=None):
         #
         # Input
         # distribution = {
@@ -707,9 +708,35 @@ class ImageDataProvider(DataProvider):
         # print("Y_o: {}".format(distribution))
 
         ax.bar(x, y, 0.9, color="blue")
+
+        if correct_cluster_count is not None:
+            ax.bar([correct_cluster_count], [distribution[correct_cluster_count]], 1.0, color="green")
+
         plt.show(block=False)
         plt.savefig(output_file)
         # print("{} saved...".format(output_file))
 
         plt.clf()
         plt.close()
+
+if __name__ == '__main__':
+    distribution = {
+        0: 0.2,
+        1: 0.3,
+        2: 0.5
+    }
+
+    fig, ax = plt.subplots()
+
+    x = list(range(0, 3))
+    y = list(map(lambda xi: distribution[xi], x))
+
+    # print("X: {}".format(x))
+    # print("Y: {}".format(y))
+    # print("Y_o: {}".format(distribution))
+
+    ax.bar(x, y, 0.9, color="blue")
+    ax.bar([1], distribution[1], 0.9, color="green")
+    plt.show(block=True)
+    # print("{} saved...".format(output_file))
+

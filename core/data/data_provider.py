@@ -411,7 +411,10 @@ button {
                             target.append('<h2>Cluster probabilities</h2>');
                             target.append('<img src="' + selected_test['cluster_probability_plot'] + '" width="450px" />');
                             var cluster_counts = Object.keys(selected_test['results'])
-                            cluster_counts.sort()
+                            cluster_counts.sort(function(a, b)
+                            {
+                                return a - b;
+                            });
                             var mpcc = selected_test['most_probable_cluster_count'];
                             function add_btn(text, cluster_count) {
                                 var btn = $('<button class="wbutton" type="button">' + text + '</button>');

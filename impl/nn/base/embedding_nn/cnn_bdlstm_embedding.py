@@ -10,7 +10,7 @@ from core.nn.embedding_nn import EmbeddingNN
 class CnnBDLSTMEmbedding(EmbeddingNN):
     def __init__(self, output_size=4, bdlstm_layers_units=[64, 64], fc_layers_units=[10, 10],
                  cnn_layers_per_block=2, block_feature_counts=[16, 32, 64],
-                 hidden_activation='relu', final_activation='sigmoid', cnn_filter_size=3, max_pooling_size=2, max_pooling_stride=2,
+                 hidden_activation='relu', final_activation='sigmoid', cnn_filter_size=(3, 3), max_pooling_size=2, max_pooling_stride=2,
                  dimensionality='2d', dropout_after_max_pooling=[],
                  batch_norm_for_init_layer=False, batch_norm_for_final_layer=False, batch_norm_after_activation=True,
                  batch_norm_after_bdlstm=False, dropout_init=None, dropout_after_fc=[]
@@ -85,7 +85,7 @@ class CnnBDLSTMEmbedding(EmbeddingNN):
                 if dimensionality == '1d':
                     model.add(self._s_layer('cnn1d{}_{}'.format(i, j), lambda name: Convolution1D(block_feature_count, self._cnn_filter_size, padding='same', name=name, kernel_regularizer=self.regularizer)))
                 elif dimensionality == '2d':
-                    model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, (self._cnn_filter_size, self._cnn_filter_size), padding='same', name=name, kernel_regularizer=self.regularizer)))
+                    model.add(self._s_layer('cnn2d{}_{}'.format(i, j), lambda name: Convolution2D(block_feature_count, self._cnn_filter_size, padding='same', name=name, kernel_regularizer=self.regularizer)))
                 else:
                     raise ValueError("Invalid dimensionality: {}".format(dimensionality))
 
