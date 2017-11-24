@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer, RepeatVector, add
 from keras.models import Sequential
 from keras.objectives import kullback_leibler_divergence
+from keras.legacy import interfaces
 import keras.backend as K
 
 from core.nn.history import History
@@ -951,6 +952,57 @@ def meier_cluster_cohesion(x, y, similar, similar_distance_weight=1., dissimilar
     cost += similar * similar_distance_weight * d
     cost += (1 - similar) * dissimilar_distance_weight * d
     return cost
+
+class ExtendedDropout(Layer):
+    """
+    See: https://arxiv.org/pdf/1506.02142.pdf
+
+    This dropout is only applied during execution time.
+    """
+    @interfaces.legacy_dropout_support
+    def __init__(self, rate, noise_shape=None, seed=None, train_phase_active=True, test_phase_active=False, **kwargs):
+        super(ExtendedDropout, self).__init__(**kwargs)
+        self.rate = min(1., max(0., rate))
+        self.noise_shape = noise_shape
+        self.seed = seed
+        self.supports_masking = True
+        self.train_phase_active = train_phase_active
+        self.test_phase_active = test_phase_active
+
+    def _get_noise_shape(self, inputs):
+        if self.noise_shape is None:
+            return self.noise_shape
+
+        symbolic_shape = K.shape(inputs)
+        noise_shape = [symbolic_shape[axis] if shape is None else shape
+                       for axis, shape in enumerate(self.noise_shape)]
+        return tuple(noise_shape)
+
+    def call(self, inputs, training=None):
+        if 0. < self.rate < 1.:
+            noise_shape = self._get_noise_shape(inputs)
+
+            def dropped_inputs():
+                return K.dropout(inputs, self.rate, noise_shape,
+                                 seed=self.seed)
+            train_output = inputs
+            test_output = inputs
+            if self.train_phase_active:
+                train_output = dropped_inputs
+            if self.test_phase_active:
+                test_output = dropped_inputs
+            return K.in_train_phase(train_output, test_output,
+                                    training=training)
+        return inputs
+
+    def get_config(self):
+        config = {'rate': self.rate,
+                  'noise_shape': self.noise_shape,
+                  'seed': self.seed,
+                  'train_phase_active': self.train_phase_active,
+                  'test_phase_active': self.test_phase_active}
+        base_config = super(ExtendedDropout, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 if __name__ == '__main__':
     from random import random

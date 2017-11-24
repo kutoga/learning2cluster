@@ -43,12 +43,15 @@ if __name__ == '__main__':
         # minimum_snippets_per_cluster=[(100, 100), (100, 100)],
         # split_audio_pieces_longer_than_and_create_hints=100
 
-        window_width=500
+        window_width=512
     )
     en = CnnEmbedding(
         output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128],
         fc_layer_feature_counts=[256], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
-        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
+
+        max_pooling_size=[(4, 2), (4, 2), (2, 2)],
+        max_pooling_stride=[(4, 2), (4, 2), (2, 2)]
     )
 
     c_nn = ClusterNNTry00_V51(dp, 40, en, lstm_layers=14, internal_embedding_size=96 * 3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
@@ -57,7 +60,7 @@ if __name__ == '__main__':
     c_nn.include_self_comparison = False
     c_nn.weighted_classes = True
     c_nn.class_weights_approximation = 'stochastic'
-    c_nn.minibatch_size = 15
+    c_nn.minibatch_size = 3
     c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
     c_nn.set_loss_weight('similarities_output', 5.0)
     c_nn.optimizer = Adadelta(lr=5.0)

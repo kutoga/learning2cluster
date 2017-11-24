@@ -2,7 +2,7 @@ import librosa
 import numpy as np
 from math import ceil
 
-from impl.data.misc.helper import progress
+from core.data.helper import progress
 
 
 class AudioHelper:

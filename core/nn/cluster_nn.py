@@ -86,6 +86,17 @@ class ClusterNN(BaseNN):
         # Use hints for the training? (if hints are available; otherwise this setting has no effect)
         self.__use_hints_for_training = use_hints_for_training
 
+        # Define some additional build config value; They do not have a pre-defined meaning, but they allow it to pass
+        # some information from the build_network call to the code that creates the neural network
+        self._additional_build_config = {}
+
+        # Is the network already built?
+        self._network_built = False
+
+    @property
+    def is_network_built(self):
+        return self._network_built
+
     @property
     def normalize_network_input(self):
         return self._normalize_network_input
@@ -1038,7 +1049,17 @@ class ClusterNN(BaseNN):
     def _get_clustering_hint(self):
         return self.__nw_clustering_hint
 
-    def build_networks(self, print_summaries=False, build_training_model=True):
+    def _try_get_additional_build_config_value(self, key, default_value=None):
+        if key in self._additional_build_config:
+            return self._additional_build_config[key]
+        return default_value
+
+    def build_networks(self, print_summaries=False, build_training_model=True, additional_build_config=None):
+
+        if additional_build_config is None:
+            additional_build_config = {}
+        self._additional_build_config = additional_build_config
+
         if self._embedding_nn is not None:
             self._embedding_nn.build(self.data_provider.get_data_shape())
             if print_summaries:
@@ -1099,13 +1120,8 @@ class ClusterNN(BaseNN):
         # Register all plots
         self._register_plots()
 
-        # TODO: Do the discriminator things
-
-        # DUMMY
-        # self.dummy_predict()
-        # self.dummy_train()
-
-        pass
+        # The networks are now built:)
+        self._network_built = True
 
     def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True):
 

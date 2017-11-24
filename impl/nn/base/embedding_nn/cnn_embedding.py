@@ -27,8 +27,8 @@ class CnnEmbedding(EmbeddingNN):
         :param dimensionality:
         :param batch_norm_after_activation:
         :param cnn_filter_size:
-        :param max_pooling_size:
-        :param max_pooling_stride:
+        :param max_pooling_size: a single number, a tuple, or a list of single numbers and tuples
+        :param max_pooling_stride: a single number, a tuple, or a list of single numbers and tuples
         :param dropout_init: Dropout directly after the initial layer.
         :param dropout_after_max_pooling: Dropout rate after max pooling layers. This value might be a single scaler from 0.0 to 1.0, None or a list with the dropout for the nth max pooling layer.
         :param dropout_after_fc: Dropout rate after fully connected layers. This value might be a single scaler from 0.0 to 1.0, None or a list with the dropout for the nth fully connected layer.
@@ -92,6 +92,24 @@ class CnnEmbedding(EmbeddingNN):
         # Add an initial dropout layer
         add_dropout_if_required('dropout_init', self._dropout_init)
 
+        def get_nth_max_pooling_size(n):
+            max_pooling_size = self._max_pooling_size
+            if isinstance(max_pooling_size, list):
+                max_pooling_size = max_pooling_size[n]
+            if dimensionality == '2d':
+                if not isinstance(max_pooling_size, tuple):
+                    max_pooling_size = (max_pooling_size, max_pooling_size)
+            return max_pooling_size
+
+        def get_nth_max_pooling_stride(n):
+            max_pooling_stride = self._max_pooling_size
+            if isinstance(max_pooling_stride, list):
+                max_pooling_stride = max_pooling_stride[n]
+            if dimensionality == '2d':
+                if not isinstance(max_pooling_stride, tuple):
+                    max_pooling_stride = (max_pooling_stride, max_pooling_stride)
+            return max_pooling_stride
+
         # Add all convolutional layers
         for i in range(len(self._block_feature_counts)):
             block_feature_count = self._block_feature_counts[i]
@@ -119,10 +137,12 @@ class CnnEmbedding(EmbeddingNN):
                     model.add(batch_norm)
 
             # Add max pooling
+            max_pooling_size = get_nth_max_pooling_size(i)
+            max_pooling_stride = get_nth_max_pooling_stride(i)
             if dimensionality == '1d':
-                model.add(self._s_layer('max1{}'.format(i), lambda name: MaxPooling1D(name=name, pool_size=self._max_pooling_size, strides=self._max_pooling_stride)))
+                model.add(self._s_layer('max1{}'.format(i), lambda name: MaxPooling1D(name=name, pool_size=max_pooling_size, strides=max_pooling_stride)))
             elif dimensionality == '2d':
-                model.add(self._s_layer('max2{}'.format(i), lambda name: MaxPooling2D(name=name, pool_size=(self._max_pooling_size, self._max_pooling_size), strides=(self._max_pooling_stride, self._max_pooling_stride))))
+                model.add(self._s_layer('max2{}'.format(i), lambda name: MaxPooling2D(name=name, pool_size=max_pooling_size, strides=max_pooling_stride)))
             else:
                 raise ValueError("Invalid dimensionality: {}".format(dimensionality))
 
