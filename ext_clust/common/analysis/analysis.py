@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import cdist
 from sklearn.metrics import *
-from theano.gradient import np
+import numpy as np
 
 from ext_clust.common.analysis.mr import misclassification_rate
 from ext_clust.common.utils.logger import *
@@ -154,9 +154,10 @@ def plot_curves(plot_file_name, curve_names, mrs, homogeneity_scores, completene
         mr_plot.annotate(str(min_mr), xy=(0, min_mr))
 
     # Add legend and save the plot
-    fig1.legend()
+    # fig1.legend()
     # fig1.show()
     fig1.savefig(get_result_png(plot_file_name))
+    pass
 
 
 def add_cluster_subplot(fig, position, title):
@@ -231,5 +232,46 @@ def read_and_safe_best_results():
                       set_of_completeness_scores, speaker_numbers)
 
 
+# if __name__ == '__main__':
+#     read_and_safe_best_results()
+
 if __name__ == '__main__':
-    read_and_safe_best_results()
+    import random
+
+    embeddings = [
+        [1, 2],
+        [3, 4],
+        # [5, 6]
+    ]
+    embeddings = [np.random.uniform(0, 1, (2,)).tolist() for i in range(100)]
+    n_embeddings = len(embeddings)
+    cluster_count = 10
+    true_clusters = [random.randint(0, cluster_count - 1) for i in range(len(embeddings))]
+    true_clusters = [0 for i in range(len(embeddings))]
+
+    # true_clusters = [0, 1]
+
+    _, embeddings_linkage = cluster_embeddings(embeddings)
+    mrs, homogeneity_scores, completeness_scores, thresholds = calculate_analysis_values(embeddings_linkage, true_clusters)
+
+    print(mrs)
+
+    # plot_curves('E:/tmp/output.png', ['test'], mrs, homogeneity_scores, completeness_scores, [n_embeddings])
+
+    pass
+
+    embeddings = [
+        [1, 2],
+        [3, 4],
+        [5, 6]
+    ]
+    n_embeddings = len(embeddings)
+    cluster_count = 10
+    true_clusters = [0, 0, 1]
+
+    _, embeddings_linkage = cluster_embeddings(embeddings)
+    mrs, homogeneity_scores, completeness_scores, thresholds = calculate_analysis_values(embeddings_linkage, true_clusters)
+
+    plot_curves('E:/tmp/output.png', ['test'], mrs, homogeneity_scores, completeness_scores, [n_embeddings])
+
+    print(mrs)

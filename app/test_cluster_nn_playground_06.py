@@ -56,6 +56,7 @@ if __name__ == '__main__':
         min_cluster_count=fixedc, max_cluster_count=fixedc,
     )
     en = None
+    en = SimpleFCEmbedding(2)
 
     dp = DummyDataProvider([
         [
@@ -116,18 +117,30 @@ if __name__ == '__main__':
     #     ]
     # )
 
+
+    # Create the forward pass analysis
     from core.nn.misc.cluster_count_uncertainity import measure_cluster_count_uncertainity
-    x = measure_cluster_count_uncertainity(c_nn, [
-                [0.2, 0.8],
-                [0.1, 0.9],
-                [0.3, 0.7]
-            ], show_progress=True, input_permutation=True, forward_pass_dropout=True)
+    # x = measure_cluster_count_uncertainity(c_nn, [
+    #             [0.2, 0.8],
+    #             [0.1, 0.9],
+    #             [0.3, 0.7]
+    #         ], show_progress=True, input_permutation=True, forward_pass_dropout=True)
     x = measure_cluster_count_uncertainity(c_nn, [
                 [0.2, 0.8],
                 [0.1, 0.9],
                 [0.3, 0.7]
             ], show_progress=True, output_directory='G:/tmp/test/measure_cluster_count_uncertainity',
             input_permutation=True, forward_pass_dropout=True)
+
+    # Hierarchical Clustering
+    from core.nn.misc.hierarchical_clustering import hierarchical_clustering
+    mrs, homogeneity_scores, completeness_scores, thresholds = hierarchical_clustering([
+        np.asarray([0.2, 0.8]),
+        np.asarray([0.1, 0.9]),
+    ], [0, 0], c_nn)
+
+    print(mrs)
+    pass
 
     # Do a dummy prediction
 

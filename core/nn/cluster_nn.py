@@ -247,6 +247,22 @@ class ClusterNN(BaseNN):
     def _uses_embedding_layer(self):
         return self._embedding_nn is not None
 
+    def calculate_embeddings(self, x):
+
+        # Handle list inputs
+        if isinstance(x, list):
+            return list(map(self.calculate_embeddings, x))
+
+        # Is an embedding layer used?
+        if not self._uses_embedding_layer():
+            return x
+
+        # Predict the embeddings
+        x = np.asarray([x])
+        embedding = self._embedding_nn.model.predict(x)[0]
+
+        return embedding
+
     def _get_embedding(self, layer, time_distributed=False, layer_base_name='embedding_preprocessor'):
 
         # If a list of layers is given: Return the embedding for each layer
