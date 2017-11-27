@@ -121,13 +121,13 @@ if __name__ == '__main__':
                 [0.2, 0.8],
                 [0.1, 0.9],
                 [0.3, 0.7]
-            ], show_progress=True, input_permutation=True, forward_pass_dropout=False)
+            ], show_progress=True, input_permutation=True, forward_pass_dropout=True)
     x = measure_cluster_count_uncertainity(c_nn, [
                 [0.2, 0.8],
                 [0.1, 0.9],
                 [0.3, 0.7]
             ], show_progress=True, output_directory='G:/tmp/test/measure_cluster_count_uncertainity',
-            input_permutation=True, forward_pass_dropout=False)
+            input_permutation=True, forward_pass_dropout=True)
 
     # Do a dummy prediction
 
