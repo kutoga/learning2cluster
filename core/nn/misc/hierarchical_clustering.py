@@ -21,7 +21,7 @@ def hierarchical_clustering(x_values, true_clusters, cluster_nn=None, plot_filen
     if plot_filename is not None:
 
         # TODO: Use this library plot (if it works)
-        # plot_curves(plot_filename, ['test'], mrs, homogeneity_scores, completeness_scores, [n_embeddings])
+        plot_curves(plot_filename, ['test'], [mrs], [homogeneity_scores], [completeness_scores], [n_embeddings])
 
         fig, axes = plt.subplots(2, 1, figsize=(12, 12))
         dendrogram(embeddings_linkage, ax=axes[0], above_threshold_color='y', orientation='top')
@@ -34,7 +34,7 @@ def hierarchical_clustering(x_values, true_clusters, cluster_nn=None, plot_filen
         i = np.argmin(mrs)
         axes[1].set_title('Best threshold: {}, Best MR: {}'.format(thresholds[i], mrs[i]))
 
-        plt.savefig(plot_filename)
+        plt.savefig(plot_filename + "_2.png")
         plt.clf()
         plt.close()
 
