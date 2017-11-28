@@ -14,6 +14,12 @@ Docker auf srv-lab-t-697 starten:
 
     ./scripts/run.sh ./playground/trainable_depth.py /tmp/test/trainable_depth_000.log
 
+    pip install termcolor librosa yattag
+    cd tmp/ClusterNN
+    ln -s /data/MT/ /tmp/test
+    (cd /home/keras/; mv .keras .keras_org; ln -s /data/.keras .)
+	cp /tmp/test/cudnn_recurrent.py /tmp/test/wrappers.py /opt/conda/lib/python3.5/site-packages/keras/layers/
+
 
 Bzw. falls root & Port-Weiterleitung gewünscht ist:
 
@@ -121,6 +127,8 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v90.py /tmp/test/test_cluster_nn_try00_v90.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v91.py /tmp/test/test_cluster_nn_try00_v91.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v92.py /tmp/test/test_cluster_nn_try00_v92.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v93.py /tmp/test/test_cluster_nn_try00_v93.py.log
+	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v94.py /tmp/test/test_cluster_nn_try00_v94.py.log
 
     # Copy the modified cudnn layer (see https://github.com/fchollet/keras/issues/8164)
 	cp /tmp/test/cudnn_recurrent.py /tmp/test/wrappers.py /opt/conda/lib/python3.5/site-packages/keras/layers/

@@ -134,10 +134,20 @@ if __name__ == '__main__':
 
     # Hierarchical Clustering
     from core.nn.misc.hierarchical_clustering import hierarchical_clustering
-    mrs, homogeneity_scores, completeness_scores, thresholds = hierarchical_clustering([
-        np.asarray([0.2, 0.8]),
-        np.asarray([0.1, 0.9]),
-    ], [0, 0], c_nn)
+
+    # Generate data
+    records = 50
+    data, _, _ = c_nn.data_provider.get_data(elements_per_cluster_collection=records, data_type='test', cluster_collection_count=1)
+    x_data, _ = c_nn._build_Xy_data(data, ignore_length=True)
+    i_data = c_nn.data_to_cluster_indices(data)
+
+    # Only use the first cluster collection
+    x_data = list(map(lambda x: x[0], x_data[:-1]))
+    i_data = i_data[0]
+
+    mrs, homogeneity_scores, completeness_scores, thresholds = hierarchical_clustering(
+        x_data, i_data, c_nn, plot_filename='G:/tmp/test/measure_cluster_count_uncertainity/out.png'
+    )
 
     print(mrs)
     pass

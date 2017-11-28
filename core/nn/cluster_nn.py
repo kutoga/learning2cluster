@@ -250,7 +250,7 @@ class ClusterNN(BaseNN):
     def calculate_embeddings(self, x):
 
         # Handle list inputs
-        if isinstance(x, list):
+        if isinstance(x, list) or (len(x.shape) == (len(self.data_provider.get_data_shape()) + 1)):
             return list(map(self.calculate_embeddings, x))
 
         # Is an embedding layer used?
@@ -416,14 +416,17 @@ class ClusterNN(BaseNN):
     def _build_y_data(self, inputs):
         pass
 
-    def __build_X_data(self, inputs):
+    def __build_X_data(self, inputs, ignore_length=False):
         data_shape = self.data_provider.get_data_shape()
+        input_count = self._input_count
+        if ignore_length and len(inputs) > 0:
+            input_count = len(inputs[0]['data'])
         X = [
-            np.zeros((len(inputs),) + data_shape, dtype=np.float32) for i in range(self._input_count)
+            np.zeros((len(inputs),) + data_shape, dtype=np.float32) for i in range(input_count)
         ]
         for c in range(len(inputs)):
             current_inputs = inputs[c]['data']
-            assert len(current_inputs) == len(X)
+            assert len(current_inputs) == input_count
             for i in range(len(current_inputs)):
                 X[i][c] = self._normalize_array_if_required(current_inputs[i][0])
 
@@ -435,7 +438,7 @@ class ClusterNN(BaseNN):
 
         return X
 
-    def _build_Xy_data(self, data, hints=None):
+    def _build_Xy_data(self, data, hints=None, ignore_length=False):
 
         # Prepare the data:
         # [
@@ -487,7 +490,7 @@ class ClusterNN(BaseNN):
                 'hints': current_hints
             })
 
-        return self.__build_X_data(inputs), self._build_y_data(inputs)
+        return self.__build_X_data(inputs, ignore_length=ignore_length), self._build_y_data(inputs)
 
     def __build_elements_inputs(self):
         return [

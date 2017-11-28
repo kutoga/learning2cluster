@@ -161,13 +161,13 @@ class DataProvider:
         else:
             return current_cluster_combinations
 
-    def get_data(self, elements_per_cluster_collection, cluster_colletion_count,
-                       cluster_count_f=None, cluster_count=None, cluster_count_range=None,
-                       dummy_data=False, data_type='train'):
+    def get_data(self, elements_per_cluster_collection, cluster_collection_count,
+                 cluster_count_f=None, cluster_count=None, cluster_count_range=None,
+                 dummy_data=False, data_type='train'):
         """
 
         :param elements_per_cluster_collection:
-        :param cluster_colletion_count:
+        :param cluster_collection_count:
         :param cluster_count_f:
         :param cluster_count:
         :param cluster_count_range:
@@ -193,7 +193,7 @@ class DataProvider:
             # Generate some dummy 0-data.
             data_shape = self.get_data_shape()
             train_data = []
-            for i in range(cluster_colletion_count):
+            for i in range(cluster_collection_count):
 
                 # Generate cluster_count_f() clusters, or if no value is defined: Use the maximum cluster count
                 cluster_count = cluster_count_f()
@@ -209,8 +209,8 @@ class DataProvider:
                 clusters = list(filter(lambda c: len(c) > 0, clusters))
 
                 train_data.append(clusters)
-            additional_obj_info = [None] * cluster_colletion_count
-            hints = [None] * cluster_colletion_count
+            additional_obj_info = [None] * cluster_collection_count
+            hints = [None] * cluster_collection_count
 
         else:
 
@@ -218,7 +218,7 @@ class DataProvider:
             train_data = []
             additional_obj_info = []
             hints = []
-            for i in range(cluster_colletion_count):
+            for i in range(cluster_collection_count):
                 data, obj_info, clustering_hints = self._get_clusters(elements_per_cluster_collection, cluster_count_f(), data_type=data_type)
 
                 if min(map(len, data)) == 0:

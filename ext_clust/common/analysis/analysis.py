@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.cluster.hierarchy import fcluster, linkage, dendrogram
 from scipy.spatial.distance import cdist
 from sklearn.metrics import *
 import numpy as np
@@ -156,7 +156,9 @@ def plot_curves(plot_file_name, curve_names, mrs, homogeneity_scores, completene
     # Add legend and save the plot
     # fig1.legend()
     # fig1.show()
-    fig1.savefig(get_result_png(plot_file_name))
+    result_png = get_result_png(plot_file_name)
+    print("Result png: {}".format(result_png))
+    fig1.savefig(result_png)
     pass
 
 
@@ -263,15 +265,35 @@ if __name__ == '__main__':
     embeddings = [
         [1, 2],
         [3, 4],
-        [5, 6]
+        [1, 6],
+    ]
+    random.seed(1729)
+    embeddings = [
+        [random.uniform(0, 1), random.uniform(0, 1)] for i in range(10)
     ]
     n_embeddings = len(embeddings)
     cluster_count = 10
-    true_clusters = [0, 0, 1]
+    # true_clusters = [0, 0]
+    true_clusters = [random.randint(0, 1) for i in range(n_embeddings)]
 
     _, embeddings_linkage = cluster_embeddings(embeddings)
     mrs, homogeneity_scores, completeness_scores, thresholds = calculate_analysis_values(embeddings_linkage, true_clusters)
 
-    plot_curves('E:/tmp/output.png', ['test'], mrs, homogeneity_scores, completeness_scores, [n_embeddings])
+    fig, axes = plt.subplots(2, 1, figsize=(12, 12))
+    dn1 = dendrogram(embeddings_linkage, ax=axes[0], above_threshold_color='y', orientation='top')
+    axes[0].set_ylabel('threshold')
+    axes[0].set_title('Dendrogram')
+
+
+    axes[1].plot(thresholds, mrs, 'ro')
+    axes[1].set_xlabel('threshold')
+    axes[1].set_ylabel('MR')
+    i = np.argmin(mrs)
+    axes[1].set_title('Best threshold: {}, Best MR: {}'.format(thresholds[i], mrs[i]))
+
+
+
+
+    plt.show(block=True)
 
     print(mrs)
