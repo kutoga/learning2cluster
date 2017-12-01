@@ -159,6 +159,9 @@ def plot_curves(plot_file_name, curve_names, mrs, homogeneity_scores, completene
     result_png = get_result_png(plot_file_name)
     print("Result png: {}".format(result_png))
     fig1.savefig(result_png)
+    fig1.clear()
+    plt.clf()
+    plt.close()
     pass
 
 

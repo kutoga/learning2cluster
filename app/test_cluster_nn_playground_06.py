@@ -125,11 +125,13 @@ if __name__ == '__main__':
     #             [0.1, 0.9],
     #             [0.3, 0.7]
     #         ], show_progress=True, input_permutation=True, forward_pass_dropout=True)
-    x = measure_cluster_count_uncertainity(c_nn, [
-                [0.2, 0.8],
-                [0.1, 0.9],
-                [0.3, 0.7]
-            ], show_progress=True, output_directory='G:/tmp/test/measure_cluster_count_uncertainity',
+    records = c_nn.input_count
+    data, _, _ = c_nn.data_provider.get_data(elements_per_cluster_collection=records, data_type='test', cluster_collection_count=1)
+    x_data, _ = c_nn._build_Xy_data(data, ignore_length=True)
+    i_data = c_nn.data_to_cluster_indices(data)
+    x_data = list(map(lambda x: x[0], x_data[:-1]))
+    i_data = i_data[0]
+    x = measure_cluster_count_uncertainity(c_nn, x_data, show_progress=True, output_directory='G:/tmp/test/measure_cluster_count_uncertainity',
             input_permutation=True, forward_pass_dropout=True)
 
     # Hierarchical Clustering

@@ -467,7 +467,7 @@ class ClusterNN(BaseNN):
                 )
             ))
 
-            if len(current_inputs) != self._input_count:
+            if (len(current_inputs) != self._input_count) and not ignore_length:
                 print("Error: Invalid input count (expected {}, but got {})".format(self._input_count, len(current_inputs)))
 
             # Shuffle all inputs
@@ -1142,10 +1142,17 @@ class ClusterNN(BaseNN):
         # The networks are now built:)
         self._network_built = True
 
-    def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True):
+    def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True, data=None):
 
-        # Generate test data
-        test_data, test_data_obj_info, test_hints = self._get_data(data_type=data_type, cluster_collection_count=count)
+        if data is None:
+
+            # Generate test data
+            test_data, test_data_obj_info, test_hints = self._get_data(data_type=data_type, cluster_collection_count=count)
+        else:
+
+            # Use the given test data
+            test_data, test_data_obj_info, test_hints = data
+
         test_data_X, test_data_hints, test_data_idx = self._data_provider.convert_data_to_prediction_X(test_data, shuffle=shuffle_data)
 
         # Shuffle the test_data_obj_infos according to the shuffeling

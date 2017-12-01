@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     def get_c_nn():
         c_nn = ClusterNNTry00_V93(dp, 20, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=512,
-                              output_dense_layers=1, output_dense_units=512, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
+                              output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                               kl_embedding_size=128, kl_divergence_factor=0.1)
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         c_nn.optimizer = Adadelta(lr=5.0)
 
         validation_factor = 10
-        c_nn.early_stopping_iterations = 10001
+        c_nn.early_stopping_iterations = 15001
         c_nn.validate_every_nth_epoch = 10 * validation_factor
         c_nn.validation_data_count = c_nn.minibatch_size * validation_factor
         # c_nn.prepend_base_name_to_layer_name = False
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V94'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V95'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
