@@ -20,13 +20,17 @@ class ImageDataProvider(DataProvider):
     def __init__(self, train_classes, validate_classes, test_classes,
                  min_cluster_count=None, max_cluster_count=None, auto_load_data=True,
                  return_1d_images=False, center_data=False, random_mirror_images=False,
-                 min_element_count_per_cluster=1, additional_augmentor=None):
+                 min_element_count_per_cluster=1, additional_augmentor=None,
+                 use_augmentation_for_validation_data=True,
+                 use_augmentation_for_test_data=True):
         super().__init__()
         self.__return_1d_images = return_1d_images
         self._center_data = center_data
         self._random_mirror_images = random_mirror_images
         self._min_element_count_per_cluster = min_element_count_per_cluster
         self._additional_augmentor = additional_augmentor
+        self._use_augmentation_for_validation_data = use_augmentation_for_validation_data
+        self._use_augmentation_for_test_data = use_augmentation_for_test_data
 
         # Load the data
         self.__data = None
@@ -126,17 +130,22 @@ class ImageDataProvider(DataProvider):
         # We need to copy the element, because it may be modified (and we do not want to modify it globally)
         element = np.copy(np.reshape(data[random_element_index], (1,) + data.shape[1:]))
 
-        # If required: Flip the element
-        if self._random_mirror_images and bool(random.getrandbits(1)):
-            element[0] = np.fliplr(element[0])
+        # If required, do data augmentation
+        if data_type == 'train' or \
+            (data_type == 'valid' and self._use_augmentation_for_validation_data) or \
+            (data_type == 'test' and self._use_augmentation_for_test_data):
 
-        # Use additional data augmentation, if available
-        if self._additional_augmentor is not None:
-            tmp = self._unscale_data(element[0])
-            tmp = self._additional_augmentor(tmp)
-            tmp = np.array(tmp)
-            tmp = self._scale_data(tmp)
-            element[0] = tmp
+            # If required: Flip the element
+            if self._random_mirror_images and bool(random.getrandbits(1)):
+                element[0] = np.fliplr(element[0])
+
+            # Use additional data augmentation, if available
+            if self._additional_augmentor is not None:
+                tmp = self._unscale_data(element[0])
+                tmp = self._additional_augmentor(tmp)
+                tmp = np.array(tmp)
+                tmp = self._scale_data(tmp)
+                element[0] = tmp
 
         max_element_index_len = len(str(data.shape[0] - 1))
         additional_obj_info = {

@@ -278,11 +278,11 @@ class ClusterNN(BaseNN):
 
                 # Prepare the required layers
                 reshape_layer = self._s_layer(
-                    '{}_concat_init_reshape'.format(layer_base_name),
+                    '{}_concat_init_reshape_{}'.format(layer_base_name, self._input_count),
                     lambda name: Reshape((1,) + shape, name=name)
                 )
                 merge_layer = self._s_layer(
-                    '{}_concat'.format(layer_base_name),
+                    '{}_concat_{}'.format(layer_base_name, self._input_count),
                     lambda name: concat_layer(axis=1, name=name, input_count=len(layer))
                 )
 
@@ -297,12 +297,12 @@ class ClusterNN(BaseNN):
                 # Slice them all: We want to split the result
                 shape = embeddings._keras_shape[1:]
                 reshape_layer = self._s_layer(
-                    '{}_concat_final_reshape'.format(layer_base_name),
+                    '{}_concat_final_reshape_{}'.format(layer_base_name, self._input_count),
                     lambda name: Reshape(shape[1:], name=name)
                 )
                 embeddings_list = [
                     reshape_layer(
-                        self._s_layer('{}_slice_{}'.format(layer_base_name, i), lambda name: slice_layer(embeddings, i, name))
+                        self._s_layer('{}_slice_{}_{}'.format(layer_base_name, i, self._input_count), lambda name: slice_layer(embeddings, i, name))
                     ) for i in range(len(layer))
                 ]
 
@@ -492,9 +492,15 @@ class ClusterNN(BaseNN):
 
         return self.__build_X_data(inputs, ignore_length=ignore_length), self._build_y_data(inputs)
 
-    def __build_elements_inputs(self):
+    def __build_elements_inputs(self, use_shared_layers=False):
+        def builder_core(name):
+            return Input(shape=self.data_provider.get_data_shape(), name=name)
+        if use_shared_layers:
+            builder = lambda name: self._s_layer(name, builder_core)
+        else:
+            builder = builder_core
         return [
-            self._s_layer('input_{}'.format(i), lambda name: Input(shape=self.data_provider.get_data_shape(), name=name))
+            builder('input_{}'.format(i))
             for i in range(self._input_count)
         ]
 
@@ -529,12 +535,15 @@ class ClusterNN(BaseNN):
             arr = self._normalize_array(arr)
         return arr
 
+    def _do_validation(self):
+        return (self.__get_last_epoch() + 1) % self._validate_every_nth_epoch == 0
+
     def __train_iteration(self, dummy_train=False):
         if self._model_training is None:
             raise Exception("No training model is defined (it has to be built with 'build_networks(build_training_model=True)'")
 
         self.event_training_iteration_before.fire(nth=self.__get_last_epoch())
-        do_validation = (self.__get_last_epoch() + 1) % self._validate_every_nth_epoch == 0
+        do_validation = self._do_validation()
         cluster_counts = self._get_cluster_counts()  #list(self._data_provider.get_cluster_counts())
 
         # Generate training data

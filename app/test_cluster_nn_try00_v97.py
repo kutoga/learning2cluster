@@ -3,6 +3,7 @@ matplotlib.use('Agg')
 
 import numpy as np
 
+import Augmentor
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adadelta
 
@@ -22,27 +23,42 @@ if __name__ == '__main__':
     from sys import platform
 
     from impl.data.audio.timit_data_provider import TIMITDataProvider
-    from impl.data.simple_2d_point_data_provider import Simple2DPointDataProvider
+    from impl.data.image.flowers102_data_provider import Flowers102DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
     top_dir = "/tmp/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    dp = Simple2DPointDataProvider(
+    p = Augmentor.Pipeline()
+    p.random_distortion(probability=1, grid_width=4, grid_height=4, magnitude=8)
+    p.flip_left_right(probability=0.5)
+    p.flip_top_bottom(probability=0.5)
+    p.rotate90(probability=0.5)
+    p.rotate270(probability=0.5)
+
+    dp = Flowers102DataProvider(
         min_cluster_count=1,
-        max_cluster_count=7,
-        use_extended_data_gen=True
+        max_cluster_count=5,
+        target_img_size=(96, 96),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x)
     )
-    en = None
+    en = CnnEmbedding(
+        output_size=256, cnn_layers_per_block=1, block_feature_counts=[64, 128, 256], fc_layer_feature_counts=[512],
+        hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
+        dropout_init=0.25, dropout_after_max_pooling=[0.25, 0.25, 0.25], dropout_after_fc=0.25
+    )
 
     def get_cnn():
-        c_nn = ClusterNNTry00_V51(dp, 96, en, lstm_layers=14, internal_embedding_size=96 * 3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
-                                  output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128 * 3)
+        c_nn = ClusterNNTry00_V51(dp, 20, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+                                  output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
+                                  kl_embedding_size=128, kl_divergence_factor=0.1)
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
         c_nn.class_weights_approximation = 'stochastic'
-        c_nn.minibatch_size = 150
+        c_nn.minibatch_size = 15
         c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
         c_nn.set_loss_weight('similarities_output', 5.0)
         c_nn.optimizer = Adadelta(lr=5.0)
@@ -52,12 +68,10 @@ if __name__ == '__main__':
         c_nn.validate_every_nth_epoch = 10 * validation_factor
         c_nn.validation_data_count = c_nn.minibatch_size * validation_factor
         # c_nn.prepend_base_name_to_layer_name = False
-
         return c_nn
-
+    c_nn = get_cnn()
 
     print_loss_plot_every_nth_itr = 100
-    c_nn = get_cnn()
 
     # c_nn.f_cluster_count = lambda: 10
     # c_nn.minibatch_size = 200
@@ -80,7 +94,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V96'
+    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V97'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 

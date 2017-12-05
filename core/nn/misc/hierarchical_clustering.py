@@ -6,7 +6,7 @@ from scipy.cluster.hierarchy import dendrogram
 
 from ext_clust.common.analysis.analysis import cluster_embeddings, calculate_analysis_values, plot_curves
 
-def hierarchical_clustering(x_values, true_clusters, cluster_nn=None, plot_filename=None):
+def hierarchical_clustering(x_values, true_clusters, cluster_nn=None, plot_filename=None, metric='cosine', method='complete'):
     if cluster_nn is None:
         embeddings = x_values
     else:
@@ -14,7 +14,7 @@ def hierarchical_clustering(x_values, true_clusters, cluster_nn=None, plot_filen
     n_embeddings = len(embeddings)
 
     # Do the clustering
-    _, embeddings_linkage = cluster_embeddings(embeddings)
+    _, embeddings_linkage = cluster_embeddings(embeddings, metric=metric, method=method)
     mrs, homogeneity_scores, completeness_scores, thresholds = calculate_analysis_values(embeddings_linkage, true_clusters)
 
     # Create a plot if required

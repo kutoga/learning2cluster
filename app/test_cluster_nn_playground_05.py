@@ -1,6 +1,6 @@
 import matplotlib
 matplotlib.use('Agg')
-
+import random
 from time import time
 
 from impl.nn.base.cluster_nn.minimal_cluster_nn import MinimalClusterNN
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     ds_dir = "./" if is_linux else "../"
 
     dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=3, allow_less_clusters=False)
-    en = SimpleFCEmbedding(hidden_layers=[2, 4, 4])
+    en = SimpleFCEmbedding(hidden_layers=[2])
 
 
     autosave_dir = top_dir + 'test/autosave_ClusterNN_playground'
@@ -45,9 +45,11 @@ if __name__ == '__main__':
     models = []
 
     master_network = None
-    for input_count in input_counts:
+    for input_count in reversed(sorted(input_counts)):
+        print("Initialize model with {} inputs...".format(input_count))
 
-        cnn = ClusterNNMergedInputs(dp, input_count, en, weighted_classes=True)
+        # cnn = ClusterNNMergedInputs(dp, input_count, en, weighted_classes=True)
+        cnn = MinimalClusterNN(dp, input_count, en, weighted_classes=True)
         cnn.debug_mode = True
         models.append(cnn)
 
@@ -73,14 +75,17 @@ if __name__ == '__main__':
         if master_network == cnn:
             cnn.try_load_from_autosave(autosave_dir)
 
+    # Train until Early Stopping kills the process
+    for i in range(1000000):
 
-    # Do now the training: Use round robin
-    while True:
-        for nn in models:
+        if master_network._do_validation():
+            nn = master_network  # Choose the model with the most input counts (=the master model)
+        else:
+            nn = random.choice(models)
 
-            # Stop is early stopping was used
-            if nn.train(1):
-                break
+        # Stop is early stopping was used
+        if nn.train(1):
+            break
 
     # Test all networks
     for nn in models:
