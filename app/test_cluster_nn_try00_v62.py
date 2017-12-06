@@ -22,13 +22,13 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_bdlstm_embedding import CnnBDLSTMEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
     TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
     dp = TIMITDataProvider(
         # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
-        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
         min_cluster_count=1,
         max_cluster_count=5,
         return_1d_audio_data=False,

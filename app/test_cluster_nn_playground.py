@@ -29,7 +29,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.bdlstm_embedding import BDLSTMEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
     # dp = MNISTDataProvider(min_cluster_count=3, max_cluster_count=3)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     TIMIT_lst = TIMIT20_lst
 
     dp = TIMITDataProvider(
-        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
         # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
         return_1d_audio_data=False,
 

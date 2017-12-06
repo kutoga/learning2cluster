@@ -22,7 +22,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
     TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     TIMIT_lst = TIMIT_lst[:20]
 
     dp = TIMITDataProvider(
-        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
         # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
         return_1d_audio_data=False,
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
     for used_input_count in [10, 20, 40, 80, 160, required_input_count]:
         dp = TIMITDataProvider(
-            data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
+            data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
             # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
             return_1d_audio_data=False,
 

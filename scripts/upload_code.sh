@@ -1,5 +1,6 @@
 #!/bin/bash
 SERVER=srv-lab-t-697
+SERVER=gpulogin.cloudlab.zhaw.ch
 if [ ! -z "$1" ]; then
     SERVER="$1"
 fi

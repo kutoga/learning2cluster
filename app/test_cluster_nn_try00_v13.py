@@ -21,7 +21,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.simple_fc_embedding import SimpleFCEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
 
     # fixedc = 3
     dp = Simple2DPointDataProvider(

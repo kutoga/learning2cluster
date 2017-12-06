@@ -74,6 +74,22 @@ class ImageDataProvider(DataProvider):
             self.__min_cluster_count = max([self.__min_cluster_count, min([min_cluster_count, self._max_cluster_count])])
 
     @property
+    def use_augmentation_for_validation_data(self):
+        return self._use_augmentation_for_validation_data
+
+    @use_augmentation_for_validation_data.setter
+    def use_augmentation_for_validation_data(self, use_augmentation_for_validation_data):
+        self._use_augmentation_for_validation_data = use_augmentation_for_validation_data
+
+    @property
+    def use_augmentation_for_test_data(self, use_augmentation_for_test_data):
+        return use_augmentation_for_test_data
+
+    @use_augmentation_for_test_data.setter
+    def use_augmentation_for_test_data(self, use_augmentation_for_test_data):
+        self._use_augmentation_for_test_data = use_augmentation_for_test_data
+
+    @property
     def center_data(self):
         return self._center_data
 

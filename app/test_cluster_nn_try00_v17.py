@@ -23,13 +23,13 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
 
 
     TIMIT20_lst = ['MTDB0','FCMG0','MABW0','MWEM0','MTLS0','MMAM0','MTJU0','FECD0','FVMH0','MDCD0','MJPG0','MRSP0','MRFK0','FCAU0','MRCG0','MRKM0','MPRT0','MCTT0','FEME0','MCRE0']
     dp = TIMITDataProvider(
         # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
-        data_dir=top_dir + "/test/TIMIT", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
         min_cluster_count=1,
         max_cluster_count=5,
         return_1d_audio_data=False,

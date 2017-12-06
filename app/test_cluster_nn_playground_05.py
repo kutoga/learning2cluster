@@ -29,7 +29,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.bdlstm_embedding import BDLSTMEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/tmp/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
     dp = Simple2DPointDataProvider(min_cluster_count=1, max_cluster_count=3, allow_less_clusters=False)
