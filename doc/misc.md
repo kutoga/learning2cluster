@@ -134,14 +134,17 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v97.py ~/data/MT/test_cluster_nn_try00_v97.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v98.py ~/data/MT/test_cluster_nn_try00_v98.py.log
 
-	# From now (gpulogin.cloudlab.zhaw.ch)
-	bash ./scripts/run.sh ./app/test_minimal_cluster_nn.py ~/data/MT/test_minimal_cluster_nn.py.log
+
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v099.py ~/data/MT_gpulab/test_cluster_nn_try00_v099.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v100.py ~/data/MT_gpulab/test_cluster_nn_try00_v100.py.log
+
+
 
     # Copy the modified cudnn layer (see https://github.com/fchollet/keras/issues/8164)
 	cp /tmp/test/cudnn_recurrent.py /tmp/test/wrappers.py /opt/conda/lib/python3.5/site-packages/keras/layers/
 
 
     # Neuer GPU cluster
-    srun --pty --ntasks=1 --cpus-per-task=2 --mem=16G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras5 bash
+    srun --pty --ntasks=1 --cpus-per-task=2 --mem=16G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash
     pip install termcolor librosa yattag
 

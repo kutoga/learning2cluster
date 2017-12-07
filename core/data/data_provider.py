@@ -240,7 +240,8 @@ class DataProvider:
         """
         pass
 
-    def summarize_results(self, X, clusters, output_directory, prediction=None, create_date_dir=True, metrics=None, additional_obj_info=None):
+    def summarize_results(self, X, clusters, output_directory, prediction=None, create_date_dir=True, metrics=None, additional_obj_info=None,
+                          only_store_scores=False):
         """
         Summarize results and store the results to a defined output directory.
         :param X:
@@ -268,36 +269,38 @@ class DataProvider:
         if path.exists(output_html_file):
             remove(output_html_file)
         results = {}
-        for i in range(len(clusters)):
+        if not only_store_scores:
+            for i in range(len(clusters)):
 
-            current_X = X[i] #list(map(lambda X_i: X_i[i], X))
-            current_clusters = clusters[i]
-            current_output_directory_name = output_directory_name.format(i)
-            current_output_directory = path.join(output_directory, current_output_directory_name)
-            current_prediction = None
-            if prediction is not None:
-                current_prediction = prediction[i]
-            current_metrics = None
-            if metrics is not None:
-                current_metrics = metrics[i]
-            current_additional_obj_info = None
-            if additional_obj_info is not None:
-                current_additional_obj_info = additional_obj_info[i]
+                current_X = X[i] #list(map(lambda X_i: X_i[i], X))
+                current_clusters = clusters[i]
+                current_output_directory_name = output_directory_name.format(i)
 
-            current_result = self.summarize_single_result(
-                current_X, current_clusters, current_output_directory, current_prediction, current_metrics, current_additional_obj_info
-            )
-            if current_result is not None:
+                current_output_directory = path.join(output_directory, current_output_directory_name)
+                current_prediction = None
+                if prediction is not None:
+                    current_prediction = prediction[i]
+                current_metrics = None
+                if metrics is not None:
+                    current_metrics = metrics[i]
+                current_additional_obj_info = None
+                if additional_obj_info is not None:
+                    current_additional_obj_info = additional_obj_info[i]
 
-                def fix_path(path):
-                    if path.startswith(current_output_directory):
-                        path = './{}/'.format(current_output_directory_name) + path[len(current_output_directory):]
-                    return path
-                current_result['cluster_probability_plot'] = fix_path(current_result['cluster_probability_plot'])
-                for cluster_count in current_result['results'].keys():
-                    current_result['results'][cluster_count]['file'] = fix_path(current_result['results'][cluster_count]['file'])
+                current_result = self.summarize_single_result(
+                    current_X, current_clusters, current_output_directory, current_prediction, current_metrics, current_additional_obj_info
+                )
+                if current_result is not None:
 
-                results[current_output_directory_name] = current_result
+                    def fix_path(path):
+                        if path.startswith(current_output_directory):
+                            path = './{}/'.format(current_output_directory_name) + path[len(current_output_directory):]
+                        return path
+                    current_result['cluster_probability_plot'] = fix_path(current_result['cluster_probability_plot'])
+                    for cluster_count in current_result['results'].keys():
+                        current_result['results'][cluster_count]['file'] = fix_path(current_result['results'][cluster_count]['file'])
+
+                    results[current_output_directory_name] = current_result
 
         # Write metrics statistics to a file
         if metrics is not None and prediction is not None:
@@ -330,9 +333,10 @@ class DataProvider:
     def summarize_single_result(self, X, clusters, output_directory, prediction=None, metrics=None, additional_obj_info=None):
 
         # Create the output directory; If it already exists, remove it
-        if path.exists(output_directory):
-            rmtree(output_directory, ignore_errors=True)
-        try_makedirs(output_directory)
+        if output_directory is not None:
+            if path.exists(output_directory):
+                rmtree(output_directory, ignore_errors=True)
+            try_makedirs(output_directory)
 
         # Call the implementation
         return self._summarize_single_result(X, clusters, output_directory, prediction, metrics, additional_obj_info)

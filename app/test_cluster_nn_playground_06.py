@@ -117,6 +117,9 @@ if __name__ == '__main__':
     #     ]
     # )
 
+    # c_nn.build_networks(build_training_model=False)
+    # c_nn.test_network(count=10, output_directory='G:/tmp/examples_final', data_type='test', create_date_dir=False)
+    # c_nn.test_network(count=100, output_directory='G:/tmp/examples_final_2', data_type='test', create_date_dir=False, only_store_scores=True)
 
     # Create the forward pass analysis
     from core.nn.misc.cluster_count_uncertainity import measure_cluster_count_uncertainity
