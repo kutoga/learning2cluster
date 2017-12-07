@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     master_network = None
     print_loss_plot_every_nth_itr = 100
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V98' # Autosave directory
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V98' # Autosave directory
     for input_count in reversed(sorted(input_counts)):
         print("Initialize model with {} inputs...".format(input_count))
 

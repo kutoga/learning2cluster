@@ -71,7 +71,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + 'test/autosave_ClusterNNTry00_V24'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V24'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=250)
     c_nn.try_load_from_autosave(autosave_dir)
 
