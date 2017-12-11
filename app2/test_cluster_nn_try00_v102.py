@@ -2,18 +2,18 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-import random
 
+import Augmentor
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adadelta
 
-from random import randint, Random
+from random import randint
 from time import time
-
-from impl.nn.try00.cluster_nn_try00_v98 import ClusterNNTry00_V98
 
 from core.nn.misc.cluster_count_uncertainity import measure_cluster_count_uncertainity
 from core.nn.misc.hierarchical_clustering import hierarchical_clustering
+
+from impl.nn.try00.cluster_nn_try00_v98 import ClusterNNTry00_V98
 
 if __name__ == '__main__':
 
@@ -23,41 +23,42 @@ if __name__ == '__main__':
     from sys import platform
 
     from impl.data.audio.timit_data_provider import TIMITDataProvider
+    from impl.data.image.facescrub_data_provider import FaceScrubDataProvider
+    from impl.data.image.birds200_data_provider import Birds200DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    rnd = Random()
-    rnd.seed(1729)
-    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
-    rnd.shuffle(TIMIT_lst)
+    p = Augmentor.Pipeline()
+    p.random_distortion(probability=1, grid_width=4, grid_height=4, magnitude=8)
+    p.flip_left_right(probability=0.5)
+    # p.flip_top_bottom(probability=0.5)
+    # p.rotate90(probability=0.5)
+    # p.rotate270(probability=0.5)
 
-    dp = TIMITDataProvider(
-        # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
-        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
+    dp = FaceScrubDataProvider(
+        top_dir + '/facescrub_128x128',
         min_cluster_count=1,
         max_cluster_count=5,
-        return_1d_audio_data=False,
-        test_classes=TIMIT_lst[:100],
-        validate_classes=TIMIT_lst[100:],
-        concat_audio_files_of_speaker=True,
-
-        minimum_snippets_per_cluster=2,
-        window_width=200
+        target_img_size=(96, 96),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x)
     )
+    dp.use_augmentation_for_test_data = False
+    dp.use_augmentation_for_validation_data = False
     en = CnnEmbedding(
-        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128],
-        fc_layer_feature_counts=[256], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
-        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
+        output_size=256, cnn_layers_per_block=1, block_feature_counts=[64, 128, 256], fc_layer_feature_counts=[512],
+        hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
+        dropout_init=0.25, dropout_after_max_pooling=[0.25, 0.25, 0.25], dropout_after_fc=0.25
     )
 
-    max_input_count = 20
-    def get_c_nn(input_count=max_input_count):
-        c_nn = ClusterNNTry00_V98(dp, input_count, en, lstm_layers=7, internal_embedding_size=96, cluster_count_dense_layers=1, cluster_count_dense_units=512,
-                              output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
-                              kl_embedding_size=128, kl_divergence_factor=0.1, simplified_center_loss_factor=0.5)
+    def get_cnn():
+        c_nn = ClusterNNTry00_V98(dp, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+                                  output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
+                                  kl_embedding_size=128, kl_divergence_factor=0.1, simplified_center_loss_factor=0.5)
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
         c_nn.class_weights_approximation = 'stochastic'
@@ -72,60 +73,42 @@ if __name__ == '__main__':
         c_nn.validation_data_count = c_nn.minibatch_size * validation_factor
         # c_nn.prepend_base_name_to_layer_name = False
         return c_nn
+    c_nn = get_cnn()
 
-    # Create all possible input counts from 2*max_cluster_size (every cluster contains at least 2 records) up to the maximal input count
-    # input_counts = list(range(1 + dp.get_target_max_cluster_count() * 2, 1 + 20))
-    input_counts = [max_input_count]
-
-    # Create an array with all possible models
-    models = []
-
-    master_network = None
     print_loss_plot_every_nth_itr = 100
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V100' # Autosave directory
-    for input_count in reversed(sorted(input_counts)):
-        print("Initialize model with {} inputs...".format(input_count))
 
-        cnn = get_c_nn(input_count)
-        models.append(cnn)
+    # c_nn.f_cluster_count = lambda: 10
+    # c_nn.minibatch_size = 200
 
-        # Share the state between all networks. This includes the history etc.
-        # This must be done before the target network is built.
-        if master_network is None:
-            master_network = cnn
-        else:
-            cnn.share_state(master_network)
+    # c_nn._get_keras_loss()
 
-        # Build the network
-        cnn.build_networks(print_summaries=False, build_training_model=True)
+    # i = 0
+    # start = time()
+    # while True:
+    #     try:
+    #         print(i)
+    #         c = dp.get_data(50, 200)
+    #         print("Min cluster count: {}, Max cluster count: {}".format(min(map(len, c)), max(map(len, c))))
+    #         now = time()
+    #         i += 1
+    #         print("Avg: {}".format((now - start) / i))
+    #     except:
+    #         print("ERROR")
 
-        # Register autosave, try to load the latest weights and then start / continue the training
-        cnn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000,
-                               print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
+    c_nn.build_networks(print_summaries=False)
 
-        # Just the master network has to load all weights
-        if master_network == cnn:
-            cnn.try_load_from_autosave(autosave_dir)
+    # Enable autosave and try to load the latest configuration
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V102'
+    c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
+    c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
-    # cnn.train(1000000)
-
-    # Train until Early Stopping kills the process
-    for i in range(1000000):
-
-        if master_network._do_validation():
-            nn = master_network # Choose the model with the most input counts (=the master model)
-        else:
-            nn = random.choice(models)
-
-        # Stop is early stopping was used
-        if nn.train(1):
-            break
+    c_nn.train(1000000)
 
     # Load the best weights and create some examples
-    master_network.try_load_from_autosave(autosave_dir, config='best')
-    master_network.test_network(count=30, output_directory=autosave_dir + '/examples_final', data_type='test', create_date_dir=False)
-    master_network.test_network(count=300, output_directory=autosave_dir + '/examples_final_metrics', data_type='test', create_date_dir=False, only_store_scores=True)
+    c_nn.try_load_from_autosave(autosave_dir, config='best')
+    c_nn.test_network(count=30, output_directory=autosave_dir + '/examples_final', data_type='test', create_date_dir=False)
+    c_nn.test_network(count=300, output_directory=autosave_dir + '/examples_final_metrics', data_type='test', create_date_dir=False, only_store_scores=True)
 
     #########################################################################################
     # Do some advanced tests: Use forward dropout to measure how "confident" the network is.
@@ -135,7 +118,7 @@ if __name__ == '__main__':
     output_dir = autosave_dir + '/measure_cluster_count_uncertainity'
     tests = []
     # Build the network with the forward pass dropout
-    c_nn = get_c_nn()
+    c_nn = get_cnn()
     c_nn.build_networks(build_training_model=False, additional_build_config={
         'forward_pass_dropout': True
     })
@@ -171,13 +154,21 @@ if __name__ == '__main__':
         i_data = i_data[0]
 
         # 2) Do the test
-        mrs, homogeneity_scores, completeness_scores, thresholds = hierarchical_clustering(
+        hierarchical_clustering(
             x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering.png'.format(i)
+        )
+        hierarchical_clustering(
+            x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering_euclidean.png'.format(i),
+            metric='euclidean'
         )
 
         # 3) Also do the test with the forward pass dropout data
-        mrs, homogeneity_scores, completeness_scores, thresholds = hierarchical_clustering(
+        hierarchical_clustering(
             fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png'
+        )
+        hierarchical_clustering(
+            fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png',
+            metric='euclidean'
         )
 
         tests.append({
@@ -189,9 +180,11 @@ if __name__ == '__main__':
     # Do a "normal" test with the data of the forward dropout test: This really helps to
     # get a feeling for the data.
     #########################################################################################
-    c_nn = get_c_nn()
+    c_nn = get_cnn()
     c_nn.build_networks(build_training_model=False)
     c_nn.try_load_from_autosave(autosave_dir, config='best')
     for test in tests:
         directory = test['directory']
         c_nn.test_network(output_directory=directory, create_date_dir=False, data=test['fd_data'])
+
+

@@ -26,7 +26,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/cluster/home/meierbe8/data/MT/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
     dp = Simple2DPointDataProvider(
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     def get_cnn():
         c_nn = ClusterNNTry00_V51(dp, 72, en, lstm_layers=14, internal_embedding_size=96 * 3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
-                                  output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128 * 3)
+                                  output_dense_layers=1, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128 * 3,)
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
         c_nn.class_weights_approximation = 'stochastic'

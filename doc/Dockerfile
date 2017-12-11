@@ -41,6 +41,10 @@ RUN pip install tqdm
 
 RUN pip install Augmentor
 
+RUN pip install tkinter
+
+RUN pip install virtualenv
+
 #RUN apt-get update
 #RUN apt-get upgrade
 

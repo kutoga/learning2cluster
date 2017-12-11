@@ -134,9 +134,13 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v97.py ~/data/MT/test_cluster_nn_try00_v97.py.log
 	bash ./scripts/run.sh ./app/test_cluster_nn_try00_v98.py ~/data/MT/test_cluster_nn_try00_v98.py.log
 
+    # Fortsetzen auf dem neuen Cluster
+    bash ./scripts/run.sh ./app/test_cluster_nn_try00_v96.py ~/data/MT_gpulab/test_cluster_nn_try00_v96.py.log
 
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v099.py ~/data/MT_gpulab/test_cluster_nn_try00_v099.py.log
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v100.py ~/data/MT_gpulab/test_cluster_nn_try00_v100.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v101.py ~/data/MT_gpulab/test_cluster_nn_try00_v101.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v102.py ~/data/MT_gpulab/test_cluster_nn_try00_v102.py.log
 
 
 

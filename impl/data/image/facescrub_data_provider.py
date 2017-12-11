@@ -21,12 +21,13 @@ class FaceScrubDataProvider(ImageDataProvider):
     Stefan Winkler
     ADSC
     """
-    def __init__(self, dataset_dir, img_size=(48, 48), train_classes=None, validate_classes=None, test_classes=None,
-                 min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1):
+    def __init__(self, dataset_dir, target_img_size=(48, 48), train_classes=None, validate_classes=None, test_classes=None,
+                 min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1, additional_augmentor=None):
         self.__dataset_dir = dataset_dir
-        self.__img_size = img_size
+        self.__img_size = target_img_size
         super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count,
-                         center_data=True, random_mirror_images=True, min_element_count_per_cluster=min_element_count_per_cluster)
+                         center_data=True, random_mirror_images=True, min_element_count_per_cluster=min_element_count_per_cluster,
+                         additional_augmentor=additional_augmentor)
 
     def _get_img_data_shape(self):
         return self.__img_size + (3,)

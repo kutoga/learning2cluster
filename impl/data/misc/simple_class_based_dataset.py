@@ -83,7 +83,7 @@ def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=[
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         with gzip.open(cached_file, "wb", compresslevel=6) as fh:
-            pickle.dump((x_train, y_train), fh)
+            pickle.dump((x_train, y_train), fh, protocol=4)
 
     return (x_train, y_train)
 
