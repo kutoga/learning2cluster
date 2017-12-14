@@ -13,7 +13,7 @@ if [ ! -z "$2" ]; then
 fi
 echo $TARGET_DIR
 
-exclude="TIMIT cache"
+exclude="TIMIT cache test/cache"
 if [ -z "$MT_DIR_NAME" ]; then
     MT_DIR_NAME="MT_gpulab"
 fi
@@ -30,7 +30,7 @@ if [ ! -z "$RSYNC_MAX_SIZE" ]; then
 fi
 
 # See: https://unix.stackexchange.com/a/165417/246665
-rsync -avz $additional_args $exclude_args --delete meierbe8@$SERVER:~/data/$MT_DIR_NAME --progress --partial --append-verify "$TARGET_DIR"
+rsync -avz --checksum $additional_args $exclude_args --delete --progress --partial --append-verify meierbe8@$SERVER:~/data/$MT_DIR_NAME "$TARGET_DIR"
 
 # TODO:
 # Implement a download loop for rsync. Always use a timeout and the
