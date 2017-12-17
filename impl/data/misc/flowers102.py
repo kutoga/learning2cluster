@@ -79,7 +79,7 @@ def load_data(target_img_size=(48, 48)):
         print("Save the data")
         data = ((x_train, y_train), (x_valid, y_valid), (x_test, y_test))
         with open(cached_file, "wb") as fh:
-            pickle.dump(data, fh)
+            pickle.dump(data, fh, protocol=4)
 
     with open(cached_file, "rb") as fh:
         (x_train, y_train), (x_valid, y_valid), (x_test, y_test) = pickle.load(fh)

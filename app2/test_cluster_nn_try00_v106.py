@@ -2,7 +2,6 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-from random import Random
 
 import Augmentor
 from keras.layers.advanced_activations import LeakyReLU
@@ -23,7 +22,6 @@ if __name__ == '__main__':
 
     from sys import platform
 
-    from impl.data.simple_2d_point_data_provider import Simple2DPointDataProvider
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.data.image.facescrub_data_provider import FaceScrubDataProvider
     from impl.data.image.birds200_data_provider import Birds200DataProvider
@@ -40,21 +38,31 @@ if __name__ == '__main__':
     # p.rotate90(probability=0.5)
     # p.rotate270(probability=0.5)
 
-    dp = Simple2DPointDataProvider(
+    dp = FaceScrubDataProvider(
+        top_dir + '/facescrub_128x128',
         min_cluster_count=1,
         max_cluster_count=5,
-        use_extended_data_gen=True
+        target_img_size=(128, 128),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x)
     )
-    en = None
+    dp.use_augmentation_for_test_data = False
+    dp.use_augmentation_for_validation_data = False
+    en = CnnEmbedding(
+        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128], fc_layer_feature_counts=[512],
+        hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
+        dropout_init=0.25, dropout_after_max_pooling=[0.25, 0.25, 0.25], dropout_after_fc=0.25
+    )
 
     def get_cnn():
-        c_nn = ClusterNNTry00_V98(dp, 72, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+        c_nn = ClusterNNTry00_V98(dp, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                                   output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                                   kl_embedding_size=128, kl_divergence_factor=0.1, simplified_center_loss_factor=0.5)
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
         c_nn.class_weights_approximation = 'stochastic'
-        c_nn.minibatch_size = 200
+        c_nn.minibatch_size = 15
         c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
         c_nn.set_loss_weight('similarities_output', 5.0)
         c_nn.optimizer = Adadelta(lr=5.0)
@@ -90,7 +98,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V104'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V106'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
@@ -145,26 +153,23 @@ if __name__ == '__main__':
         x_data = list(map(lambda x: x[0], x_data[:-1]))
         i_data = i_data[0]
 
-        # If no embedding is used, the hierarchical clustering test is useless
-        if en is not None:
+        # 2) Do the test
+        hierarchical_clustering(
+            x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering.png'.format(i)
+        )
+        hierarchical_clustering(
+            x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering_euclidean.png'.format(i),
+            metric='euclidean'
+        )
 
-            # 2) Do the test
-            hierarchical_clustering(
-                x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering.png'.format(i)
-            )
-            hierarchical_clustering(
-                x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering_euclidean.png'.format(i),
-                metric='euclidean'
-            )
-
-            # 3) Also do the test with the forward pass dropout data
-            hierarchical_clustering(
-                fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering_cosine.png'
-            )
-            hierarchical_clustering(
-                fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clusterin_euclidean.png',
-                metric='euclidean'
-            )
+        # 3) Also do the test with the forward pass dropout data
+        hierarchical_clustering(
+            fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png'
+        )
+        hierarchical_clustering(
+            fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png',
+            metric='euclidean'
+        )
 
         tests.append({
             'directory': current_output_dir,

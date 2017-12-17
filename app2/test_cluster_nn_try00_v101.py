@@ -136,23 +136,26 @@ if __name__ == '__main__':
         x_data = list(map(lambda x: x[0], x_data[:-1]))
         i_data = i_data[0]
 
-        # 2) Do the test
-        hierarchical_clustering(
-            x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering.png'.format(i)
-        )
-        hierarchical_clustering(
-            x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering_euclidean.png'.format(i),
-            metric='euclidean'
-        )
+        # If no embedding is used, the hierarchical clustering test is useless
+        if en is not None:
 
-        # 3) Also do the test with the forward pass dropout data
-        hierarchical_clustering(
-            fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png'
-        )
-        hierarchical_clustering(
-            fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png',
-            metric='euclidean'
-        )
+            # 2) Do the test
+            hierarchical_clustering(
+                x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering.png'.format(i)
+            )
+            hierarchical_clustering(
+                x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering_euclidean.png'.format(i),
+                metric='euclidean'
+            )
+
+            # 3) Also do the test with the forward pass dropout data
+            hierarchical_clustering(
+                fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering_cosine.png'
+            )
+            hierarchical_clustering(
+                fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clusterin_euclidean.png',
+                metric='euclidean'
+            )
 
         tests.append({
             'directory': current_output_dir,

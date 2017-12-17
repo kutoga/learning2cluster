@@ -2,13 +2,12 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-from random import Random
 
 import Augmentor
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adadelta
 
-from random import randint
+from random import randint, Random
 from time import time
 
 from core.nn.misc.cluster_count_uncertainity import measure_cluster_count_uncertainity
@@ -23,7 +22,6 @@ if __name__ == '__main__':
 
     from sys import platform
 
-    from impl.data.simple_2d_point_data_provider import Simple2DPointDataProvider
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.data.image.facescrub_data_provider import FaceScrubDataProvider
     from impl.data.image.birds200_data_provider import Birds200DataProvider
@@ -33,28 +31,39 @@ if __name__ == '__main__':
     top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    p = Augmentor.Pipeline()
-    p.random_distortion(probability=1, grid_width=4, grid_height=4, magnitude=8)
-    p.flip_left_right(probability=0.5)
-    # p.flip_top_bottom(probability=0.5)
-    # p.rotate90(probability=0.5)
-    # p.rotate270(probability=0.5)
+    rnd = Random()
+    rnd.seed(1729)
+    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
+    rnd.shuffle(TIMIT_lst)
 
-    dp = Simple2DPointDataProvider(
+    dp = TIMITDataProvider(
+        # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
         min_cluster_count=1,
         max_cluster_count=5,
-        use_extended_data_gen=True
+        return_1d_audio_data=False,
+        test_classes=TIMIT_lst[:100],
+        validate_classes=TIMIT_lst[100:],
+        concat_audio_files_of_speaker=True,
+
+        minimum_snippets_per_cluster=2,
+        window_width=200
     )
-    en = None
+    en = CnnEmbedding(
+        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128], fc_layer_feature_counts=[512],
+        hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
+        dropout_init=0.25, dropout_after_max_pooling=[0.25, 0.25, 0.25], dropout_after_fc=0.25
+    )
 
     def get_cnn():
-        c_nn = ClusterNNTry00_V98(dp, 72, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+        c_nn = ClusterNNTry00_V98(dp, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                                   output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                                   kl_embedding_size=128, kl_divergence_factor=0.1, simplified_center_loss_factor=0.5)
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
         c_nn.class_weights_approximation = 'stochastic'
-        c_nn.minibatch_size = 200
+        c_nn.minibatch_size = 15
         c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
         c_nn.set_loss_weight('similarities_output', 5.0)
         c_nn.optimizer = Adadelta(lr=5.0)
@@ -90,7 +99,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V104'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V107'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
