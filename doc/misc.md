@@ -147,6 +147,9 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v106.py ~/data/MT_gpulab/test_cluster_nn_try00_v106.py.log
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v107.py ~/data/MT_gpulab/test_cluster_nn_try00_v107.py.log
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v108.py ~/data/MT_gpulab/test_cluster_nn_try00_v108.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v109.py ~/data/MT_gpulab/test_cluster_nn_try00_v109.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v110.py ~/data/MT_gpulab/test_cluster_nn_try00_v110.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v111.py ~/data/MT_gpulab/test_cluster_nn_try00_v111.py.log
 
 
 
