@@ -52,11 +52,12 @@ class ClusterNNTry00_V109(SimpleLossClusterNN_V02):
         embeddings_reshaped = [embedding_reshaper(embedding) for embedding in embeddings]
 
         # The KL-divergence only makes sense if an embedding is used (otherwise no embedding can be optimized)
-        if self._uses_embedding_layer():
+        if self._uses_embedding_layer() and self.__kl_divergence_factor > 0.:
 
             # Implement the KL-divergence on this layer. First, like lukic et al., do another fully connedted layer
             kl_embeddings = embeddings_reshaped
             kl_dense0 = self._s_layer('kl_dense0', lambda name: LeakyReLU(self.__kl_embedding_size, name=name))
+            # kl_dense0 = self._s_layer('kl_dense0', lambda name: Activation(self.__kl_embedding_size, name=name, activation='relu'))
             kl_embeddings = [kl_dense0(kl_embedding) for kl_embedding in kl_embeddings]
             kl_softmax = self._s_layer('kl_softmax', lambda name: Dense(self.__kl_embedding_size, name=name, activation='softmax'))
             kl_embeddings = [kl_softmax(kl_embedding) for kl_embedding in kl_embeddings]

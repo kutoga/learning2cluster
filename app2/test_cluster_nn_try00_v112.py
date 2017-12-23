@@ -31,11 +31,6 @@ if __name__ == '__main__':
     top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/"
     ds_dir = "./" if is_linux else "../"
 
-    rnd = Random()
-    rnd.seed(1729)
-    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
-    rnd.shuffle(TIMIT_lst)
-
     p = Augmentor.Pipeline()
     p.random_distortion(probability=1, grid_width=4, grid_height=4, magnitude=8)
     p.flip_left_right(probability=0.5)
@@ -43,21 +38,28 @@ if __name__ == '__main__':
     # p.rotate90(probability=0.5)
     # p.rotate270(probability=0.5)
 
-    dp = FaceScrubDataProvider(
-        top_dir + '/facescrub_128x128',
+    rnd = Random()
+    rnd.seed(1729)
+    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
+    rnd.shuffle(TIMIT_lst)
+
+    dp = TIMITDataProvider(
+        # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
+        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
         min_cluster_count=1,
         max_cluster_count=5,
-        target_img_size=(128, 128),
-        min_element_count_per_cluster=2,
-        additional_augmentor=lambda x: p.sample_with_array(x)
+        return_1d_audio_data=False,
+        test_classes=TIMIT_lst[:100],
+        validate_classes=TIMIT_lst[100:],
+        concat_audio_files_of_speaker=True,
+
+        minimum_snippets_per_cluster=2,
+        window_width=200
     )
-    dp.use_augmentation_for_test_data = False
-    dp.use_augmentation_for_validation_data = False
     en = CnnEmbedding(
-        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128], fc_layer_feature_counts=[256],
-        hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
-        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
-        dropout_init=0.25, dropout_after_max_pooling=[0.25, 0.25, 0.25], dropout_after_fc=0.25
+        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128],
+        fc_layer_feature_counts=[256], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
     )
 
     def get_cnn():
@@ -67,7 +69,7 @@ if __name__ == '__main__':
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
         c_nn.class_weights_approximation = 'stochastic'
-        c_nn.minibatch_size = 20
+        c_nn.minibatch_size = 15
         c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
         c_nn.set_loss_weight('similarities_output', 5.0)
         c_nn.optimizer = Adadelta(lr=5.0)
@@ -103,7 +105,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V110'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V112'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
@@ -158,26 +160,23 @@ if __name__ == '__main__':
         x_data = list(map(lambda x: x[0], x_data[:-1]))
         i_data = i_data[0]
 
-        # If no embedding is used, the hierarchical clustering test is useless
-        if en is not None:
+        # 2) Do the test
+        hierarchical_clustering(
+            x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering.png'.format(i)
+        )
+        hierarchical_clustering(
+            x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering_euclidean.png'.format(i),
+            metric='euclidean'
+        )
 
-            # 2) Do the test
-            hierarchical_clustering(
-                x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering.png'.format(i)
-            )
-            hierarchical_clustering(
-                x_data, i_data, c_nn, plot_filename=output_dir + '/{:02d}_rand_example_hierarchical_clustering_euclidean.png'.format(i),
-                metric='euclidean'
-            )
-
-            # 3) Also do the test with the forward pass dropout data
-            hierarchical_clustering(
-                fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering_cosine.png'
-            )
-            hierarchical_clustering(
-                fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clusterin_euclidean.png',
-                metric='euclidean'
-            )
+        # 3) Also do the test with the forward pass dropout data
+        hierarchical_clustering(
+            fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png'
+        )
+        hierarchical_clustering(
+            fd_x_data, fd_i_data, c_nn, plot_filename=current_output_dir + '/example_hierarchical_clustering.png',
+            metric='euclidean'
+        )
 
         tests.append({
             'directory': current_output_dir,
