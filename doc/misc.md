@@ -153,6 +153,9 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v112.py ~/data/MT_gpulab/test_cluster_nn_try00_v112.py.log
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v113.py ~/data/MT_gpulab/test_cluster_nn_try00_v113.py.log
 	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v114.py ~/data/MT_gpulab/test_cluster_nn_try00_v114.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v115.py ~/data/MT_gpulab/test_cluster_nn_try00_v115.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v116.py ~/data/MT_gpulab/test_cluster_nn_try00_v116.py.log
+	bash ./scripts/run.sh ./app2/test_cluster_nn_try00_v117.py ~/data/MT_gpulab/test_cluster_nn_try00_v117.py.log
 
 
 
@@ -161,7 +164,7 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 
 
     # Neuer GPU cluster
-    srun --pty --ntasks=1 --cpus-per-task=1 --mem=16G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash
+    srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash
 
     pip install termcolor librosa yattag
 
