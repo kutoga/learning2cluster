@@ -125,6 +125,7 @@ if __name__ == '__main__':
 
     for dataset in datasets:
         dataprovider, suffix = dataset
+        print("Do final tests on the dataset '{}'".format(suffix))
 
         def dp_get_cnn():
             return get_cnn(dataprovider)

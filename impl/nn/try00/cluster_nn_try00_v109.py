@@ -113,9 +113,10 @@ class ClusterNNTry00_V109(SimpleLossClusterNN_V02):
                 concat(centers, axis=1),
                 concat(center_loss_vectors, axis=1)
             )
-        self._register_additional_grouping_similarity_loss(
-            'simple_center_loss', simple_center_loss, False, weight=self.__simplified_center_loss_factor
-        )
+        if self.__simplified_center_loss_factor > 0.:
+            self._register_additional_grouping_similarity_loss(
+                'simple_center_loss', simple_center_loss, False, weight=self.__simplified_center_loss_factor
+            )
 
         # Create now two outputs: The cluster count and for each cluster count / object combination a softmax distribution.
         # These outputs are independent of each other, therefore it doesn't matter which is calculated first. Let us start
