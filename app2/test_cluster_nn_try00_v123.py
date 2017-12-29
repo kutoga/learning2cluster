@@ -13,7 +13,7 @@ from time import time
 from core.nn.misc.cluster_count_uncertainity import measure_cluster_count_uncertainity
 from core.nn.misc.hierarchical_clustering import hierarchical_clustering
 
-from impl.nn.try00.cluster_nn_try00_v109 import ClusterNNTry00_V109
+from impl.nn.try00.cluster_nn_try00_v122 import ClusterNNTry00_V122
 
 if __name__ == '__main__':
 
@@ -58,13 +58,13 @@ if __name__ == '__main__':
     def get_cnn(dataprovider=None):
         if dataprovider is None:
             dataprovider = dp
-        c_nn = ClusterNNTry00_V109(dataprovider, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+        c_nn = ClusterNNTry00_V122(dataprovider, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                                   output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                                   kl_embedding_size=128, kl_divergence_factor=0., simplified_center_loss_factor=0.)
         c_nn.include_self_comparison = False
         c_nn.weighted_classes = True
         c_nn.class_weights_approximation = 'stochastic'
-        c_nn.minibatch_size = 25
+        c_nn.minibatch_size = 30
         c_nn.class_weights_post_processing_f = lambda x: np.sqrt(x)
         c_nn.set_loss_weight('similarities_output', 5.0)
         c_nn.optimizer = Adadelta(lr=5.0)
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V120'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V123'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 

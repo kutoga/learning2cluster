@@ -317,13 +317,16 @@ class DataProvider:
                             metrics_tot[metric] = []
                         metrics_tot[metric].append(current_metrics[metric][predicted_cluster_count])
             for metric in metrics_tot.keys():
-                metrics_tot[metric] = np.mean(metrics_tot[metric])
+                metrics_tot[metric] = {
+                    'mean': np.mean(metrics_tot[metric]),
+                    'std': np.std(metrics_tot[metric])
+                }
 
             # Write it to a file
             with open(path.join(output_directory, 'metric_stats.csv'), 'wt') as f:
-                f.write('metric;average\n')
+                f.write('metric;average;standard_deviation\n')
                 for metric in sorted(metrics_tot.keys()):
-                    f.write('{};{}\n'.format(metric, metrics_tot[metric]))
+                    f.write('{};{};{}\n'.format(metric, metrics_tot[metric]['mean'], metrics_tot[metric]['std']))
                 f.close()
 
         # Create a summary over everything
