@@ -29,7 +29,7 @@ if __name__ == '__main__':
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/"
+    top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/test"
     ds_dir = "./" if is_linux else "../"
 
     p = Augmentor.Pipeline()
@@ -39,25 +39,36 @@ if __name__ == '__main__':
     # p.rotate90(probability=0.5)
     # p.rotate270(probability=0.5)
 
+    classes = list(range(530))
+    rand = Random()
+    rand.seed(1729)
+    rand.shuffle(classes)
+
     dp = FaceScrubDataProvider(
         top_dir + '/facescrub_128x128',
         min_cluster_count=1,
         max_cluster_count=5,
         target_img_size=(128, 128),
         min_element_count_per_cluster=2,
-        additional_augmentor=lambda x: p.sample_with_array(x)
+        additional_augmentor=lambda x: p.sample_with_array(x),
+
+        train_classes=classes[0:424],
+        validate_classes=classes[424:(424 + 53)],
+        test_classes=classes[(424 + 53):(424 + 53 + 53)]
     )
     dp.use_augmentation_for_test_data = False
     dp.use_augmentation_for_validation_data = False
-    en = CnnEmbedding(
-        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128],
-        fc_layer_feature_counts=[256], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
-        batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
-    )
 
     def get_cnn(dataprovider=None):
         if dataprovider is None:
             dataprovider = dp
+
+        en = CnnEmbedding(
+            output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128],
+            fc_layer_feature_counts=[256], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+            batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
+        )
+
         c_nn = ClusterNNTry00_V122(dataprovider, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                                   output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                                   kl_embedding_size=128, kl_divergence_factor=0., simplified_center_loss_factor=0.)
@@ -100,7 +111,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V123'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V126'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
@@ -113,7 +124,10 @@ if __name__ == '__main__':
         max_cluster_count=5,
         target_img_size=(128, 128),
         min_element_count_per_cluster=2,
-        additional_augmentor=lambda x: p.sample_with_array(x)
+        additional_augmentor=lambda x: p.sample_with_array(x),
+        min_images_per_class=5,
+
+        use_all_classes_for_train_test_validation=True
     )
     dp_lfw.use_augmentation_for_test_data = False
     dp_lfw.use_augmentation_for_validation_data = False
@@ -129,6 +143,7 @@ if __name__ == '__main__':
         def dp_get_cnn():
             return get_cnn(dataprovider)
 
+        del c_nn
         c_nn = dp_get_cnn()
         c_nn.build_networks(build_training_model=False)
 

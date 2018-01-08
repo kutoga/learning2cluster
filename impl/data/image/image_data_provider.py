@@ -22,7 +22,7 @@ class ImageDataProvider(DataProvider):
                  return_1d_images=False, center_data=False, random_mirror_images=False,
                  min_element_count_per_cluster=1, additional_augmentor=None,
                  use_augmentation_for_validation_data=True,
-                 use_augmentation_for_test_data=True):
+                 use_augmentation_for_test_data=True, use_all_classes_for_train_test_validation=False):
         super().__init__()
         self.__return_1d_images = return_1d_images
         self._center_data = center_data
@@ -40,14 +40,20 @@ class ImageDataProvider(DataProvider):
 
         # If required: Define the training / validation sets
         if train_classes is None and validate_classes is None and test_classes is None:
-            rand = random.Random()
-            rand.seed(1337)
             classes = list(self.__data.keys())
-            rand.shuffle(classes)
-            train_classes_count = int(0.8 * len(classes))
-            train_classes = classes[:train_classes_count]
-            validate_classes = classes[train_classes_count:]
-            test_classes = classes[train_classes_count:]
+
+            if use_all_classes_for_train_test_validation:
+                train_classes = classes
+                validate_classes = classes
+                test_classes = classes
+            else:
+                rand = random.Random()
+                rand.seed(1337)
+                rand.shuffle(classes)
+                train_classes_count = int(0.8 * len(classes))
+                train_classes = classes[:train_classes_count]
+                validate_classes = classes[train_classes_count:]
+                test_classes = classes[train_classes_count:]
         if test_classes is not None and validate_classes is not None and train_classes is None:
             classes = list(self.__data.keys())
             train_classes = set(classes)
