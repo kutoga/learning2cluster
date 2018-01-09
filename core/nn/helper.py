@@ -9,7 +9,7 @@ import scipy.stats as st
 
 from contextlib import contextmanager
 
-from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer, RepeatVector, add
+from keras.layers import Lambda, Activation, Concatenate, GaussianNoise, Dense, Reshape, Layer, RepeatVector, add, multiply
 from keras.models import Sequential
 from keras.objectives import kullback_leibler_divergence
 from keras.legacy import interfaces
@@ -952,6 +952,53 @@ def meier_cluster_cohesion(x, y, similar, similar_distance_weight=1., dissimilar
     cost += similar * similar_distance_weight * d
     cost += (1 - similar) * dissimilar_distance_weight * d
     return cost
+
+def simple_recurrent_attention(nw_input, weight_f):
+    # nw_input must have the shape (T, F) where T is a timestep and F a feature count; weight_f reduces a vector of the size
+    # 2*F to a single value
+
+    # Extract the required sizes
+    T = nw_input._keras_shape[1]
+    F = nw_input._keras_shape[2]
+
+    # Define a helper function to get the nth vector from nw_input
+    def get_nth_value(n):
+        x_n = nw_input[:, n]
+
+        # Convert xn to an object with a history (this is required; dirty hack)
+        return Lambda(lambda x, x_n=x_n: x_n)(nw_input)
+
+    # Collect the new vectors
+    nw_new = []
+    for i in range(T):
+        x_i = get_nth_value(i)
+        weights_i = []
+        for j in range(T):
+            x_j = get_nth_value(j)
+
+            # Calculate the weight
+            x_ij = Concatenate(axis=1)([x_i, x_j])
+            weight_ij = weight_f(x_ij)
+            assert len(weight_ij._keras_shape) == 2
+            assert weight_ij._keras_shape[2] == 1
+            weights_i.append(weight_ij)
+        weights_i = Concatenate(axis=1)(weights_i)
+        weights_i = Activation('softmax')(weights_i)
+
+        # Calculate the weighted sum
+        weights_i = Concatenate(axis=2)([Reshape((l, 1))(weights_i)] * F)
+        weighted_output_i = multiply([nw_input, weights_i])
+        x_i_new = Lambda(lambda x: K.sum(x, axis=1))(weighted_output_i)
+        nw_new.append(x_i_new)
+
+    # Concatenate the new vectors
+    nw_new = Concatenate(axis=1)(list(map(
+        lambda x_i_new: Reshape((1, F))(x_i_new),
+        nw_new
+    )))
+
+    # Return the new representation
+    return nw_new
 
 class ExtendedDropout(Layer):
     """
