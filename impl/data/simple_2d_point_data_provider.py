@@ -12,10 +12,10 @@ from impl.data.misc.extended_data_gen_2d import ExtendedDataGen2d
 # This class generates simple 2d clusters: random generated centers with gaussian distributed data
 
 class Simple2DPointDataProvider(DataProvider):
-    def __init__(self, min_cluster_count=2, max_cluster_count=10, allow_less_clusters=False, use_extended_data_gen=False):
+    def __init__(self, min_cluster_count=2, max_cluster_count=10, allow_less_clusters=False, use_extended_data_gen=False, sigma=None):
         super().__init__()
         self.normalize_values = False
-        self._dg = DataGen2dv02()
+        self._dg = DataGen2dv02() if sigma is None else DataGen2dv02(default_sigma=sigma)
         self._edg = ExtendedDataGen2d(self._dg)
         self._min_cluster_count = min_cluster_count
         self._max_cluster_count = max_cluster_count
@@ -334,8 +334,8 @@ class Simple2DPointDataProvider(DataProvider):
 
 if __name__ == '__main__':
     # dp = Simple2DPointDataProvider(use_extended_data_gen=True)
-    dp = Simple2DPointDataProvider(use_extended_data_gen=False)
-    data = dp.get_data(50, 1)
+    dp = Simple2DPointDataProvider(use_extended_data_gen=True)
+    data = dp.get_data(72, 1, cluster_count_range=(1, 5))
     print(data)
 
     fig, ax = plt.subplots()

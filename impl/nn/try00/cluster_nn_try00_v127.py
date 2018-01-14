@@ -96,10 +96,10 @@ class ClusterNNTry00_V127(SimpleLossClusterNN_V02):
                 # value = concat(xi, xj)
                 for d_i in range(self.__attention_weight_layers):
                     value = self._s_layer('attention_weight_{}_dense{}'.format(i, d_i), lambda name: Dense(internal_embedding_size, name=name))(value)
-                    value = self._s_layer('attention_weight_{}_leakyrelu{}'.format(i, d_i), lambda name: LeakyReLU(name=name))
-                    value = self._s_layer('attention_weight_{}_batch{}'.format(i, d_i), lambda name: BatchNormalization(name=name))
-                value = self._s_layer('attention_weight_{}_final_dense', lambda name: Dense(1, name=name))(value)
-                value = self._s_layer('attention_weight_{}_final_leakyrelu', lambda name: LeakyReLU())(value)
+                    value = self._s_layer('attention_weight_{}_leakyrelu{}'.format(i, d_i), lambda name: LeakyReLU(name=name))(value)
+                    value = self._s_layer('attention_weight_{}_batch{}'.format(i, d_i), lambda name: BatchNormalization(name=name))(value)
+                value = self._s_layer('attention_weight_{}_final_dense'.format(i), lambda name: Dense(1, name=name))(value)
+                value = self._s_layer('attention_weight_{}_final_leakyrelu'.format(i), lambda name: LeakyReLU(name=name))(value)
                 return value
             processed = simple_recurrent_attention(processed, weight_function)
 

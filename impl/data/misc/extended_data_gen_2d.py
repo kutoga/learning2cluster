@@ -8,11 +8,12 @@ from impl.data.misc.helper import rescale_data, rotate_2d
 from sklearn.datasets import make_circles, make_moons
 
 class ExtendedDataGen2d:
-    def __init__(self, data_gen_2d=None, rand=Random()):
+    def __init__(self, data_gen_2d=None, rand=Random(), sigma=None):
         self.limit_x = (0, 1)
         self.limit_y = (0, 1)
         self.__rescale_border_percentage = 0.25
         self.__rand = rand
+        self.__sigma = sigma
         self.__data_gen_2d = data_gen_2d if data_gen_2d is not None else DataGen2dv02(self.__rand)
         self.__cluster_generators = []
         self.__register_default_cluster_generators()
@@ -105,7 +106,7 @@ class ExtendedDataGen2d:
         # Register the good old data gen v2. Register it for 1, 2 and 5 clusters
         for c_c in [1, 2, 5]:
             self.__register_cluster_generator(c_c, 1,
-                lambda n_samples, c_c=c_c: self.__data_gen_2d.generate(c_c, n_samples)
+                lambda n_samples, c_c=c_c: self.__data_gen_2d.generate(c_c, n_samples, sigma=self.__sigma)
             )
 
     def __get_possible_cluster_generator_old(self, cluster_count, samples_per_cluster):
@@ -132,7 +133,7 @@ class ExtendedDataGen2d:
         #     ((not c['require_even_sample_count']) or ((samples_per_cluster * cluster_count) % 2 == 0)), self.__cluster_generators))
         return self.__rand.choice(cluster_generators)
 
-    def generate(self, cluster_count, n_samples, sigma=0.025):
+    def generate(self, cluster_count, n_samples):
         assert n_samples >= cluster_count
 
         # Calculate for each cluster how many samples it should have (it might vary inside a "cluster group", but thats ok)
@@ -289,12 +290,12 @@ if __name__ == '__main__':
     rand.seed(seed)
     np.random.seed(seed)
 
-    dg = ExtendedDataGen2d(rand=rand)
+    dg = ExtendedDataGen2d(rand=rand, sigma=0.05)
     batch = []
     batch_size = 1
     for i in range(batch_size):
         # clusters, mirrored_clusters = dg.generate(records=50, append_mirrored_versions=True)
-        clusters = dg.generate(rand.randint(3, 3), 102)
+        clusters = dg.generate(rand.randint(1, 3), 72)
         batch.append(clusters)
         # batch += mirrored_clusters
         print(i)

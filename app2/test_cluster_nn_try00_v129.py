@@ -13,7 +13,7 @@ from time import time
 from core.nn.misc.cluster_count_uncertainity import measure_cluster_count_uncertainity
 from core.nn.misc.hierarchical_clustering import hierarchical_clustering
 
-from impl.nn.try00.cluster_nn_try00_v127 import ClusterNNTry00_V127
+from impl.nn.try00.cluster_nn_try00_v122 import ClusterNNTry00_V122
 
 if __name__ == '__main__':
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.data.image.facescrub_data_provider import FaceScrubDataProvider
-    from impl.data.image.birds200_data_provider import Birds200DataProvider
+    from impl.data.image.tiny_image_net_data_provider import TinyImageNetDataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
@@ -32,38 +32,29 @@ if __name__ == '__main__':
     ds_dir = "./" if is_linux else "../"
 
     p = Augmentor.Pipeline()
-    p.random_distortion(probability=1, grid_width=4, grid_height=4, magnitude=8)
+    # p.random_distortion(probability=1, grid_width=4, grid_height=4, magnitude=8)
     p.flip_left_right(probability=0.5)
-    # p.flip_top_bottom(probability=0.5)
-    # p.rotate90(probability=0.5)
-    # p.rotate270(probability=0.5)
+    p.flip_top_bottom(probability=0.5)
+    p.rotate90(probability=0.5)
+    p.rotate270(probability=0.5)
 
-    rnd = Random()
-    rnd.seed(1729)
-    TIMIT_lst = TIMITDataProvider.load_speaker_list(ds_dir + 'datasets/TIMIT/traininglist_100/testlist_200.txt')
-    rnd.shuffle(TIMIT_lst)
-
-    dp = TIMITDataProvider(
-        # data_dir=top_dir + "/test/TIMIT_mini", cache_directory=top_dir + "/test/cache",
-        data_dir=top_dir + "/TIMIT", cache_directory=top_dir + "/test/cache",
+    dp = TinyImageNetDataProvider(
+        dataset_dir=top_dir + '../TinyImageNet/',
         min_cluster_count=1,
         max_cluster_count=5,
-        return_1d_audio_data=False,
-        test_classes=TIMIT_lst[:100],
-        validate_classes=TIMIT_lst[100:],
-        concat_audio_files_of_speaker=True,
-
-        minimum_snippets_per_cluster=2,
-        window_width=128
+        target_img_size=(64, 64),
+        additional_augmentor=lambda x: p.sample_with_array(x)
     )
+    dp.use_augmentation_for_test_data = False
+    dp.use_augmentation_for_validation_data = False
     en = CnnEmbedding(
-        output_size=256, cnn_layers_per_block=1, block_feature_counts=[32, 64, 128],
+        output_size=256, cnn_layers_per_block=1, block_feature_counts=[128, 256],
         fc_layer_feature_counts=[256], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
         batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
     )
 
     def get_cnn():
-        c_nn = ClusterNNTry00_V127(dp, 20, en, lstm_layers=4, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+        c_nn = ClusterNNTry00_V122(dp, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                                   output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                                   kl_embedding_size=128, kl_divergence_factor=0., simplified_center_loss_factor=0.)
         c_nn.include_self_comparison = False
@@ -105,7 +96,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V127'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V129'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 

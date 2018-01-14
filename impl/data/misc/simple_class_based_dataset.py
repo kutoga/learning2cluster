@@ -14,9 +14,9 @@ from scipy.misc import imread, imresize
 from keras.utils.data_utils import get_file
 import numpy as np
 
-def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=['.jpg', '.png']):
+def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=['.jpg', '.png', '.JPEG']):
     """Loads a simple class based dataset from a directory structure like:
-    top_dir/class_name/img.(jpg|png)
+    top_dir/class_name/img.(jpg|png|JPEG)
 
     If a dataset-name is provided, the loaded images will be cached.
 

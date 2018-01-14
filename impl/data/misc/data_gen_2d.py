@@ -5,15 +5,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class DataGen2dv02:
-    def __init__(self, rand=Random()):
+    def __init__(self, rand=Random(), default_sigma=0.025):
         self.limit_x = (0, 1)
         self.limit_y = (0, 1)
         self.embedding_dimension = 2
         self.add_noise = True
         self.add_noise_to_data_dimensions = False
         self.__rand = rand
+        self.__default_sigma = default_sigma
 
-    def generate(self, cluster_count=None, records=50, sigma=0.025, cluster_count_min=1, cluster_count_max=10, allow_less_clusters=False):
+    def generate(self, cluster_count=None, records=50, sigma=None, cluster_count_min=1, cluster_count_max=10, allow_less_clusters=False):
+        if sigma is None:
+            sigma = self.__default_sigma
         rand = self.__rand
 
         if cluster_count is None:

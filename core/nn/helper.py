@@ -980,13 +980,13 @@ def simple_recurrent_attention(nw_input, weight_f):
             x_ij = Concatenate(axis=1)([x_i, x_j])
             weight_ij = weight_f(x_ij)
             assert len(weight_ij._keras_shape) == 2
-            assert weight_ij._keras_shape[2] == 1
+            assert weight_ij._keras_shape[1] == 1
             weights_i.append(weight_ij)
         weights_i = Concatenate(axis=1)(weights_i)
         weights_i = Activation('softmax')(weights_i)
 
         # Calculate the weighted sum
-        weights_i = Concatenate(axis=2)([Reshape((l, 1))(weights_i)] * F)
+        weights_i = Concatenate(axis=2)([Reshape((T, 1))(weights_i)] * F)
         weighted_output_i = multiply([nw_input, weights_i])
         x_i_new = Lambda(lambda x: K.sum(x, axis=1))(weighted_output_i)
         nw_new.append(x_i_new)
