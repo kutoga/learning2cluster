@@ -3,7 +3,7 @@ from impl.data.misc.labeled_faces_in_the_wild import load_data
 
 from impl.data.image.image_data_provider import ImageDataProvider
 
-class LabelledFacesInTheWildDataProvider(ImageDataProvider):
+class LabeledFacesInTheWildDataProvider(ImageDataProvider):
     """
     A DataProvider for the FaceScrub dataset. The dataset may be downloaded and up to some kind pre-processed with
     the following scripts:
@@ -64,5 +64,5 @@ class LabelledFacesInTheWildDataProvider(ImageDataProvider):
         return data
 
 if __name__ == '__main__':
-    dp = LabelledFacesInTheWildDataProvider()
+    dp = LabeledFacesInTheWildDataProvider()
 
