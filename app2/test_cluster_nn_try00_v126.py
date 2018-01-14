@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.data.image.facescrub_data_provider import FaceScrubDataProvider
-    from impl.data.image.labeled_faces_in_the_wild_data_provider import LabeledFacesInTheWildDataProvider
+    from impl.data.image.labelled_faces_in_the_wild_data_provider import LabelledFacesInTheWildDataProvider
     from impl.data.image.birds200_data_provider import Birds200DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     c_nn.train(1000000)
 
     # Do two tests: once on the facescrub dataset and once on the labeled faces dataset
-    dp_lfw = LabeledFacesInTheWildDataProvider(
+    dp_lfw = LabelledFacesInTheWildDataProvider(
         min_cluster_count=1,
         max_cluster_count=5,
         target_img_size=(128, 128),

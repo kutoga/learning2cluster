@@ -69,9 +69,9 @@ def load_file(file):
     load_databatch(file, 'G:/ImageNet64x64/img_files')
 
 # load_file('G:/ImageNet64x64/Imagenet64_val/val_data')
-load_file('G:/ImageNet64x64/Imagenet64_train_part1/train_data_batch_1')
+# load_file('G:/ImageNet64x64/Imagenet64_train_part1/train_data_batch_1')
 # gc.collect()
-# load_file('G:/ImageNet64x64/Imagenet64_train_part1/train_data_batch_2')
+load_file('G:/ImageNet64x64/Imagenet64_train_part1/train_data_batch_2')
 # gc.collect()
 # load_file('G:/ImageNet64x64/Imagenet64_train_part1/train_data_batch_3')
 # gc.collect()
