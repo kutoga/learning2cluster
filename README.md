@@ -6,17 +6,17 @@ The described supervised end-to-end learning model can be used to cluster any ty
 
 The network highly depends on residual bi-directional LSTM-layers (RBDLSTM). These layers are like normal BDLSTM-layers, but they include a residual connection from the output to the input as can be seen on the following image:
 
-![](doc/images/rbdlstm.svg)
+![](doc/images/rbdlstm.png)
 
 The network architecture is shown on the image below:
 
-![](doc/images/network.svg)
+![](doc/images/network.png)
 
 The network input is basically a set of objects. The amount can be different for each execution of the network. The output contains a softmax distribution for the cluster count (which has to be in a fixed range) and a classification for the cluster index for each object, given there are k clusters.
 
 Because it cannot be defined what cluster index the network should use for a cluster, the loss function has to take this into account and we cannot just use a categorical crossentropy for the cluster index output. The loss function is very detailed described in the linked document in the beginning and visualized on the following figure:
 
-![](doc/images/loss.svg)
+![](doc/images/loss.png)
 
 ## Implemented datasets
 
