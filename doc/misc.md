@@ -182,6 +182,9 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	    ./scripts/run.sh ./app2/test_cluster_nn_try00_v$N.py ~/data/MT_gpulab/test_cluster_nn_try00_v$N.py.log
 	N=130; srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash \
 	    ./scripts/run.sh ./app2/test_cluster_nn_try00_v$N.py ~/data/MT_gpulab/test_cluster_nn_try00_v$N.py.log
+	N=131; srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash \
+	    ./scripts/run.sh ./app2/test_cluster_nn_try00_v$N.py ~/data/MT_gpulab/test_cluster_nn_try00_v$N.py.log
+
 
 
     # Copy the modified cudnn layer (see https://github.com/fchollet/keras/issues/8164)

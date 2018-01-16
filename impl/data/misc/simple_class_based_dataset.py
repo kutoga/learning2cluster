@@ -14,7 +14,7 @@ from scipy.misc import imread, imresize
 from keras.utils.data_utils import get_file
 import numpy as np
 
-def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=['.jpg', '.png', '.JPEG']):
+def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=['.jpg', '.png', '.JPEG', '.jpeg']):
     """Loads a simple class based dataset from a directory structure like:
     top_dir/class_name/img.(jpg|png|JPEG)
 
@@ -23,6 +23,7 @@ def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=[
     # Returns
         Tuple of Numpy arrays: `(x_train, y_train)`.
     """
+    print("Use the simple class based dataset loader to load the dataset '{}' from the source directory '{}'...".format(dataset_name, top_dir))
     if dataset_name is not None:
         dirname = os.path.expanduser(os.path.join('~', '.keras', 'datasets', 'simple_ds', dataset_name))
 
