@@ -24,12 +24,13 @@ if __name__ == '__main__':
 
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.data.image.facescrub_data_provider import FaceScrubDataProvider
-    from impl.data.image.sun_397_data_provider import Sun397DataProvider
+    from impl.data.image.labeled_faces_in_the_wild_data_provider import LabeledFacesInTheWildDataProvider
+    from impl.data.image.labeled_faces_in_the_wild_crop_data_provider import LabeledFacesInTheWildCropDataProvider
     from impl.data.image.birds200_data_provider import Birds200DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
     is_linux = platform == "linux" or platform == "linux2"
-    top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/test"
+    top_dir = "/cluster/home/meierbe8/data/MT_gpulab/" if is_linux else "G:/tmp/test/"
     ds_dir = "./" if is_linux else "../"
 
     p = Augmentor.Pipeline()
@@ -39,16 +40,25 @@ if __name__ == '__main__':
     # p.rotate90(probability=0.5)
     # p.rotate270(probability=0.5)
 
-    dp = Sun397DataProvider(
-        top_dir + '../sun397_dataset/',
+    classes = list(range(530))
+    rand = Random()
+    rand.seed(1729)
+    rand.shuffle(classes)
+
+    dp = FaceScrubDataProvider(
+        top_dir + '/facescrub_128x128',
         min_cluster_count=1,
         max_cluster_count=5,
         target_img_size=(128, 128),
         min_element_count_per_cluster=2,
         additional_augmentor=lambda x: p.sample_with_array(x),
+
+        train_classes=classes[0:424],
+        validate_classes=classes[424:(424 + 53)],
+        test_classes=classes[(424 + 53):(424 + 53 + 53)]
     )
     dp.use_augmentation_for_test_data = False
-    dp.use_augmentation_for_validation_data = True
+    dp.use_augmentation_for_validation_data = False
 
     def get_cnn(dataprovider=None):
         if dataprovider is None:
@@ -99,19 +109,50 @@ if __name__ == '__main__':
     #     except:
     #         print("ERROR")
 
-    c_nn.build_networks(print_summaries=False)
+    # c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V133'
-    c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
-    c_nn.try_load_from_autosave(autosave_dir)
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V126'
+    # c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
+    # c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
-    c_nn.train(1000000)
+    # c_nn.train(1000000)
 
+    # Do two tests: once on the facescrub dataset and once on the labeled faces dataset
+    dp_lfw = LabeledFacesInTheWildDataProvider(
+        min_cluster_count=1,
+        max_cluster_count=5,
+        target_img_size=(128, 128),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x),
+        min_images_per_class=5,
+
+        use_all_classes_for_train_test_validation=True
+    )
+    dp_lfw.use_augmentation_for_test_data = False
+    dp_lfw.use_augmentation_for_validation_data = False
+    dp_lfw_crop = LabeledFacesInTheWildCropDataProvider(
+        top_dir + '/../lfw_crop/',
+
+        min_cluster_count=1,
+        max_cluster_count=5,
+        target_img_size=(128, 128),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x),
+        min_images_per_class=5,
+
+        use_all_classes_for_train_test_validation=True
+    )
+    dp_lfw_crop.use_augmentation_for_test_data = False
+    dp_lfw_crop.use_augmentation_for_validation_data = False
     datasets = [
-        (dp, 'default'),
+        (dp, 'facescrub'),
+        (dp_lfw, 'lfw'),
+        (dp_lfw_crop, 'lfw_crop')
     ]
+
+    output_base_dir = top_dir + '/autosave_ClusterNNTry00_V134'
     for dataset in datasets:
         dataprovider, suffix = dataset
         print("Do final tests on the dataset '{}'".format(suffix))
@@ -125,15 +166,15 @@ if __name__ == '__main__':
 
         # Load the best weights and create some examples
         c_nn.try_load_from_autosave(autosave_dir, config='best')
-        c_nn.test_network(count=30, output_directory=autosave_dir + '/examples_final_{}'.format(suffix), data_type='test', create_date_dir=False)
-        c_nn.test_network(count=300, output_directory=autosave_dir + '/examples_final_{}_metrics'.format(suffix), data_type='test', create_date_dir=False, only_store_scores=True)
+        c_nn.test_network(count=30, output_directory=output_base_dir + '/examples_final_{}'.format(suffix), data_type='test', create_date_dir=False)
+        c_nn.test_network(count=300, output_directory=output_base_dir + '/examples_final_{}_metrics'.format(suffix), data_type='test', create_date_dir=False, only_store_scores=True)
 
         #########################################################################################
         # Do some advanced tests: Use forward dropout to measure how "confident" the network is.
         #########################################################################################
         confident_test_n = 5 # the number of such confidence tests
 
-        output_dir = autosave_dir + '/measure_cluster_count_uncertainity_{}'.format(suffix)
+        output_dir = output_base_dir + '/measure_cluster_count_uncertainity_{}'.format(suffix)
         tests = []
         # Build the network with the forward pass dropout
         c_nn = dp_get_cnn()

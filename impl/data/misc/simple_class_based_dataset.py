@@ -5,6 +5,7 @@ import itertools
 import glob
 import pickle
 import gzip
+import gc
 
 import shutil
 
@@ -14,7 +15,7 @@ from scipy.misc import imread, imresize
 from keras.utils.data_utils import get_file
 import numpy as np
 
-def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=['.jpg', '.png', '.JPEG', '.jpeg']):
+def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=['.jpg', '.png', '.JPEG', '.jpeg'], disable_cache_file=False):
     """Loads a simple class based dataset from a directory structure like:
     top_dir/class_name/img.(jpg|png|JPEG)
 
@@ -28,9 +29,10 @@ def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=[
         dirname = os.path.expanduser(os.path.join('~', '.keras', 'datasets', 'simple_ds', dataset_name))
 
         cached_file = os.path.join(dirname, 'img_{}x{}.cache.pkl.gz'.format(*target_img_size))
-        if os.path.exists(cached_file):
+        if os.path.exists(cached_file) and not disable_cache_file:
 
             # The cache-file exists. Read it and return its content.
+            print("Found cache file: {}".format(cached_file))
             with gzip.open(cached_file, "rb") as fh:
                 (x_train, y_train) = pickle.load(fh)
                 return (x_train, y_train)
@@ -66,7 +68,12 @@ def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=[
         if len(objects) > 0:
             dataset[class_name] = objects
 
+    # Force the GC to do a cleanup
+    print("Memory cleanup...")
+    gc.collect()
+
     # Create now the resulting arrays
+    print("Create the resulting numpy arrays with all data records...")
     records = sum(map(lambda l: len(l), dataset.values()))
     x_train = np.zeros((records,) + target_img_size + (3,), dtype=np.float32)
     y_train = np.zeros((records,), dtype=np.float32)
@@ -79,13 +86,20 @@ def load_data(top_dir, dataset_name=None, target_img_size=(48, 48), extensions=[
             y_train[i] = c_i
             i += 1
 
+    # Cleanup the memory again
+    print("Memory cleanup...")
+    del dataset
+    gc.collect()
+
     # Cache these records (if possible)
-    if dataset_name != None:
+    if dataset_name != None and not disable_cache_file:
+        print("Save the created dataset to a cache file: {}".format(cached_file))
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         with gzip.open(cached_file, "wb", compresslevel=6) as fh:
             pickle.dump((x_train, y_train), fh, protocol=4)
 
+    print("Successfully loaded the dataset '{}' from the directory '{}'".format(dataset_name, top_dir))
     return (x_train, y_train)
 
 

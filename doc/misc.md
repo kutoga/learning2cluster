@@ -188,6 +188,10 @@ Bzw. falls root & Port-Weiterleitung gewünscht ist:
 	    ./scripts/run.sh ./app2/test_cluster_nn_try00_v$N.py ~/data/MT_gpulab/test_cluster_nn_try00_v$N.py.log
 	N=133; srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash \
 	    ./scripts/run.sh ./app2/test_cluster_nn_try00_v$N.py ~/data/MT_gpulab/test_cluster_nn_try00_v$N.py.log
+	N=134; srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash \
+	    ./scripts/run.sh ./app2/test_cluster_nn_try00_v$N.py ~/data/MT_gpulab/test_cluster_nn_try00_v$N.py.log
+	N=135; srun --pty --ntasks=1 --cpus-per-task=1 --mem=32G --gres=gpu:1 shifter --image=meierbe8/meierbe8-keras6 bash \
+	    ./scripts/run.sh ./app2/test_cluster_nn_try00_v$N.py ~/data/MT_gpulab/test_cluster_nn_try00_v$N.py.log
 
 
 

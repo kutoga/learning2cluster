@@ -13,7 +13,7 @@ from time import time
 from core.nn.misc.cluster_count_uncertainity import measure_cluster_count_uncertainity
 from core.nn.misc.hierarchical_clustering import hierarchical_clustering
 
-from impl.nn.try00.cluster_nn_try00_v122 import ClusterNNTry00_V122
+from impl.nn.try00.cluster_nn_try00_v135 import ClusterNNTry00_V135
 
 if __name__ == '__main__':
 
@@ -24,7 +24,8 @@ if __name__ == '__main__':
 
     from impl.data.audio.timit_data_provider import TIMITDataProvider
     from impl.data.image.facescrub_data_provider import FaceScrubDataProvider
-    from impl.data.image.sun_397_data_provider import Sun397DataProvider
+    from impl.data.image.labeled_faces_in_the_wild_data_provider import LabeledFacesInTheWildDataProvider
+    from impl.data.image.labeled_faces_in_the_wild_crop_data_provider import LabeledFacesInTheWildCropDataProvider
     from impl.data.image.birds200_data_provider import Birds200DataProvider
     from impl.nn.base.embedding_nn.cnn_embedding import CnnEmbedding
 
@@ -39,16 +40,25 @@ if __name__ == '__main__':
     # p.rotate90(probability=0.5)
     # p.rotate270(probability=0.5)
 
-    dp = Sun397DataProvider(
-        top_dir + '../sun397_dataset/',
+    classes = list(range(530))
+    rand = Random()
+    rand.seed(1729)
+    rand.shuffle(classes)
+
+    dp = FaceScrubDataProvider(
+        top_dir + '/facescrub_128x128',
         min_cluster_count=1,
         max_cluster_count=5,
         target_img_size=(128, 128),
         min_element_count_per_cluster=2,
         additional_augmentor=lambda x: p.sample_with_array(x),
+
+        train_classes=classes[0:424],
+        validate_classes=classes[424:(424 + 53)],
+        test_classes=classes[(424 + 53):(424 + 53 + 53)]
     )
     dp.use_augmentation_for_test_data = False
-    dp.use_augmentation_for_validation_data = True
+    dp.use_augmentation_for_validation_data = False
 
     def get_cnn(dataprovider=None):
         if dataprovider is None:
@@ -60,7 +70,7 @@ if __name__ == '__main__':
             batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True
         )
 
-        c_nn = ClusterNNTry00_V122(dataprovider, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
+        c_nn = ClusterNNTry00_V135(dataprovider, 20, en, lstm_layers=14, internal_embedding_size=96*3, cluster_count_dense_layers=1, cluster_count_dense_units=256,
                                   output_dense_layers=0, output_dense_units=256, cluster_count_lstm_layers=1, cluster_count_lstm_units=128,
                                   kl_embedding_size=128, kl_divergence_factor=0., simplified_center_loss_factor=0.)
         c_nn.include_self_comparison = False
@@ -102,16 +112,46 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V133'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V135'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
     c_nn.train(1000000)
 
+    # Do two tests: once on the facescrub dataset and once on the labeled faces dataset
+    dp_lfw = LabeledFacesInTheWildDataProvider(
+        min_cluster_count=1,
+        max_cluster_count=5,
+        target_img_size=(128, 128),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x),
+        min_images_per_class=5,
+
+        use_all_classes_for_train_test_validation=True
+    )
+    dp_lfw.use_augmentation_for_test_data = False
+    dp_lfw.use_augmentation_for_validation_data = False
+    dp_lfw_crop = LabeledFacesInTheWildCropDataProvider(
+        top_dir + '/../lfw_crop/',
+
+        min_cluster_count=1,
+        max_cluster_count=5,
+        target_img_size=(128, 128),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x),
+        min_images_per_class=5,
+
+        use_all_classes_for_train_test_validation=True
+    )
+    dp_lfw_crop.use_augmentation_for_test_data = False
+    dp_lfw_crop.use_augmentation_for_validation_data = False
     datasets = [
-        (dp, 'default'),
+        (dp, 'facescrub'),
+        (dp_lfw, 'lfw'),
+        (dp_lfw_crop, 'lfw_crop')
     ]
+
     for dataset in datasets:
         dataprovider, suffix = dataset
         print("Do final tests on the dataset '{}'".format(suffix))

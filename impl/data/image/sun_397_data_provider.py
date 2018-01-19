@@ -20,7 +20,7 @@ class Sun397DataProvider(ImageDataProvider):
     def _load_data(self):
 
         # Load all records
-        (x_train, y_train) = load_data(self.__dataset_dir, 'sun397', self.__img_size)
+        (x_train, y_train) = load_data(self.__dataset_dir, 'sun397', self.__img_size, disable_cache_file=False)
 
         # Merge them (we split them by classes)
         x = x_train

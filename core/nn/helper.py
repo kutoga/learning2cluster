@@ -341,7 +341,7 @@ def regularizer_cluster_assignment(softmax_outputs):
     if k_min == k_max:
 
         # We cannot just return 0, because keras expects a keras tensor.
-        # So... we just create such a tensor:)
+        # So... we just create such a tensor that contains 0:)
         #return 0
 
         # Just take a random value (here: the first softmax), reduce it to 1 dimension and multiply it by 0
