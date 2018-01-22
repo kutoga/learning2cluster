@@ -16,7 +16,7 @@ class ClusterNNTry00_V135(SimpleLossClusterNN_V02):
                  cluster_count_dense_layers=1, lstm_layers=5, output_dense_layers=1, cluster_count_dense_units=512,
                  weighted_classes=False, cluster_count_lstm_layers=2, cluster_count_lstm_units=64, internal_embedding_size=96,
                  kl_embedding_size=128, kl_divergence_factor=1.,
-                 simplified_center_loss_factor=1.):
+                 simplified_center_loss_factor=1., cluster_assignment_regularization_factor=0.5, use_v02_cluster_assignment_loss=False):
         super().__init__(data_provider, input_count, embedding_nn, weighted_classes, include_input_count_in_name=False)
 
         self.__internal_embedding_size = internal_embedding_size
@@ -32,6 +32,8 @@ class ClusterNNTry00_V135(SimpleLossClusterNN_V02):
         self.__kl_embedding_size = kl_embedding_size
         self.__kl_divergence_factor = kl_divergence_factor
         self.__simplified_center_loss_factor = simplified_center_loss_factor
+        self.__cluster_assignment_regularization_factor = cluster_assignment_regularization_factor
+        self.__use_v02_cluster_assignment_loss = use_v02_cluster_assignment_loss
 
     def _build_network(self, network_input, network_output, additional_network_outputs):
         cluster_counts = list(self.data_provider.get_cluster_counts())
@@ -163,11 +165,11 @@ class ClusterNNTry00_V135(SimpleLossClusterNN_V02):
                 # Add the output for the regularizer
                 softmax_outputs[k].append(output_classifier)
 
-        cluster_assignment_regularization = regularizer_cluster_assignment(softmax_outputs)
+        cluster_assignment_regularization = regularizer_cluster_assignment(softmax_outputs, use_v02_loss=self.__use_v02_cluster_assignment_loss)
         self._register_additional_regularisation(
             cluster_assignment_regularization,
             'cluster_assignment_regularization',
-            weight=0.5
+            weight=self.__cluster_assignment_regularization_factor
         )
 
         # Calculate the real cluster count

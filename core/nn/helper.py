@@ -316,7 +316,7 @@ def loss_homogeneity_score(y_true, y_pred):
     pass
 
 
-def regularizer_cluster_assignment(softmax_outputs):
+def regularizer_cluster_assignment(softmax_outputs, use_v02_loss=False):
     """
     See "ClusterzuordnungsImplikationsregel.docx".
 
@@ -352,7 +352,8 @@ def regularizer_cluster_assignment(softmax_outputs):
     element_count = len(softmax_outputs[k_min])
 
     s = 0
-    for k in range(k_min, k_max - 1):
+    # for k in range(k_min, k_max - 1):
+    for k in range(k_min, k_max):
         k_0 = k
         k_1 = k + 1
         sm_0 = softmax_outputs[k_0]
@@ -376,6 +377,19 @@ def regularizer_cluster_assignment(softmax_outputs):
 
     # Normalize the result
     s *= 2 / ((k_max - k_min) * element_count * (element_count - 1))
+
+    # The v02 of the loss adds another term that penalizes if not all clusters
+    # are used. The reason for this is, that the NN often chooses less clusters
+    # for objects, even if it says there are many clusters present. We want to
+    # avoid this, with this new additional term.
+    if use_v02_loss:
+        l_m = 0
+        for k in range(k_min, k_max + 1):
+            sm_k = softmax_outputs[k]
+            l_m += K.mean(multiply(sm_k), axis=2)
+        l_m /= k_max - k_min + 1
+
+        s += l_m
 
     # Now we finally need to create a keras tensor; this is a bit hacky
     s = Lambda(lambda x: s)(softmax_outputs[k_min][0])
