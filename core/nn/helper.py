@@ -337,57 +337,52 @@ def regularizer_cluster_assignment(softmax_outputs, use_v02_loss=False):
     k_min = ks[0]
     k_max = ks[-1]
 
-    # If there is only one possible cluster count, we have nothing to do
-    if k_min == k_max:
-
-        # We cannot just return 0, because keras expects a keras tensor.
-        # So... we just create such a tensor that contains 0:)
-        #return 0
-
-        # Just take a random value (here: the first softmax), reduce it to 1 dimension and multiply it by 0
-        sm = Lambda(lambda x: K.mean(x) * 0)(softmax_outputs[k_min][0])
-        return sm
-
-    # Get the count of available elements
-    element_count = len(softmax_outputs[k_min])
-
+    # The result
     s = 0
-    # for k in range(k_min, k_max - 1):
-    for k in range(k_min, k_max):
-        k_0 = k
-        k_1 = k + 1
-        sm_0 = softmax_outputs[k_0]
-        sm_1 = softmax_outputs[k_1]
 
-        # Go through all input combinations (excluding the diagonal)
-        for element_i in range(element_count):
-            for element_j in range(element_i + 1, element_count):
+    # If there is only one possible cluster count, the V01 code has nothing to do
+    if k_min != k_max:
 
-                # Calculate dot(s_{n+1}(element_i), s_{n+1}(element_j))
-                t1 = K.sum(
-                    sm_1[element_i] * sm_1[element_j], axis=2
-                )
+        # Get the count of available elements
+        element_count = len(softmax_outputs[k_min])
 
-                # Calculate dot(s_{n}(element_i), s_{n}(element_j))
-                t0 = K.sum(
-                    sm_0[element_i] * sm_0[element_j], axis=2
-                )
+        # for k in range(k_min, k_max - 1):
+        for k in range(k_min, k_max):
+            k_0 = k
+            k_1 = k + 1
+            sm_0 = softmax_outputs[k_0]
+            sm_1 = softmax_outputs[k_1]
 
-                s += t1 * (1 - t0)
+            # Go through all input combinations (excluding the diagonal)
+            for element_i in range(element_count):
+                for element_j in range(element_i + 1, element_count):
 
-    # Normalize the result
-    s *= 2 / ((k_max - k_min) * element_count * (element_count - 1))
+                    # Calculate dot(s_{n+1}(element_i), s_{n+1}(element_j))
+                    t1 = K.sum(
+                        sm_1[element_i] * sm_1[element_j], axis=2
+                    )
+
+                    # Calculate dot(s_{n}(element_i), s_{n}(element_j))
+                    t0 = K.sum(
+                        sm_0[element_i] * sm_0[element_j], axis=2
+                    )
+
+                    s += t1 * (1 - t0)
+
+        # Normalize the result
+        s *= 2 / ((k_max - k_min) * element_count * (element_count - 1))
 
     # The v02 of the loss adds another term that penalizes if not all clusters
     # are used. The reason for this is, that the NN often chooses less clusters
     # for objects, even if it says there are many clusters present. We want to
     # avoid this, with this new additional term.
     if use_v02_loss:
-        l_m = 0
+        l_m = 0.
         for k in range(k_min, k_max + 1):
             sm_k = softmax_outputs[k]
-            l_m += K.mean(multiply(sm_k), axis=2)
+            l_m += K.mean(K.max(Concatenate(axis=1)(sm_k), axis=1), axis=1)
         l_m /= k_max - k_min + 1
+        l_m = 1 - l_m
 
         s += l_m
 

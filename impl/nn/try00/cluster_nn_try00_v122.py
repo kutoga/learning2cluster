@@ -8,8 +8,8 @@ import numpy as np
 from core.nn.helper import slice_layer, lukic_kl_divergence, reweight_values, concat, ExtendedDropout
 from impl.nn.base.simple_loss.simple_loss_cluster_nn_v02 import SimpleLossClusterNN_V02
 
-# from keras.layers import LSTM
-LSTM = CuDNNLSTM
+from keras.layers import LSTM
+# LSTM = CuDNNLSTM
 
 class ClusterNNTry00_V122(SimpleLossClusterNN_V02):
     def __init__(self, data_provider, input_count, embedding_nn=None, output_dense_units=512,

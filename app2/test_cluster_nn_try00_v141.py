@@ -55,8 +55,8 @@ if __name__ == '__main__':
             dataprovider = dp
 
         en = CnnEmbedding(
-            output_size=128, cnn_layers_per_block=1, block_feature_counts=[16, 32, 64],
-            fc_layer_feature_counts=[128], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
+            output_size=64, cnn_layers_per_block=1, block_feature_counts=[16, 32, 64],
+            fc_layer_feature_counts=[64], hidden_activation=LeakyReLU(), final_activation=LeakyReLU(),
             batch_norm_for_init_layer=False, batch_norm_after_activation=True, batch_norm_for_final_layer=True,
             dropout_init=0.5, dropout_after_fc=0.5, dropout_after_max_pooling=0.5
         )
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V140'
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V141'
     c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
     c_nn.try_load_from_autosave(autosave_dir)
 

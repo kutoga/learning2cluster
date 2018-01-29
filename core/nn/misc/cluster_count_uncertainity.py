@@ -8,7 +8,8 @@ from core.data.helper import progress
 from core.helper import try_makedirs
 
 def measure_cluster_count_uncertainity(network, nw_input, nw_hints=None, n_runs=1000, show_progress=False,
-                                       output_directory=None, input_permutation=True, forward_pass_dropout=True):
+                                       output_directory=None, input_permutation=True, forward_pass_dropout=True,
+                                       create_output=True):
     """
     Measure the uncertainity of the cluster count of the given network.
     The given input is used to measure it.
@@ -83,7 +84,8 @@ def measure_cluster_count_uncertainity(network, nw_input, nw_hints=None, n_runs=
     for k in cluster_counts:
         stats[k].sort()
 
-    try_makedirs(output_directory)
+    if create_output:
+        try_makedirs(output_directory)
 
     # Create a bar char with 20 intervals and calculate a probability for each cluster count (probability=argmax(y))
     cluster_probabilities = {}
@@ -113,7 +115,8 @@ def measure_cluster_count_uncertainity(network, nw_input, nw_hints=None, n_runs=
         plt.title("Cluster Count = {} (probability={})".format(k, cluster_probabilities[k]))
 
         if output_directory is None:
-            plt.show(block=True)
+            if create_output:
+                plt.show(block=True)
         else:
             plt.show(block=False)
             plt.savefig(path.join(output_directory, '{:03d}_cluster_count_{}.png'.format(cluster_counts.index(k), k)))
@@ -129,11 +132,15 @@ def measure_cluster_count_uncertainity(network, nw_input, nw_hints=None, n_runs=
     plt.title("Cluster Probabilities")
 
     if output_directory is None:
-        plt.show(block=True)
+        if create_output:
+            plt.show(block=True)
     else:
         plt.show(block=False)
         plt.savefig(path.join(output_directory, '{:03d}_cluster_probabilities.png'.format(len(cluster_counts))))
 
     plt.clf()
     plt.close()
+
+    # Return the "optimal" cluster count
+    return np.argmax(list(map(lambda k: cluster_probabilities[k], cluster_counts))) + cluster_counts[0]
 

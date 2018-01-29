@@ -775,7 +775,7 @@ class ClusterNN(BaseNN):
             return metrics
 
 
-    def evaluate_metrics_from_prediction(self, prediction, cluster_indices):
+    def evaluate_metrics_from_prediction(self, prediction, cluster_indices, add_alternative_cluster_count_guessing_f=None):
         # Prediction:
         # [
         #    {
@@ -1152,7 +1152,7 @@ class ClusterNN(BaseNN):
         self._network_built = True
 
     def test_network(self, count=1, output_directory=None, data_type='test', create_date_dir=True, include_metrics=True, shuffle_data=True, data=None,
-                     only_store_scores=False):
+                     only_store_scores=False, add_alternative_cluster_count_guessing_f=None):
 
         if data is None:
 
@@ -1177,13 +1177,21 @@ class ClusterNN(BaseNN):
         if include_metrics:
             cluster_indices = self.data_to_cluster_indices(test_data, test_data_idx)
             metrics = self.evaluate_metrics_from_prediction(prediction, cluster_indices)
+            if add_alternative_cluster_count_guessing_f:
+                metrics_alt = self.evaluate_metrics_from_prediction(prediction, cluster_indices, add_alternative_cluster_count_guessing_f=add_alternative_cluster_count_guessing_f)
+            else:
+                metrics_alt = None
         else:
             metrics = None
+            metrics_alt = None
 
         # Summarize
         print("Summarize test results...")
         self._data_provider.summarize_results(test_data_X, test_data, output_directory, prediction, create_date_dir, metrics, additional_obj_info=test_data_obj_info,
                                               only_store_scores=only_store_scores)
+        if metrics_alt is not None:
+            self._data_provider.summarize_results(test_data_X, test_data, path.join(output_directory + "_metrics_alt"), prediction, create_date_dir, metrics_alt, additional_obj_info=test_data_obj_info,
+                                                  only_store_scores=True)
         print("Tests done...")
 
     def dummy_train(self):
