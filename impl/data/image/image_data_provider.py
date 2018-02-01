@@ -164,8 +164,13 @@ class ImageDataProvider(DataProvider):
             # Use additional data augmentation, if available
             if self._additional_augmentor is not None:
                 tmp = self._unscale_data(element[0])
+                color_channels = None if len(tmp.shape) < 3 else tmp.shape[2]
+                if color_channels == 1:
+                    tmp = tmp[:, :, 0]
                 tmp = self._additional_augmentor(tmp)
                 tmp = np.array(tmp)
+                if color_channels == 1:
+                    tmp = np.reshape(tmp, tmp.shape + (1,))
                 tmp = self._scale_data(tmp)
                 element[0] = tmp
 

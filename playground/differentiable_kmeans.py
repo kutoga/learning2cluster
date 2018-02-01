@@ -140,9 +140,11 @@ for cluster in clusters:
     px = np.asarray(list(map(lambda c: c[0], cluster)))
     py = np.asarray(list(map(lambda c: c[1], cluster)))
     ax.scatter(px, py, alpha=0.8)
+
 px = np.asarray(list(map(lambda c: c[0], c_initial_clusters)))
 py = np.asarray(list(map(lambda c: c[1], c_initial_clusters)))
 ax.scatter(px, py, alpha=0.8, color='black')
+
 px = np.asarray(list(map(lambda c: c[0], cluster_centers)))
 py = np.asarray(list(map(lambda c: c[1], cluster_centers)))
 ax.scatter(px, py, alpha=0.8, color='yellow')
