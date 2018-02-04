@@ -22,7 +22,8 @@ class ImageDataProvider(DataProvider):
                  return_1d_images=False, center_data=False, random_mirror_images=False,
                  min_element_count_per_cluster=1, additional_augmentor=None,
                  use_augmentation_for_validation_data=True,
-                 use_augmentation_for_test_data=True, use_all_classes_for_train_test_validation=False):
+                 use_augmentation_for_test_data=True, use_all_classes_for_train_test_validation=False,
+                 allow_resampling=True):
         super().__init__()
         self.__return_1d_images = return_1d_images
         self._center_data = center_data
@@ -31,6 +32,9 @@ class ImageDataProvider(DataProvider):
         self._additional_augmentor = additional_augmentor
         self._use_augmentation_for_validation_data = use_augmentation_for_validation_data
         self._use_augmentation_for_test_data = use_augmentation_for_test_data
+        self._allow_resampling = allow_resampling
+        self._already_sampled = None
+        self.reset_sampling()
 
         # Load the data
         self.__data = None
@@ -103,6 +107,9 @@ class ImageDataProvider(DataProvider):
     def center_data(self, center_data):
         self._center_data = center_data
 
+    def reset_sampling(self):
+        self._already_sampled = {}
+
     def _scale_data(self, data, min_value=0, max_value=255):
         data = data.astype(np.float32)
         data -= min_value
@@ -147,7 +154,23 @@ class ImageDataProvider(DataProvider):
         # data = self.__data[class_name][:1] # Just for debugging
 
         data = self.__data[class_name]
-        random_element_index = random.randint(0, data.shape[0] - 1)
+
+        if self._allow_resampling:
+            random_element_index = random.randint(0, data.shape[0] - 1)
+        else:
+
+            if class_name not in self._already_sampled:
+                self._already_sampled[class_name] = set()
+            used_indices = self._already_sampled[class_name]
+
+            indices = set(range(0, data.shape[0])) - used_indices
+            if len(indices) == 0:
+                raise Exception("No indices left")
+
+            random_element_index = random.choice(indices)
+
+            # Store the used index
+            used_indices.add(random_element_index)
 
         # We need to copy the element, because it may be modified (and we do not want to modify it globally)
         element = np.copy(np.reshape(data[random_element_index], (1,) + data.shape[1:]))
@@ -195,7 +218,11 @@ class ImageDataProvider(DataProvider):
         img = np.reshape(img, img.shape + (1,))
         return img
 
-    def _get_clusters(self, element_count, cluster_count=None, data_type='train'):
+    def _get_clusters(self, element_count, cluster_count=None, data_type='train', auto_reset_resampling=True):
+
+        if not self._allow_resampling and auto_reset_resampling:
+            self.reset_sampling()
+
         org_element_count = element_count # debugging
         if cluster_count is not None and cluster_count > self.get_max_cluster_count():
             cluster_count = self.get_max_cluster_count()

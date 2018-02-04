@@ -6,14 +6,15 @@ from impl.data.image.image_data_provider import ImageDataProvider
 class LabeledFacesInTheWildCropDataProvider(ImageDataProvider):
     def __init__(self, dataset_dir, target_img_size=(48, 48), train_classes=None, validate_classes=None, test_classes=None,
                  min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1, additional_augmentor=None,
-                 use_all_classes_for_train_test_validation=False, min_images_per_class=1):
+                 use_all_classes_for_train_test_validation=False, min_images_per_class=1, allow_resampling=True):
         self.__img_size = target_img_size
         self.__min_images_per_class = min_images_per_class
         self.__dataset_dir = dataset_dir
         self.__img_size = target_img_size
         super().__init__(train_classes, validate_classes, test_classes, min_cluster_count, max_cluster_count,
                          center_data=True, random_mirror_images=True, min_element_count_per_cluster=min_element_count_per_cluster,
-                         additional_augmentor=additional_augmentor, use_all_classes_for_train_test_validation=use_all_classes_for_train_test_validation)
+                         additional_augmentor=additional_augmentor, use_all_classes_for_train_test_validation=use_all_classes_for_train_test_validation,
+                         allow_resampling=allow_resampling)
 
     def _get_img_data_shape(self):
         return self.__img_size + (3,)

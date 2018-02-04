@@ -186,34 +186,6 @@ def misclassification_rate_BV01(y_true, y_pred):
 
 misclassification_rate = misclassification_rate_BV01
 
-
-def _mr_expected_value(clusters, objects, n=10000, min_objects_per_cluster=1):
-    from random import randint, shuffle
-
-    def generate_clusters():
-        cluster_objs = np.ones((clusters,), dtype=np.int) * min_objects_per_cluster
-        count = objects - clusters * min_objects_per_cluster
-        while count > 0:
-            idx = randint(0, clusters - 1)
-            cluster_objs[idx] += 1
-            count -= 1
-
-        res = []
-        for i in range(clusters):
-            res += [i] * cluster_objs[i]
-        shuffle(res)
-
-        return res
-
-    mr_sum = 0.
-    for i in range(n):
-        mr_sum += misclassification_rate(
-            generate_clusters(),
-            generate_clusters()
-        )
-    mr_avg = mr_sum / n
-    return mr_avg
-
 if __name__ == '__main__':
     def flt_eq(x, y):
         return abs(x - y) < 1e-5
@@ -251,23 +223,6 @@ if __name__ == '__main__':
     # y_pred = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2]
     # print(misclassification_rate_BV01(y_true, y_pred))
 
-    n = 1000
-    x0 = _mr_expected_value(5, 20, n)
-    print(x0)
-    x1 = _mr_expected_value(1, 20, n, min_objects_per_cluster=2)
-    print(x1)
-    x2 = _mr_expected_value(2, 20, n, min_objects_per_cluster=2)
-    print(x2)
-    x3 = _mr_expected_value(3, 20, n, min_objects_per_cluster=2)
-    print(x3)
-    x4 = _mr_expected_value(4, 20, n, min_objects_per_cluster=2)
-    print(x4)
-    x5 = _mr_expected_value(5, 20, n, min_objects_per_cluster=2)
-    print(x5)
-    avg = (x1 + x2 + x3 + x4 + x5) / 5
-    print(avg)
-
-    pass
 
 
 

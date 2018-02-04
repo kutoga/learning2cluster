@@ -109,15 +109,16 @@ if __name__ == '__main__':
     #     except:
     #         print("ERROR")
 
-    # c_nn.build_networks(print_summaries=False)
+    c_nn.build_networks(print_summaries=False)
 
     # Enable autosave and try to load the latest configuration
-    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V126'
-    # c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
-    # c_nn.try_load_from_autosave(autosave_dir)
+    autosave_dir = top_dir + '/autosave_ClusterNNTry00_V143_try02'
+    # autosave_dir = top_dir + '/autosave_ClusterNNTry00_V126'
+    c_nn.register_autosave(autosave_dir, example_count=10, nth_iteration=500, train_examples_nth_iteration=2000, print_loss_plot_every_nth_itr=print_loss_plot_every_nth_itr)
+    c_nn.try_load_from_autosave(autosave_dir)
 
     # Train a loooong time
-    # c_nn.train(1000000)
+    c_nn.train(1000000)
 
     # Do two tests: once on the facescrub dataset and once on the labeled faces dataset
     dp_lfw = LabeledFacesInTheWildDataProvider(
@@ -146,13 +147,29 @@ if __name__ == '__main__':
     )
     dp_lfw_crop.use_augmentation_for_test_data = False
     dp_lfw_crop.use_augmentation_for_validation_data = False
+    dp_lfw2_crop = LabeledFacesInTheWildCropDataProvider(
+        top_dir + '/../lfw_crop/',
+
+        min_cluster_count=2,
+        max_cluster_count=5,
+        target_img_size=(128, 128),
+        min_element_count_per_cluster=2,
+        additional_augmentor=lambda x: p.sample_with_array(x),
+        min_images_per_class=10,
+
+        use_all_classes_for_train_test_validation=True,
+        allow_resampling=False
+    )
+    dp_lfw2_crop.use_augmentation_for_test_data = False
+    dp_lfw2_crop.use_augmentation_for_validation_data = False
     datasets = [
         (dp, 'facescrub'),
         (dp_lfw, 'lfw'),
+        (dp_lfw2_crop, 'lfw2_crop'),
         (dp_lfw_crop, 'lfw_crop')
     ]
 
-    output_base_dir = top_dir + '/autosave_ClusterNNTry00_V143'
+    output_base_dir = top_dir + '/autosave_ClusterNNTry00_V143_try02'
     for dataset in datasets:
         dataprovider, suffix = dataset
         print("Do final tests on the dataset '{}'".format(suffix))
@@ -166,7 +183,7 @@ if __name__ == '__main__':
 
         # Load the best weights and create some examples
         c_nn.try_load_from_autosave(autosave_dir, config='best')
-        c_nn.test_network(count=30, output_directory=output_base_dir + '/examples_final_{}'.format(suffix), data_type='test', create_date_dir=False)
+        c_nn.test_network(count=60, output_directory=output_base_dir + '/examples_final_{}'.format(suffix), data_type='test', create_date_dir=False)
         c_nn.test_network(count=300, output_directory=output_base_dir + '/examples_final_{}_metrics'.format(suffix), data_type='test', create_date_dir=False, only_store_scores=True)
 
         #########################################################################################
