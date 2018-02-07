@@ -167,7 +167,7 @@ class ImageDataProvider(DataProvider):
             if len(indices) == 0:
                 raise Exception("No indices left")
 
-            random_element_index = random.choice(indices)
+            random_element_index = random.choice(sorted(indices))
 
             # Store the used index
             used_indices.add(random_element_index)
@@ -220,7 +220,7 @@ class ImageDataProvider(DataProvider):
 
     def _get_clusters(self, element_count, cluster_count=None, data_type='train', auto_reset_resampling=True):
 
-        if not self._allow_resampling and auto_reset_resampling:
+        if (not self._allow_resampling) and auto_reset_resampling:
             self.reset_sampling()
 
         org_element_count = element_count # debugging

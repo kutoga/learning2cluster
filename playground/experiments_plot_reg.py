@@ -12,35 +12,11 @@ def get_dir(path):
     return os.path.join(base_dir, path)
 
 jobs = [{
-    'output_directory': 'G:/tmp/plots',
-    'tasks': [
-        {
-            'name': 'test',
-            'source_file': 'G:/tmp/test/gpulogin.cloudlab.zhaw.ch/MT_gpulab/autosave_ClusterNNTry00_V100/NN_ClusterNNTry00_V98_autosave_itr_NN_ClusterNNTry00_V98_NN_ClusterNNTry00_V98_cluster_nn.history.pkl',
-        }
-    ]
-}, {
     'output_directory': 'G:/tmp/experiments_plots',
     'tasks': [{
-        'name': '000_ex_2d_points',
-        'source_file': get_dir('autosave_ClusterNNTry00_V130/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '001_ex_timit',
-        'source_file': get_dir('autosave_ClusterNNTry00_V122/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '002_ex_coil_100',
-        'source_file': get_dir('autosave_ClusterNNTry00_V136/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '003_ex_facescrub',
-        'source_file': get_dir('autosave_ClusterNNTry00_V126/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '004_ex_tiny_imagenet',
-        'source_file': get_dir('autosave_ClusterNNTry00_V129/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
         'name': '005_ex_facescrub_ca',
         'source_file': get_dir('autosave_ClusterNNTry00_V139/NN_ClusterNNTry00_V135_autosave_itr_NN_ClusterNNTry00_V135_NN_ClusterNNTry00_V135_cluster_nn.history.pkl'),
-    },
-    ]
+    }]
 }]
 
 def try_makedirs(dir):
@@ -81,6 +57,14 @@ for job in jobs:
                     ('Cluster Assignment ($P_{ij}$) Loss: Validation', 'val_similarities_output_loss'),
                     ('Cluster Count Loss: Training', 'cluster_count_output_loss'),
                     ('Cluster Count Loss: Validation', 'val_cluster_count_output_loss'),
+                ]
+            },
+            {
+                'fname': 'ca_reg',
+                'title': 'Cluster Assignment Regularization',
+                'data': [
+                    ('Cluster Assignment Regularization: Training', 'cluster_assignment_regularization_loss'),
+                    ('Cluster Assignment Regularization: Validation', 'val_cluster_assignment_regularization_loss'),
                 ]
             }
         ]

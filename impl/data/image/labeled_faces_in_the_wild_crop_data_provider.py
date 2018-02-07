@@ -45,6 +45,9 @@ class LabeledFacesInTheWildCropDataProvider(ImageDataProvider):
                 if len(data[i]) >= self.__min_images_per_class:
                     new_data[counter] = data[i]
                     counter += 1
+            print("By using only classes with at least {} elements, the dataset was reduced from {} to {} records.".format(
+                self.__min_images_per_class, len(data), len(new_data)
+            ))
             data = new_data
 
         return data

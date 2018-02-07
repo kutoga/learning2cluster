@@ -6,10 +6,10 @@ import pickle
 import numpy as np
 
 cluster_count_probabilities = [
-    0.1,
     0.2,
-    0.6,
-    0.1
+    0.05,
+    0.7,
+    0.05
 ]
 cluster_4_index_probabilities = [
     # 0.05,
