@@ -1,4 +1,10 @@
-# Learning to Cluster - Investigations in Deep Learning for End-to-End Clustering	
+# Learning to Cluster - Investigations in Deep Learning for End-to-End Clustering
+
+THIS PAGE IS UNDER CONSTRUCTION: Soon it will be described how the experiments work and
+how they can be executed (they are basically all the scripts located in `./app/` and `./app2/`).
+
+Also a more detailed documentation will be uploaded.
+
 ## Basics
 This repository contains the code which was used to develop the neural network model which is described in [doc/paper/201801081730_full.pdf](doc/paper/201801081730_full.pdf).
 
