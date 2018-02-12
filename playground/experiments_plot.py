@@ -14,10 +14,10 @@ def get_dir(path):
 jobs = [{
     'output_directory': 'G:/tmp/plots',
     'tasks': [
-        {
-            'name': 'test',
-            'source_file': 'G:/tmp/test/gpulogin.cloudlab.zhaw.ch/MT_gpulab/autosave_ClusterNNTry00_V100/NN_ClusterNNTry00_V98_autosave_itr_NN_ClusterNNTry00_V98_NN_ClusterNNTry00_V98_cluster_nn.history.pkl',
-        }
+        # {
+        #     'name': 'test',
+        #     'source_file': 'G:/tmp/test/gpulogin.cloudlab.zhaw.ch/MT_gpulab/autosave_ClusterNNTry00_V100/NN_ClusterNNTry00_V98_autosave_itr_NN_ClusterNNTry00_V98_NN_ClusterNNTry00_V98_cluster_nn.history.pkl',
+        # }
     ]
 }, {
     'output_directory': 'G:/tmp/experiments_plots',
@@ -81,7 +81,8 @@ for job in jobs:
                     ('Cluster Assignment ($P_{ij}$) Loss: Validation', 'val_similarities_output_loss'),
                     ('Cluster Count Loss: Training', 'cluster_count_output_loss'),
                     ('Cluster Count Loss: Validation', 'val_cluster_count_output_loss'),
-                ]
+                ],
+                'legend_loc': 'upper right'
             }
         ]
 
@@ -173,7 +174,7 @@ for job in jobs:
                     x_min = data.index(y_min)
                     plot_points.append((x_min, y_min))
             plt.title(lplot['title'])
-            plt.legend(labels)
+            plt.legend(labels, loc=lplot['legend_loc'] if 'legend_loc' in lplot else 'best')
             plt.xlabel('Iteration')
             plt.ylabel('Loss')
 

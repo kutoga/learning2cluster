@@ -392,6 +392,83 @@ def regularizer_cluster_assignment(softmax_outputs, use_v02_loss=False):
     # Thats it:)
     return s
 
+
+def regularizer_cluster_assignment_new(softmax_outputs, use_v02_loss=False):
+    """
+    See "ClusterzuordnungsImplikationsregel.docx".
+
+    ASSUMPTIONS:
+    - There is a softmax for each input and each cluster count assumption
+    - There exist cluster count assumptions from k_min to k_max (for all natural numbers)
+
+    softmax_outputs = {
+        k_min: [sm_0, sm_1, ... sm_n],
+        k_min + 1: [sm_0, sm_1, ...],
+        ...
+        k_max: [sm_0, sm_1, ...]
+    }
+    :param softmax_outputs:
+    :return:
+    """
+    ks = sorted(list(softmax_outputs.keys()))
+    k_min = ks[0]
+    k_max = ks[-1]
+
+    # The result
+    s = 0
+
+    # If there is only one possible cluster count, the V01 code has nothing to do
+    if k_min != k_max:
+
+        # Get the count of available elements
+        element_count = len(softmax_outputs[k_min])
+
+        # for k in range(k_min, k_max - 1):
+        for k in range(k_min, k_max):
+            k_0 = k
+            k_1 = k + 1
+            sm_0 = softmax_outputs[k_0]
+            sm_1 = softmax_outputs[k_1]
+
+            # Go through all input combinations (excluding the diagonal)
+            for element_i in range(element_count):
+                for element_j in range(element_i + 1, element_count):
+
+                    # Calculate dot(s_{n+1}(element_i), s_{n+1}(element_j))
+                    t1 = K.sum(
+                        sm_1[element_i] * sm_1[element_j], axis=2
+                    )
+
+                    # Calculate dot(s_{n}(element_i), s_{n}(element_j))
+                    t0 = K.sum(
+                        sm_0[element_i] * sm_0[element_j], axis=2
+                    )
+
+                    s -= K.log(1 - t1 * (1 - t0) + K.epsilon())
+
+        # Normalize the result
+        s *= 1 / (k_max - k_min)
+
+    # The v02 of the loss adds another term that penalizes if not all clusters
+    # are used. The reason for this is, that the NN often chooses less clusters
+    # for objects, even if it says there are many clusters present. We want to
+    # avoid this, with this new additional term.
+    if use_v02_loss:
+        l_m = 0.
+        for k in range(k_min, k_max + 1):
+            sm_k = softmax_outputs[k]
+            l_m += K.mean(K.max(Concatenate(axis=1)(sm_k), axis=1), axis=1)
+        l_m /= k_max - k_min + 1
+        l_m = 1 - l_m
+
+        s += l_m
+
+    # Now we finally need to create a keras tensor; this is a bit hacky
+    s = Lambda(lambda x: s)(softmax_outputs[k_min][0])
+
+    # Thats it:)
+    return s
+
 class DynamicGaussianNoise(Layer):
 
     def __init__(self, stddev=1., mean=0., only_execute_for_training=True, **kwargs):

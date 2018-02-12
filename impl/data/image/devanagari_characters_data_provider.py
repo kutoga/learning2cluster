@@ -13,9 +13,10 @@ from impl.data.image.image_data_provider import ImageDataProvider
 
 class DevangariCharactersDataProvider(ImageDataProvider):
     def __init__(self, data_csv_path, train_classes=None, validate_classes=None, test_classes=None,
-                 min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1, additional_augmentor=None):
+                 min_cluster_count=None, max_cluster_count=None, min_element_count_per_cluster=1, additional_augmentor=None,
+                 old_style_auto_split=True):
         self._data_csv_path = data_csv_path
-        if train_classes is None and validate_classes is None and test_classes is None:
+        if old_style_auto_split and train_classes is None and validate_classes is None and test_classes is None:
             rand = Random()
             rand.seed(1337)
             classes = self._load_class_names()

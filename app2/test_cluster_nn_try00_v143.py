@@ -183,8 +183,10 @@ if __name__ == '__main__':
 
         # Load the best weights and create some examples
         c_nn.try_load_from_autosave(autosave_dir, config='best')
-        c_nn.test_network(count=60, output_directory=output_base_dir + '/examples_final_{}'.format(suffix), data_type='test', create_date_dir=False)
-        c_nn.test_network(count=300, output_directory=output_base_dir + '/examples_final_{}_metrics'.format(suffix), data_type='test', create_date_dir=False, only_store_scores=True)
+
+        # UPDATE: DO NOT CREATE ANY EXAMPLES
+        # c_nn.test_network(count=60, output_directory=output_base_dir + '/examples_final_{}'.format(suffix), data_type='test', create_date_dir=False)
+        # c_nn.test_network(count=300, output_directory=output_base_dir + '/examples_final_{}_metrics'.format(suffix), data_type='test', create_date_dir=False, only_store_scores=True)
 
         #########################################################################################
         # Do some advanced tests: Use forward dropout to measure how "confident" the network is.

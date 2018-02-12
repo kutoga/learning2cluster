@@ -57,7 +57,8 @@ for job in jobs:
                     ('Cluster Assignment ($P_{ij}$) Loss: Validation', 'val_similarities_output_loss'),
                     ('Cluster Count Loss: Training', 'cluster_count_output_loss'),
                     ('Cluster Count Loss: Validation', 'val_cluster_count_output_loss'),
-                ]
+                ],
+                'legend_loc': 'upper right'
             },
             {
                 'fname': 'ca_reg',
@@ -157,7 +158,7 @@ for job in jobs:
                     x_min = data.index(y_min)
                     plot_points.append((x_min, y_min))
             plt.title(lplot['title'])
-            plt.legend(labels)
+            plt.legend(labels, loc=lplot['legend_loc'] if 'legend_loc' in lplot else 'best')
             plt.xlabel('Iteration')
             plt.ylabel('Loss')
 
