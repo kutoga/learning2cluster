@@ -24,22 +24,23 @@ jobs = [{
     'tasks': [{
         'name': '000_ex_2d_points',
         'source_file': get_dir('autosave_ClusterNNTry00_V130/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '001_ex_timit',
-        'source_file': get_dir('autosave_ClusterNNTry00_V122/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '002_ex_coil_100',
-        'source_file': get_dir('autosave_ClusterNNTry00_V136/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '003_ex_facescrub',
-        'source_file': get_dir('autosave_ClusterNNTry00_V126/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '004_ex_tiny_imagenet',
-        'source_file': get_dir('autosave_ClusterNNTry00_V129/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
-    }, {
-        'name': '005_ex_facescrub_ca',
-        'source_file': get_dir('autosave_ClusterNNTry00_V139/NN_ClusterNNTry00_V135_autosave_itr_NN_ClusterNNTry00_V135_NN_ClusterNNTry00_V135_cluster_nn.history.pkl'),
     },
+    #     {
+    #     'name': '001_ex_timit',
+    #     'source_file': get_dir('autosave_ClusterNNTry00_V122/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
+    # }, {
+    #     'name': '002_ex_coil_100',
+    #     'source_file': get_dir('autosave_ClusterNNTry00_V136/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
+    # }, {
+    #     'name': '003_ex_facescrub',
+    #     'source_file': get_dir('autosave_ClusterNNTry00_V126/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
+    # }, {
+    #     'name': '004_ex_tiny_imagenet',
+    #     'source_file': get_dir('autosave_ClusterNNTry00_V129/NN_ClusterNNTry00_V122_autosave_itr_NN_ClusterNNTry00_V122_NN_ClusterNNTry00_V122_cluster_nn.history.pkl'),
+    # }, {
+    #     'name': '005_ex_facescrub_ca',
+    #     'source_file': get_dir('autosave_ClusterNNTry00_V139/NN_ClusterNNTry00_V135_autosave_itr_NN_ClusterNNTry00_V135_NN_ClusterNNTry00_V135_cluster_nn.history.pkl'),
+    # },
     ]
 }]
 
@@ -76,11 +77,11 @@ for job in jobs:
                 'title': 'Loss Terms',
                 'data': [
                     ('Total Loss: Training', 'loss'),
-                    ('Total Loss: Validation', 'val_loss'), # {'plot_min': True}),
+                    # ('Total Loss: Validation', 'val_loss'), # {'plot_min': True}),
                     ('Cluster Assignment ($P_{ij}$) Loss: Training', 'similarities_output_loss'),
-                    ('Cluster Assignment ($P_{ij}$) Loss: Validation', 'val_similarities_output_loss'),
+                    # ('Cluster Assignment ($P_{ij}$) Loss: Validation', 'val_similarities_output_loss'),
                     ('Cluster Count Loss: Training', 'cluster_count_output_loss'),
-                    ('Cluster Count Loss: Validation', 'val_cluster_count_output_loss'),
+                    # ('Cluster Count Loss: Validation', 'val_cluster_count_output_loss'),
                 ],
                 'legend_loc': 'upper right'
             }
@@ -92,7 +93,7 @@ for job in jobs:
                 'title': 'Accuracy',
                 'data': [
                     ('Cluster Count $k$: Training', 'cluster_count_output_categorical_accuracy'),
-                    ('Cluster Count $k$: Validation', 'val_cluster_count_output_categorical_accuracy'),
+                    # ('Cluster Count $k$: Validation', 'val_cluster_count_output_categorical_accuracy'),
                     # ('Cluster Assignment ($P_{ij}$): Training', 'similarities_output_acc'),
                     # ('Cluster Assignment ($P_{ij}$): Validation', 'val_similarities_output_acc'),
                 ]
@@ -137,7 +138,7 @@ for job in jobs:
         ]
 
         def window_range(data):
-            return int(0.005 * len(data))
+            return int(0.0025 * len(data))
 
         # try_makedirs(output_directory)
         plot_id = 0

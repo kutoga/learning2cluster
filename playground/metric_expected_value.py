@@ -35,14 +35,14 @@ def expected_value(fn_metric, clusters, objects, n=10000, min_objects_per_cluste
 
 metrics = {
     'NMI': metrics.normalized_mutual_info_score,
-    # 'BBN_norm': lambda y_true, y_pred: BBN(y_true, y_pred, Q=0, normalize=True),
+    'BBN_norm': lambda y_true, y_pred: BBN(y_true, y_pred, Q=0, normalize=True),
     'MR': misclassification_rate
 }
 
 n = 60
 clusters = 5
 min_cluster_size = 2
-objects = 20
+objects = 72
 for metric_name, fn_metric in sorted(metrics.items(), key=lambda x: x[0]):
     print()
     print(metric_name)
