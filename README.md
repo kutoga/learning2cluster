@@ -2,8 +2,14 @@
 
 **THIS PAGE IS UNDER CONSTRUCTION**: Not all details may be available, but at the 2018-03-04 a stable version will be available (including much more documentation etc.).
 
+
 ## Basics
-This repository contains the code which was used to develop the neural network model which is described in [doc/paper/201801081730_full.pdf](doc/paper/201801081730_full.pdf). This document is **not** yet finished. The final version will be available at the 2018-03-02. There also wil be two more documents available (a very short one for an overview and a very long one with all details and ideas).
+This repository contains the code which was used to develop the neural network model which is described in [doc/pdf/Paper.pdf](doc/pdf/Paper.pdf). There are three documents available:
+
+- A short-version (which was submitted as a ICLR-workshop paper): [doc/pdf/ICLR_Paper.pdf](doc/pdf/ICLR_Paper.pdf)
+	- ICLR-Workshop submission: [https://openreview.net/forum?id=HkWTqLsIz](https://openreview.net/forum?id=HkWTqLsIz)
+- A long version with more details: [doc/pdf/Paper.pdf](doc/pdf/Paper.pdf)
+- A thesis about this network, including many experiments and even more details: [doc/pdf/Thesis.pdf](doc/pdf/Thesis.pdf)
 
 The described supervised end-to-end learning model can be used to cluster any type of data. It might be required to change the embedding-network (e.g. a CNN for images) for the given data type, but all the other parts of the network do not have to be changed.
 
@@ -22,7 +28,7 @@ Because it cannot be defined what cluster index the network should use for a clu
 
 ![](doc/images/loss.png)
 
-## Implemented datasets
+## Implemented Datasets
 
 Currently the following listed datasets can be used for the training. For each dataset the final experiment (which is described in the linked documents) is given:
 
@@ -61,10 +67,12 @@ Currently the following listed datasets can be used for the training. For each d
 		- Final experiment: `./apps2/test_cluster_nn_try00_v130.py`
 
 Other datasets may be implemented quite easy, especially image based datasets.
- 
-## Train the network
+
+## Train the Network
 
 In the directories `app` and `app2`, there are many experiments. They can be run with python. Each experiment produces in a defined interval example outputs. Intervals may be defined for the training set, the validation set and finally it can be defined that the test set should be used to produce some examples.
+
+Assuming you want to run the experiment `./apps2/test_cluster_nn_try00_v130.py`: Inside the file there is at the beginning the variable `top_dir` which will be the output directory for the files which are created during the training. This path has to be changed. Some dataproviders require that a path to a dataset is given; in this case, this path also has to be adapted. Unfortunately, for most datasets it is not allowed to distribute them directly.
 
 The examples always contain the predicted cluster count and the predicted clusters. For images examples with the same underlying class have the same border color and the correct class count is green. For all examples, there are always all scores and probabilities stored in seperate csv-files. Here are some examples:
 
