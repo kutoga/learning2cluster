@@ -4,12 +4,11 @@
 
 
 ## Basics
-This repository contains the code which was used to develop the neural network model which is described in [doc/pdf/Paper.pdf](doc/pdf/Paper.pdf). There are three documents available:
+This repository contains the code which was used to develop the neural network model which is described in [doc/pdf/Paper.pdf](doc/pdf/Paper.pdf). There are two documents available:
 
 - A short-version (which was submitted as a ICLR-workshop paper): [doc/pdf/ICLR_Paper.pdf](doc/pdf/ICLR_Paper.pdf)
 	- ICLR-Workshop submission: [https://openreview.net/forum?id=HkWTqLsIz](https://openreview.net/forum?id=HkWTqLsIz)
-- A long version with more details: [doc/pdf/Paper.pdf](doc/pdf/Paper.pdf)
-- A thesis about this network, including many experiments and even more details: [doc/pdf/Thesis.pdf](doc/pdf/Thesis.pdf)
+- A thesis about this network, including many experiments and more details: [doc/pdf/Thesis.pdf](doc/pdf/Thesis.pdf)
 
 The described supervised end-to-end learning model can be used to cluster any type of data. It might be required to change the embedding-network (e.g. a CNN for images) for the given data type, but all the other parts of the network do not have to be changed.
 
